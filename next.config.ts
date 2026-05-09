@@ -1,7 +1,14 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next'
+import path from 'path'
+
+const projectRoot = path.resolve(__dirname)
 
 const nextConfig: NextConfig = {
-  /* config options here */
-};
+  outputFileTracingRoot: projectRoot,
+  experimental: {
+    workerThreads: false,
+    cpus: 1,
+  },
+}
 
-export default nextConfig;
+export default nextConfig

@@ -1,0 +1,69 @@
+import { KPIRow, AggregatedKPIs, SnapshotKPIWithDelta } from './types'
+
+interface RawRow {
+  org_id: string
+  savings_dbus: number
+  total_spend_dbus: number
+  unoptimized_spend_dbus: number
+  optimized_actual_dbus: number
+  warehouses: number
+}
+
+export function computeKPIRows(
+  rawRows: RawRow[],
+  nameMap: Map<string, string>,
+  contractTypeMap: Map<string, string>
+): KPIRow[] {
+  return rawRows.map((r) => {
+    const grossSpend = r.optimized_actual_dbus + r.savings_dbus
+    const savings_pct = grossSpend > 0 ? (r.savings_dbus / grossSpend) * 100 : 0
+    return {
+      org_id: r.org_id,
+      name: nameMap.get(r.org_id) ?? 'Unknown',
+      contract_type: (contractTypeMap.get(r.org_id) ?? 'consumption') as KPIRow['contract_type'],
+      savings_dbus: r.savings_dbus,
+      savings_pct,
+      total_spend_dbus: r.total_spend_dbus,
+      unoptimized_spend_dbus: r.unoptimized_spend_dbus,
+      warehouses: r.warehouses,
+    }
+  })
+}
+
+export function aggregateKPIRows(rows: KPIRow[]): AggregatedKPIs {
+  const rowsWithSavings = rows.filter((r) => r.savings_dbus > 0 || r.warehouses > 0)
+
+  const savings_dbus = rows.reduce((s, r) => s + r.savings_dbus, 0)
+  const total_spend_dbus = rows.reduce((s, r) => s + r.total_spend_dbus, 0)
+  const unoptimized_spend_dbus = rows.reduce((s, r) => s + r.unoptimized_spend_dbus, 0)
+  const warehouses = rows.reduce((s, r) => s + r.warehouses, 0)
+
+  const optimizedRows = rows.filter((r) => r.savings_dbus > 0 || r.warehouses > 0)
+  const grossSpend = rows.reduce((s, r) => {
+    const gross = r.savings_dbus + (r.total_spend_dbus - r.unoptimized_spend_dbus)
+    return s + gross
+  }, 0)
+  const savings_pct = grossSpend > 0 ? (savings_dbus / grossSpend) * 100 : 0
+
+  const avg_savings_pct =
+    optimizedRows.length > 0
+      ? optimizedRows.reduce((s, r) => s + r.savings_pct, 0) / optimizedRows.length
+      : 0
+
+  return { savings_dbus, savings_pct, avg_savings_pct, total_spend_dbus, unoptimized_spend_dbus, warehouses }
+}
+
+export function computeDeltas(
+  current: AggregatedKPIs,
+  prior: AggregatedKPIs
+): SnapshotKPIWithDelta {
+  return {
+    ...current,
+    delta_savings_dbus: current.savings_dbus - prior.savings_dbus,
+    delta_savings_pct: current.savings_pct - prior.savings_pct,
+    delta_avg_savings_pct: current.avg_savings_pct - prior.avg_savings_pct,
+    delta_total_spend_dbus: current.total_spend_dbus - prior.total_spend_dbus,
+    delta_unoptimized_spend_dbus: current.unoptimized_spend_dbus - prior.unoptimized_spend_dbus,
+    delta_warehouses: current.warehouses - prior.warehouses,
+  }
+}

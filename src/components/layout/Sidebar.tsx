@@ -1,0 +1,72 @@
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { useTheme } from './ThemeProvider'
+import { Moon, Sun } from 'lucide-react'
+
+const nav = [
+  {
+    group: 'Warehouse Optimization',
+    items: [
+      { label: 'KWO for Databricks', href: '/kwo-databricks' },
+      { label: 'KWO for Snowflake', href: '/kwo-snowflake', disabled: true },
+    ],
+  },
+  {
+    group: 'UI Usage Telemetry',
+    items: [
+      { label: 'Coming soon', href: '#', disabled: true },
+    ],
+  },
+]
+
+export function Sidebar() {
+  const pathname = usePathname()
+  const { theme, toggle } = useTheme()
+
+  return (
+    <aside
+      className="min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col py-6 px-3 shrink-0"
+      style={{ width: 380 }}
+    >
+      <div className="text-sidebar-foreground font-semibold text-sm px-3 mb-6 tracking-wide font-heading">KEEBO</div>
+      <nav className="flex flex-col gap-6 flex-1">
+        {nav.map((section) => (
+          <div key={section.group}>
+            <div className="text-sidebar-foreground/50 text-xs font-medium tracking-wider px-3 mb-1">
+              {section.group}
+            </div>
+            {section.items.map((item) => (
+              <Link
+                key={item.href}
+                href={item.disabled ? '#' : item.href}
+                className={cn(
+                  'block px-3 py-1.5 rounded text-sm transition-colors',
+                  item.disabled
+                    ? 'text-sidebar-foreground/25 cursor-not-allowed pointer-events-none'
+                    : pathname === item.href
+                    ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+                    : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
+                )}
+              >
+                {item.label}
+              </Link>
+            ))}
+          </div>
+        ))}
+      </nav>
+
+      <div className="border-t border-sidebar-border pt-4 mt-4">
+        <button
+          onClick={toggle}
+          className="flex items-center gap-2 w-full px-3 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"
+        >
+          {theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
+          {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+        </button>
+      </div>
+    </aside>
+  )
+}

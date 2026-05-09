@@ -1,0 +1,107 @@
+[
+  {
+    "org_id": "ac934",
+    "name": "Abacus Insights",
+    "valid_from": "2026-04-09",
+    "valid_to": null,
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "2a37e",
+    "name": "Life360",
+    "valid_from": "2025-11-27",
+    "valid_to": null,
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "b5a69",
+    "name": "PDI Technologies",
+    "valid_from": "2026-04-27",
+    "valid_to": null,
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "org_initech_003",
+    "name": "Initech Solutions",
+    "valid_from": "2024-02-15",
+    "valid_to": "2024-08-14",
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "org_initech_003",
+    "name": "Initech Solutions",
+    "valid_from": "2024-08-15",
+    "valid_to": "2025-02-28",
+    "contract_type": "subscription"
+  },
+  {
+    "org_id": "org_initech_003",
+    "name": "Initech Solutions",
+    "valid_from": "2025-03-01",
+    "valid_to": null,
+    "contract_type": "consumption"
+  },
+  {
+    "org_id": "org_umbrella_004",
+    "name": "Umbrella Analytics",
+    "valid_from": "2023-11-01",
+    "valid_to": "2024-04-30",
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "org_umbrella_004",
+    "name": "Umbrella Analytics",
+    "valid_from": "2024-05-01",
+    "valid_to": "2024-10-31",
+    "contract_type": "churn"
+  },
+  {
+    "org_id": "org_waystar_005",
+    "name": "Waystar Royco",
+    "valid_from": "2024-06-01",
+    "valid_to": "2024-11-30",
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "org_waystar_005",
+    "name": "Waystar Royco",
+    "valid_from": "2024-12-01",
+    "valid_to": null,
+    "contract_type": "lost_trial"
+  },
+  {
+    "org_id": "org_stark_006",
+    "name": "Stark Industries Data",
+    "valid_from": "2024-01-15",
+    "valid_to": null,
+    "contract_type": "subscription"
+  },
+  {
+    "org_id": "org_pied_007",
+    "name": "Pied Piper LLC",
+    "valid_from": "2025-01-01",
+    "valid_to": null,
+    "contract_type": "trial"
+  },
+  {
+    "org_id": "org_dunder_008",
+    "name": "Dunder Mifflin Tech",
+    "valid_from": "2023-06-01",
+    "valid_to": "2024-05-31",
+    "contract_type": "subscription"
+  },
+  {
+    "org_id": "org_dunder_008",
+    "name": "Dunder Mifflin Tech",
+    "valid_from": "2024-06-01",
+    "valid_to": null,
+    "contract_type": "churn"
+  },
+  {
+    "org_id": "org_vandelay_009",
+    "name": "Vandelay Industries",
+    "valid_from": "2024-09-01",
+    "valid_to": null,
+    "contract_type": "consumption"
+  }
+]
