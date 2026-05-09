@@ -210,24 +210,25 @@ function ChartWrapper({ title, children, isLight, height }: ChartWrapperProps) {
   )
 }
 
-interface QueryVolumePoint {
+interface EventPoint {
   period_start: string
-  query_count: number
+  event_count: number
 }
 
-function buildQueryVolumeData(queryVolume: QueryVolumePoint[], allPeriods?: PeriodMeta[]): ChartData[] {
+function buildEventData(events: EventPoint[], allPeriods?: PeriodMeta[]): ChartData[] {
   const byPeriod = new Map<string, { sum: number; label: string }>()
   for (const p of (allPeriods ?? [])) {
     byPeriod.set(p.period_start, { sum: 0, label: p.period_label_display })
   }
-  for (const qv of queryVolume) {
-    const existing = byPeriod.get(qv.period_start)
-    if (existing) existing.sum += qv.query_count
+  for (const e of events) {
+    const existing = byPeriod.get(e.period_start)
+    if (existing) existing.sum += e.event_count
   }
   return Array.from(byPeriod.entries())
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([, v]) => ({ label: v.label, value: v.sum }))
 }
+
 
 function makeKMFormatter(data: ChartData[]): (v: number) => string {
   const max = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 0
@@ -239,10 +240,12 @@ function makeKMFormatter(data: ChartData[]): (v: number) => string {
 interface TimeSeriesChartsProps {
   points: TimeSeriesPoint[]
   allPeriods?: PeriodMeta[]
-  queryVolume?: QueryVolumePoint[]
+  queryVolume?: EventPoint[]
+  autoStop?: EventPoint[]
+  resizing?: EventPoint[]
 }
 
-export function TimeSeriesCharts({ points, allPeriods, queryVolume }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, resizing }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -250,12 +253,18 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume }: TimeSeries
   const [savingsPctHidden, setSavingsPctHidden] = useState(false)
   const [warehousesHidden, setWarehousesHidden] = useState(false)
   const [queryVolumeHidden, setQueryVolumeHidden] = useState(false)
+  const [autoStopHidden, setAutoStopHidden] = useState(false)
+  const [resizingHidden, setResizingHidden] = useState(false)
 
   const savingsPct    = buildSavingsPctData(points, allPeriods)
   const stackedSavings = buildStackedSavingsData(points, allPeriods)
   const warehouses    = buildChartData(points, 'warehouses', allPeriods)
-  const queryVolumeData = buildQueryVolumeData(queryVolume ?? [], allPeriods)
+  const queryVolumeData = buildEventData(queryVolume ?? [], allPeriods)
+  const autoStopData  = buildEventData(autoStop ?? [], allPeriods)
+  const resizingData  = buildEventData(resizing ?? [], allPeriods)
   const fmtKM = makeKMFormatter(queryVolumeData)
+  const fmtKMAutoStop = makeKMFormatter(autoStopData)
+  const fmtKMResizing = makeKMFormatter(resizingData)
 
   const GRID   = isLight ? LIGHT_GRID   : DARK_GRID
   const AXIS   = isLight ? LIGHT_AXIS   : DARK_AXIS
@@ -420,6 +429,86 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume }: TimeSeries
               activeDot={isLight
                 ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+              connectNulls={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Auto-stop Optimizations" isLight={isLight}>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={autoStopData}>
+            <defs>
+              <linearGradient id="fillAutoStop" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={C_NAVY} stopOpacity={isLight ? 1 : 0.35} />
+                <stop offset="100%" stopColor={C_NAVY} stopOpacity={isLight ? 0.4 : 0.03} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke={GRID} vertical={false} />
+            <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={fmtKMAutoStop} />
+            <Tooltip {...TT} formatter={(v) => [fmtKMAutoStop(Number(v)), 'Auto-stop Events']} />
+            <Legend
+              verticalAlign="bottom"
+              iconType="square"
+              iconSize={20}
+              formatter={() => 'Auto-stop Events'}
+              wrapperStyle={legendStyle}
+              onClick={() => setAutoStopHidden(h => !h)}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              hide={autoStopHidden}
+              stroke={isLight ? '#051c27' : C_NAVY}
+              strokeWidth={2}
+              fill="url(#fillAutoStop)"
+              dot={isLight
+                ? { fill: C_NAVY, stroke: '#051c27', strokeWidth: 2, r: 4 }
+                : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 4 }}
+              activeDot={isLight
+                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 6 }}
+              connectNulls={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Resizing Optimizations" isLight={isLight}>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={resizingData}>
+            <defs>
+              <linearGradient id="fillResizing" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={C_GREEN} stopOpacity={isLight ? 1 : 0.35} />
+                <stop offset="100%" stopColor={C_GREEN} stopOpacity={isLight ? 0.4 : 0.03} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke={GRID} vertical={false} />
+            <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={fmtKMResizing} />
+            <Tooltip {...TT} formatter={(v) => [fmtKMResizing(Number(v)), 'Resizing Events']} />
+            <Legend
+              verticalAlign="bottom"
+              iconType="square"
+              iconSize={20}
+              formatter={() => 'Resizing Events'}
+              wrapperStyle={legendStyle}
+              onClick={() => setResizingHidden(h => !h)}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              hide={resizingHidden}
+              stroke={isLight ? '#051c27' : C_GREEN}
+              strokeWidth={2}
+              fill="url(#fillResizing)"
+              dot={isLight
+                ? { fill: C_GREEN, stroke: '#051c27', strokeWidth: 2, r: 4 }
+                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 4 }}
+              activeDot={isLight
+                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />
           </AreaChart>

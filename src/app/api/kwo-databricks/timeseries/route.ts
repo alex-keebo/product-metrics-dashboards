@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET } from '@/lib/bigquery'
+import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET, SILVER_DATASET } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractPeriodsForOrg } from '@/lib/customers'
 import { buildPeriods, defaultTimeSeriesRange, toDateString } from '@/lib/dates'
 import { ContractType, Granularity, TimeSeriesPoint } from '@/lib/types'
@@ -10,6 +10,12 @@ interface QVRow {
   date: { value: string } | string
   org_id: string
   query_count: number
+}
+
+interface EventRow {
+  date: { value: string } | string
+  org_id: string
+  event_count: number
 }
 
 interface RawRow {
@@ -48,7 +54,14 @@ export async function GET(req: NextRequest) {
 
     if (orgIds.length === 0) {
       const data_as_of = await getDataAsOf()
-      return NextResponse.json({ points: [], data_as_of, available_customers, query_volume_by_period: [] })
+      return NextResponse.json({
+        points: [],
+        data_as_of,
+        available_customers,
+        query_volume_by_period: [],
+        auto_stop_by_period: [],
+        resizing_by_period: [],
+      })
     }
 
     const sqlPath = path.join(process.cwd(), 'sql', 'kwo_databricks_timeseries.sql')
@@ -59,9 +72,20 @@ export async function GET(req: NextRequest) {
     const sqlTemplateQV = fs.readFileSync(sqlPathQV, 'utf-8')
     const queryQV = sqlTemplateQV.replace(/`keebo-portal\.k3o_dbx_bronze_tf\./g, `\`${PROJECT}.${BRONZE_DATASET}.`)
 
-    const [rows, qvRows] = await Promise.all([
-      runQuery<RawRow>(query, { start_date: startDate, end_date: endDate, org_ids: orgIds }),
-      runQuery<QVRow>(queryQV, { start_date: startDate, end_date: endDate, org_ids: orgIds }),
+    const sqlPathAS = path.join(process.cwd(), 'sql', 'kwo_databricks_auto_stop_events.sql')
+    const queryAS = fs.readFileSync(sqlPathAS, 'utf-8')
+      .replace(/`keebo-portal\.k3o_dbx_silver_tf\./g, `\`${PROJECT}.${SILVER_DATASET}.`)
+
+    const sqlPathRS = path.join(process.cwd(), 'sql', 'kwo_databricks_resizing_events.sql')
+    const queryRS = fs.readFileSync(sqlPathRS, 'utf-8')
+      .replace(/`keebo-portal\.k3o_dbx_silver_tf\./g, `\`${PROJECT}.${SILVER_DATASET}.`)
+
+    const params = { start_date: startDate, end_date: endDate, org_ids: orgIds }
+    const [rows, qvRows, asRows, rsRows] = await Promise.all([
+      runQuery<RawRow>(query, params),
+      runQuery<QVRow>(queryQV, params),
+      runQuery<EventRow>(queryAS, params),
+      runQuery<EventRow>(queryRS, params),
     ])
 
     const periods = buildPeriods(startDate, endDate, granularity)
@@ -119,16 +143,32 @@ export async function GET(req: NextRequest) {
 
     const all_periods = periods.map((p) => ({ period_start: p.start, period_label_display: p.displayLabel }))
 
-    const query_volume_by_period = periods.map((period) => {
-      const query_count = qvRows.reduce((sum, row) => {
-        const d = (row.date as { value: string })?.value ?? row.date as string
-        return d >= period.start && d <= period.end ? sum + Number(row.query_count) : sum
-      }, 0)
-      return { period_start: period.start, query_count }
-    })
+    const aggregateByPeriod = <T extends { date: { value: string } | string }>(
+      eventRows: T[],
+      getCount: (r: T) => number,
+    ) =>
+      periods.map((period) => {
+        const event_count = eventRows.reduce((sum, row) => {
+          const d = (row.date as { value: string })?.value ?? (row.date as string)
+          return d >= period.start && d <= period.end ? sum + getCount(row) : sum
+        }, 0)
+        return { period_start: period.start, event_count }
+      })
+
+    const query_volume_by_period = aggregateByPeriod(qvRows, (r) => Number(r.query_count))
+    const auto_stop_by_period = aggregateByPeriod(asRows, (r) => Number(r.event_count))
+    const resizing_by_period = aggregateByPeriod(rsRows, (r) => Number(r.event_count))
 
     const data_as_of = await getDataAsOf()
-    return NextResponse.json({ points, data_as_of, available_customers, all_periods, query_volume_by_period })
+    return NextResponse.json({
+      points,
+      data_as_of,
+      available_customers,
+      all_periods,
+      query_volume_by_period,
+      auto_stop_by_period,
+      resizing_by_period,
+    })
   } catch (err) {
     console.error('[timeseries]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })
