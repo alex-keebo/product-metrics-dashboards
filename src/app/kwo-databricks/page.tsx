@@ -29,9 +29,6 @@ interface TimeSeriesResponse {
   data_as_of: string
   available_customers: { org_id: string; name: string }[]
   all_periods: { period_start: string; period_label_display: string }[]
-  query_volume_by_period: { period_start: string; event_count: number }[]
-  auto_stop_by_period: { period_start: string; event_count: number }[]
-  resizing_by_period: { period_start: string; event_count: number }[]
 }
 
 const fmt1 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
@@ -64,6 +61,9 @@ const TIMESERIES_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'warehouses', label: 'Warehouses (#)', format: formatInt2, align: 'right' },
   { key: 'unoptimized_spend_dbus', label: 'Unoptimized Spend (DBUs)', format: formatDbu2, align: 'right' },
   { key: 'total_spend_dbus', label: 'Total Spend (DBUs)', format: formatDbu2, align: 'right' },
+  { key: 'query_volume', label: 'Query Volume', format: formatInt, align: 'right' },
+  { key: 'auto_stop_events', label: 'Auto-stop Optimizations', format: formatInt, align: 'right' },
+  { key: 'resizing_events', label: 'Resizing Optimizations', format: formatInt, align: 'right' },
 ]
 
 function SectionError({ message }: { message: string }) {
@@ -305,13 +305,7 @@ export default function KWODatabricksPage() {
               {tsError && <SectionError message={tsError} />}
               {!tsLoading && !tsError && timeseries && (
                 <>
-                  <TimeSeriesCharts
-                    points={timeseries.points}
-                    allPeriods={timeseries.all_periods}
-                    queryVolume={timeseries.query_volume_by_period}
-                    autoStop={timeseries.auto_stop_by_period}
-                    resizing={timeseries.resizing_by_period}
-                  />
+                  <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} />
                   <div>
                     <div className="text-sm font-medium text-foreground/80 mb-3">Data Table</div>
                     <DataTable

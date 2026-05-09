@@ -210,24 +210,6 @@ function ChartWrapper({ title, children, isLight, height }: ChartWrapperProps) {
   )
 }
 
-interface EventPoint {
-  period_start: string
-  event_count: number
-}
-
-function buildEventData(events: EventPoint[], allPeriods?: PeriodMeta[]): ChartData[] {
-  const byPeriod = new Map<string, { sum: number; label: string }>()
-  for (const p of (allPeriods ?? [])) {
-    byPeriod.set(p.period_start, { sum: 0, label: p.period_label_display })
-  }
-  for (const e of events) {
-    const existing = byPeriod.get(e.period_start)
-    if (existing) existing.sum += e.event_count
-  }
-  return Array.from(byPeriod.entries())
-    .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, v]) => ({ label: v.label, value: v.sum }))
-}
 
 
 function makeKMFormatter(data: ChartData[]): (v: number) => string {
@@ -240,12 +222,9 @@ function makeKMFormatter(data: ChartData[]): (v: number) => string {
 interface TimeSeriesChartsProps {
   points: TimeSeriesPoint[]
   allPeriods?: PeriodMeta[]
-  queryVolume?: EventPoint[]
-  autoStop?: EventPoint[]
-  resizing?: EventPoint[]
 }
 
-export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, resizing }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -259,10 +238,10 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
   const savingsPct    = buildSavingsPctData(points, allPeriods)
   const stackedSavings = buildStackedSavingsData(points, allPeriods)
   const warehouses    = buildChartData(points, 'warehouses', allPeriods)
-  const queryVolumeData = buildEventData(queryVolume ?? [], allPeriods)
-  const autoStopData  = buildEventData(autoStop ?? [], allPeriods)
-  const resizingData  = buildEventData(resizing ?? [], allPeriods)
-  const fmtKM = makeKMFormatter(queryVolumeData)
+  const queryVolumeData = buildChartData(points, 'query_volume', allPeriods)
+  const autoStopData   = buildChartData(points, 'auto_stop_events', allPeriods)
+  const resizingData   = buildChartData(points, 'resizing_events', allPeriods)
+  const fmtKM         = makeKMFormatter(queryVolumeData)
   const fmtKMAutoStop = makeKMFormatter(autoStopData)
   const fmtKMResizing = makeKMFormatter(resizingData)
 
@@ -339,13 +318,44 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
             <Tooltip content={<UsageTooltip isLight={isLight} />} cursor={{ fill: isLight ? '#F1F3F5' : '#0d3344' }} />
             <Legend
               verticalAlign="bottom"
-              iconType="square"
-              iconSize={20}
-              formatter={(value) =>
-                value === 'actual' ? 'Optimized spend' : value === 'unoptimized' ? 'Unoptimized spend' : 'Savings'
-              }
-              wrapperStyle={legendStyle}
-              onClick={toggleBar}
+              content={() => {
+                const items: { key: string; label: string; color: string }[] = [
+                  { key: 'actual',      label: 'Optimized spend',   color: C_NAVY  },
+                  { key: 'unoptimized', label: 'Unoptimized spend', color: C_TEAL  },
+                  { key: 'saved',       label: 'Savings',           color: C_GREEN },
+                ]
+                return (
+                  <ul style={{
+                    ...legendStyle,
+                    display: 'flex',
+                    justifyContent: 'center',
+                    gap: 24,
+                    listStyle: 'none',
+                    margin: 0,
+                    padding: 0,
+                  }}>
+                    {items.map(({ key, label, color }) => {
+                      const inactive = hiddenBars.has(key)
+                      return (
+                        <li
+                          key={key}
+                          onClick={() => toggleBar({ dataKey: key } as LegendPayload)}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            cursor: 'pointer',
+                            color: inactive ? (isLight ? '#9aa1a6' : '#3e5562') : legendStyle.color,
+                          }}
+                        >
+                          <span style={{ width: 20, height: 20, background: color, display: 'inline-block', opacity: inactive ? 0.4 : 1 }} />
+                          {label}
+                        </li>
+                      )
+                    })}
+                  </ul>
+                )
+              }}
             />
             <Bar dataKey="actual"      stackId="s" fill={C_NAVY}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('actual')} />
             <Bar dataKey="unoptimized" stackId="s" fill={C_TEAL}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('unoptimized')} />
@@ -400,8 +410,8 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
           <AreaChart data={queryVolumeData}>
             <defs>
               <linearGradient id="fillQueryVolume" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C_TEAL} stopOpacity={isLight ? 1 : 0.35} />
-                <stop offset="100%" stopColor={C_TEAL} stopOpacity={isLight ? 0.4 : 0.03} />
+                <stop offset="0%" stopColor={C_SLATE} stopOpacity={isLight ? 1 : 0.35} />
+                <stop offset="100%" stopColor={C_SLATE} stopOpacity={isLight ? 0.4 : 0.03} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={GRID} vertical={false} />
@@ -440,8 +450,8 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
           <AreaChart data={autoStopData}>
             <defs>
               <linearGradient id="fillAutoStop" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C_NAVY} stopOpacity={isLight ? 1 : 0.35} />
-                <stop offset="100%" stopColor={C_NAVY} stopOpacity={isLight ? 0.4 : 0.03} />
+                <stop offset="0%" stopColor={C_SLATE} stopOpacity={isLight ? 1 : 0.35} />
+                <stop offset="100%" stopColor={C_SLATE} stopOpacity={isLight ? 0.4 : 0.03} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={GRID} vertical={false} />
@@ -460,15 +470,15 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
               type="monotone"
               dataKey="value"
               hide={autoStopHidden}
-              stroke={isLight ? '#051c27' : C_NAVY}
+              stroke={isLight ? '#051c27' : C_TEAL}
               strokeWidth={2}
               fill="url(#fillAutoStop)"
               dot={isLight
-                ? { fill: C_NAVY, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 4 }}
+                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               activeDot={isLight
                 ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
-                : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 6 }}
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />
           </AreaChart>
@@ -480,8 +490,8 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
           <AreaChart data={resizingData}>
             <defs>
               <linearGradient id="fillResizing" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C_GREEN} stopOpacity={isLight ? 1 : 0.35} />
-                <stop offset="100%" stopColor={C_GREEN} stopOpacity={isLight ? 0.4 : 0.03} />
+                <stop offset="0%" stopColor={C_SLATE} stopOpacity={isLight ? 1 : 0.35} />
+                <stop offset="100%" stopColor={C_SLATE} stopOpacity={isLight ? 0.4 : 0.03} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={GRID} vertical={false} />
@@ -500,15 +510,15 @@ export function TimeSeriesCharts({ points, allPeriods, queryVolume, autoStop, re
               type="monotone"
               dataKey="value"
               hide={resizingHidden}
-              stroke={isLight ? '#051c27' : C_GREEN}
+              stroke={isLight ? '#051c27' : C_TEAL}
               strokeWidth={2}
               fill="url(#fillResizing)"
               dot={isLight
-                ? { fill: C_GREEN, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 4 }}
+                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               activeDot={isLight
                 ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
-                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 6 }}
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />
           </AreaChart>

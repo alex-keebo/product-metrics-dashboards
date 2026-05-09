@@ -27,6 +27,32 @@ interface RawRow {
   active: boolean
 }
 
+type OrgDateMap = Map<string, Map<string, number>>
+
+function buildOrgDateMap<T extends { date: { value: string } | string; org_id: string }>(
+  rows: T[],
+  getCount: (r: T) => number,
+): OrgDateMap {
+  const m: OrgDateMap = new Map()
+  for (const row of rows) {
+    const d = (row.date as { value: string })?.value ?? (row.date as string)
+    if (!m.has(row.org_id)) m.set(row.org_id, new Map())
+    const inner = m.get(row.org_id)!
+    inner.set(d, (inner.get(d) ?? 0) + getCount(row))
+  }
+  return m
+}
+
+function sumOrgDateMap(m: OrgDateMap, orgId: string, start: string, end: string): number {
+  const inner = m.get(orgId)
+  if (!inner) return 0
+  let total = 0
+  for (const [date, count] of inner) {
+    if (date >= start && date <= end) total += count
+  }
+  return total
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl
@@ -54,14 +80,7 @@ export async function GET(req: NextRequest) {
 
     if (orgIds.length === 0) {
       const data_as_of = await getDataAsOf()
-      return NextResponse.json({
-        points: [],
-        data_as_of,
-        available_customers,
-        query_volume_by_period: [],
-        auto_stop_by_period: [],
-        resizing_by_period: [],
-      })
+      return NextResponse.json({ points: [], data_as_of, available_customers, all_periods: [] })
     }
 
     const sqlPath = path.join(process.cwd(), 'sql', 'kwo_databricks_timeseries.sql')
@@ -88,13 +107,15 @@ export async function GET(req: NextRequest) {
       runQuery<EventRow>(queryRS, params),
     ])
 
+    const qvMap = buildOrgDateMap(qvRows, (r) => Number(r.query_count))
+    const asMap = buildOrgDateMap(asRows, (r) => Number(r.event_count))
+    const rsMap = buildOrgDateMap(rsRows, (r) => Number(r.event_count))
+
     const periods = buildPeriods(startDate, endDate, granularity)
 
-    // Aggregate daily rows into period buckets per org
     const points: TimeSeriesPoint[] = []
 
     for (const period of periods) {
-      // group by org
       const byOrg = new Map<string, RawRow[]>()
       for (const row of rows) {
         const d = row.date?.value ?? row.date
@@ -104,7 +125,6 @@ export async function GET(req: NextRequest) {
       }
 
       for (const [org_id, orgRows] of byOrg) {
-        // Split rows by contract period boundaries within this bucket
         const contractSegments = getContractPeriodsForOrg(org_id, period.start, period.end)
         for (const segment of contractSegments) {
           const segRows = orgRows.filter((r) => {
@@ -134,6 +154,9 @@ export async function GET(req: NextRequest) {
             total_spend_dbus,
             unoptimized_spend_dbus,
             warehouses,
+            query_volume: sumOrgDateMap(qvMap, org_id, segment.period_start, segment.period_end),
+            auto_stop_events: sumOrgDateMap(asMap, org_id, segment.period_start, segment.period_end),
+            resizing_events: sumOrgDateMap(rsMap, org_id, segment.period_start, segment.period_end),
           })
         }
       }
@@ -143,32 +166,8 @@ export async function GET(req: NextRequest) {
 
     const all_periods = periods.map((p) => ({ period_start: p.start, period_label_display: p.displayLabel }))
 
-    const aggregateByPeriod = <T extends { date: { value: string } | string }>(
-      eventRows: T[],
-      getCount: (r: T) => number,
-    ) =>
-      periods.map((period) => {
-        const event_count = eventRows.reduce((sum, row) => {
-          const d = (row.date as { value: string })?.value ?? (row.date as string)
-          return d >= period.start && d <= period.end ? sum + getCount(row) : sum
-        }, 0)
-        return { period_start: period.start, event_count }
-      })
-
-    const query_volume_by_period = aggregateByPeriod(qvRows, (r) => Number(r.query_count))
-    const auto_stop_by_period = aggregateByPeriod(asRows, (r) => Number(r.event_count))
-    const resizing_by_period = aggregateByPeriod(rsRows, (r) => Number(r.event_count))
-
     const data_as_of = await getDataAsOf()
-    return NextResponse.json({
-      points,
-      data_as_of,
-      available_customers,
-      all_periods,
-      query_volume_by_period,
-      auto_stop_by_period,
-      resizing_by_period,
-    })
+    return NextResponse.json({ points, data_as_of, available_customers, all_periods })
   } catch (err) {
     console.error('[timeseries]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

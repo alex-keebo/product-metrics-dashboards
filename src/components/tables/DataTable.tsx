@@ -103,18 +103,18 @@ export function DataTable<T extends Record<string, unknown>>({
                   key={String(col.key)}
                   onClick={() => toggleSort(col.key)}
                   className={cn(
-                    'px-3 font-medium cursor-pointer select-none whitespace-nowrap',
+                    'px-3 py-2 font-medium cursor-pointer select-none align-middle',
                     'text-[15px] leading-5 text-[#1C2225] dark:text-foreground hover:text-accent transition-colors',
                     col.align === 'right' ? 'text-right' : 'text-left'
                   )}
                 >
-                  <span className={cn('inline-flex items-center gap-1', col.align === 'right' ? 'flex-row-reverse' : '')}>
-                    {col.label}
+                  <span className="inline-flex items-start gap-1">
+                    <span className="break-words">{col.label}</span>
                     {sortKey === col.key
                       ? sortDir === 'asc'
-                        ? <ChevronUp className="w-3.5 h-3.5 shrink-0" />
-                        : <ChevronDown className="w-3.5 h-3.5 shrink-0" />
-                      : <ChevronDown className="w-3.5 h-3.5 shrink-0 opacity-20" />}
+                        ? <ChevronUp className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                        : <ChevronDown className="w-3.5 h-3.5 shrink-0 mt-0.5" />
+                      : <ChevronDown className="w-3.5 h-3.5 shrink-0 mt-0.5 opacity-20" />}
                   </span>
                 </th>
               ))}

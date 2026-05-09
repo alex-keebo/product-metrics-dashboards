@@ -48,6 +48,9 @@ export interface TimeSeriesPoint {
   total_spend_dbus: number
   unoptimized_spend_dbus: number
   warehouses: number
+  query_volume: number
+  auto_stop_events: number
+  resizing_events: number
 }
 
 export interface TimeSeriesResponse {

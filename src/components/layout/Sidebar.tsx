@@ -29,7 +29,7 @@ export function Sidebar() {
   return (
     <aside
       className="min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col py-6 px-3 shrink-0"
-      style={{ width: 380 }}
+      style={{ width: 266 }}
     >
       <div className="text-sidebar-foreground font-semibold text-sm px-3 mb-6 tracking-wide font-heading">KEEBO</div>
       <nav className="flex flex-col gap-6 flex-1">
