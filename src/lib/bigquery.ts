@@ -5,6 +5,7 @@ const bigquery = new BigQuery({
 })
 
 export const DATASET = process.env.BIGQUERY_DATASET ?? 'k3o_dbx_gold_tf'
+export const BRONZE_DATASET = process.env.BIGQUERY_BRONZE_DATASET ?? 'k3o_dbx_bronze_tf'
 export const PROJECT = process.env.BIGQUERY_PROJECT_ID ?? 'keebo-portal'
 export const LOCATION = process.env.BIGQUERY_LOCATION ?? 'us-central1'
 

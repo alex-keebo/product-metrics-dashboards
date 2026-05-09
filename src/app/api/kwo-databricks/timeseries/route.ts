@@ -1,10 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET } from '@/lib/bigquery'
+import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractPeriodsForOrg } from '@/lib/customers'
 import { buildPeriods, defaultTimeSeriesRange, toDateString } from '@/lib/dates'
 import { ContractType, Granularity, TimeSeriesPoint } from '@/lib/types'
 import fs from 'fs'
 import path from 'path'
+
+interface QVRow {
+  date: { value: string } | string
+  org_id: string
+  query_count: number
+}
 
 interface RawRow {
   date: { value: string }
@@ -42,18 +48,21 @@ export async function GET(req: NextRequest) {
 
     if (orgIds.length === 0) {
       const data_as_of = await getDataAsOf()
-      return NextResponse.json({ points: [], data_as_of, available_customers })
+      return NextResponse.json({ points: [], data_as_of, available_customers, query_volume_by_period: [] })
     }
 
     const sqlPath = path.join(process.cwd(), 'sql', 'kwo_databricks_timeseries.sql')
     const sqlTemplate = fs.readFileSync(sqlPath, 'utf-8')
     const query = sqlTemplate.replace(/`keebo-portal\.k3o_dbx_gold_tf\./g, `\`${PROJECT}.${DATASET}.`)
 
-    const rows = await runQuery<RawRow>(query, {
-      start_date: startDate,
-      end_date: endDate,
-      org_ids: orgIds,
-    })
+    const sqlPathQV = path.join(process.cwd(), 'sql', 'kwo_databricks_query_volume.sql')
+    const sqlTemplateQV = fs.readFileSync(sqlPathQV, 'utf-8')
+    const queryQV = sqlTemplateQV.replace(/`keebo-portal\.k3o_dbx_bronze_tf\./g, `\`${PROJECT}.${BRONZE_DATASET}.`)
+
+    const [rows, qvRows] = await Promise.all([
+      runQuery<RawRow>(query, { start_date: startDate, end_date: endDate, org_ids: orgIds }),
+      runQuery<QVRow>(queryQV, { start_date: startDate, end_date: endDate, org_ids: orgIds }),
+    ])
 
     const periods = buildPeriods(startDate, endDate, granularity)
 
@@ -110,8 +119,16 @@ export async function GET(req: NextRequest) {
 
     const all_periods = periods.map((p) => ({ period_start: p.start, period_label_display: p.displayLabel }))
 
+    const query_volume_by_period = periods.map((period) => {
+      const query_count = qvRows.reduce((sum, row) => {
+        const d = (row.date as { value: string })?.value ?? row.date as string
+        return d >= period.start && d <= period.end ? sum + Number(row.query_count) : sum
+      }, 0)
+      return { period_start: period.start, query_count }
+    })
+
     const data_as_of = await getDataAsOf()
-    return NextResponse.json({ points, data_as_of, available_customers, all_periods })
+    return NextResponse.json({ points, data_as_of, available_customers, all_periods, query_volume_by_period })
   } catch (err) {
     console.error('[timeseries]', err)
     return NextResponse.json({ error: String(err) }, { status: 500 })

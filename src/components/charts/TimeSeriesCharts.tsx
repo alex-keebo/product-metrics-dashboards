@@ -210,22 +210,52 @@ function ChartWrapper({ title, children, isLight, height }: ChartWrapperProps) {
   )
 }
 
+interface QueryVolumePoint {
+  period_start: string
+  query_count: number
+}
+
+function buildQueryVolumeData(queryVolume: QueryVolumePoint[], allPeriods?: PeriodMeta[]): ChartData[] {
+  const byPeriod = new Map<string, { sum: number; label: string }>()
+  for (const p of (allPeriods ?? [])) {
+    byPeriod.set(p.period_start, { sum: 0, label: p.period_label_display })
+  }
+  for (const qv of queryVolume) {
+    const existing = byPeriod.get(qv.period_start)
+    if (existing) existing.sum += qv.query_count
+  }
+  return Array.from(byPeriod.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([, v]) => ({ label: v.label, value: v.sum }))
+}
+
+function makeKMFormatter(data: ChartData[]): (v: number) => string {
+  const max = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 0
+  if (max >= 1_000_000) return (v) => `${(v / 1_000_000).toFixed(2)}M`
+  if (max >= 1_000) return (v) => `${(v / 1_000).toFixed(2)}K`
+  return (v) => String(Math.round(v))
+}
+
 interface TimeSeriesChartsProps {
   points: TimeSeriesPoint[]
   allPeriods?: PeriodMeta[]
+  queryVolume?: QueryVolumePoint[]
 }
 
-export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods, queryVolume }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
   const [hiddenBars, setHiddenBars] = useState<Set<string>>(new Set())
   const [savingsPctHidden, setSavingsPctHidden] = useState(false)
   const [warehousesHidden, setWarehousesHidden] = useState(false)
+  const [queryVolumeHidden, setQueryVolumeHidden] = useState(false)
 
   const savingsPct    = buildSavingsPctData(points, allPeriods)
   const stackedSavings = buildStackedSavingsData(points, allPeriods)
   const warehouses    = buildChartData(points, 'warehouses', allPeriods)
+  const queryVolumeData = buildQueryVolumeData(queryVolume ?? [], allPeriods)
+  const fmtKM = makeKMFormatter(queryVolumeData)
 
   const GRID   = isLight ? LIGHT_GRID   : DARK_GRID
   const AXIS   = isLight ? LIGHT_AXIS   : DARK_AXIS
@@ -344,6 +374,46 @@ export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) 
               stroke={isLight ? '#051c27' : C_TEAL}
               strokeWidth={2}
               fill="url(#fillWarehouses)"
+              dot={isLight
+                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
+              activeDot={isLight
+                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+              connectNulls={false}
+            />
+          </AreaChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Query Volumes" isLight={isLight}>
+        <ResponsiveContainer width="100%" height={220}>
+          <AreaChart data={queryVolumeData}>
+            <defs>
+              <linearGradient id="fillQueryVolume" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor={C_TEAL} stopOpacity={isLight ? 1 : 0.35} />
+                <stop offset="100%" stopColor={C_TEAL} stopOpacity={isLight ? 0.4 : 0.03} />
+              </linearGradient>
+            </defs>
+            <CartesianGrid stroke={GRID} vertical={false} />
+            <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={fmtKM} />
+            <Tooltip {...TT} formatter={(v) => [fmtKM(Number(v)), 'Query Volume']} />
+            <Legend
+              verticalAlign="bottom"
+              iconType="square"
+              iconSize={20}
+              formatter={() => 'Query Volume'}
+              wrapperStyle={legendStyle}
+              onClick={() => setQueryVolumeHidden(h => !h)}
+            />
+            <Area
+              type="monotone"
+              dataKey="value"
+              hide={queryVolumeHidden}
+              stroke={isLight ? '#051c27' : C_TEAL}
+              strokeWidth={2}
+              fill="url(#fillQueryVolume)"
               dot={isLight
                 ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
