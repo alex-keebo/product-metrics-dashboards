@@ -1,0 +1,148 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { hogql } from '@/lib/posthog'
+import { subDays, differenceInCalendarDays, parseISO, format } from 'date-fns'
+
+const ALL_MODULE_SLUGS = [
+  'databricks-warehouse-optimization',
+  'warehouse-optimization',
+  'workload-iq',
+]
+
+function buildModuleFilter(slugs: string[]): string {
+  const list = slugs.map((s) => `'${s}'`).join(', ')
+  return `extract(properties.$current_url, 'https?://[^/]+/([^/?]+)') IN (${list})`
+}
+
+function buildUserFilter(userType: string): string {
+  if (userType === 'external') return `person.properties.is_internal_user != true`
+  if (userType === 'internal') return `person.properties.is_internal_user = true`
+  return '1 = 1'
+}
+
+function prevPeriod(start: string, end: string) {
+  const s = parseISO(start)
+  const e = parseISO(end)
+  const days = differenceInCalendarDays(e, s) + 1
+  const prevEnd = subDays(s, 1)
+  const prevStart = subDays(prevEnd, days - 1)
+  return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') }
+}
+
+async function queryTotalCustomers(start: string, end: string, mf: string, uf: string) {
+  const rows = await hogql(`
+    SELECT count(distinct org.properties.name) AS count
+    FROM events
+    WHERE event = '$pageview'
+      AND toDate(timestamp) >= '${start}' AND toDate(timestamp) <= '${end}'
+      AND ${mf}
+      AND ${uf}
+      AND isNotNull(org.properties.name)
+      AND org.properties.name != ''
+  `)
+  return Number(rows[0]?.count ?? 0)
+}
+
+async function queryAvgDailyCustomers(start: string, end: string, mf: string, uf: string) {
+  const rows = await hogql(`
+    SELECT avg(daily_count) AS avg_count
+    FROM (
+      SELECT toDate(timestamp) AS day, count(distinct org.properties.name) AS daily_count
+      FROM events
+      WHERE event = '$pageview'
+        AND toDate(timestamp) >= '${start}' AND toDate(timestamp) <= '${end}'
+        AND ${mf}
+        AND ${uf}
+        AND isNotNull(org.properties.name)
+        AND org.properties.name != ''
+      GROUP BY day
+    )
+  `)
+  return Number(rows[0]?.avg_count ?? 0)
+}
+
+async function queryTotalUsers(start: string, end: string, mf: string, uf: string) {
+  const rows = await hogql(`
+    SELECT count(distinct properties.$user_id) AS count
+    FROM events
+    WHERE event = '$pageview'
+      AND toDate(timestamp) >= '${start}' AND toDate(timestamp) <= '${end}'
+      AND ${mf}
+      AND ${uf}
+      AND isNotNull(properties.$user_id)
+      AND properties.$user_id != ''
+  `)
+  return Number(rows[0]?.count ?? 0)
+}
+
+async function queryAvgDailyUsers(start: string, end: string, mf: string, uf: string) {
+  const rows = await hogql(`
+    SELECT avg(daily_count) AS avg_count
+    FROM (
+      SELECT toDate(timestamp) AS day, count(distinct properties.$user_id) AS daily_count
+      FROM events
+      WHERE event = '$pageview'
+        AND toDate(timestamp) >= '${start}' AND toDate(timestamp) <= '${end}'
+        AND ${mf}
+        AND ${uf}
+        AND isNotNull(properties.$user_id)
+        AND properties.$user_id != ''
+      GROUP BY day
+    )
+  `)
+  return Number(rows[0]?.avg_count ?? 0)
+}
+
+export async function GET(req: NextRequest) {
+  try {
+    const { searchParams } = req.nextUrl
+
+    const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd')
+    const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd')
+
+    const start = searchParams.get('start') ?? sevenDaysAgo
+    const end = searchParams.get('end') ?? yesterday
+    const rawModules = searchParams.get('modules')
+    const slugs = rawModules
+      ? rawModules.split(',').filter((s) => ALL_MODULE_SLUGS.includes(s))
+      : ALL_MODULE_SLUGS
+    const userType = ['external', 'internal', 'all'].includes(searchParams.get('user_type') ?? '')
+      ? (searchParams.get('user_type') as string)
+      : 'external'
+
+    // Validate dates
+    parseISO(start)
+    parseISO(end)
+
+    const prev = prevPeriod(start, end)
+    const mf = buildModuleFilter(slugs.length ? slugs : ALL_MODULE_SLUGS)
+    const uf = buildUserFilter(userType)
+
+    const [
+      curCustomers, prevCustomers,
+      curAvgCustomers, prevAvgCustomers,
+      curUsers, prevUsers,
+      curAvgUsers, prevAvgUsers,
+    ] = await Promise.all([
+      queryTotalCustomers(start, end, mf, uf),
+      queryTotalCustomers(prev.start, prev.end, mf, uf),
+      queryAvgDailyCustomers(start, end, mf, uf),
+      queryAvgDailyCustomers(prev.start, prev.end, mf, uf),
+      queryTotalUsers(start, end, mf, uf),
+      queryTotalUsers(prev.start, prev.end, mf, uf),
+      queryAvgDailyUsers(start, end, mf, uf),
+      queryAvgDailyUsers(prev.start, prev.end, mf, uf),
+    ])
+
+    return NextResponse.json({
+      total_customers: { current: curCustomers, previous: prevCustomers, delta: curCustomers - prevCustomers },
+      avg_daily_customers: { current: curAvgCustomers, previous: prevAvgCustomers, delta: curAvgCustomers - prevAvgCustomers },
+      total_users: { current: curUsers, previous: prevUsers, delta: curUsers - prevUsers },
+      avg_daily_users: { current: curAvgUsers, previous: prevAvgUsers, delta: curAvgUsers - prevAvgUsers },
+      period: { start, end },
+      prev_period: prev,
+    })
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e)
+    return NextResponse.json({ error: message }, { status: 500 })
+  }
+}

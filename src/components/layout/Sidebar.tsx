@@ -17,7 +17,7 @@ const nav = [
   {
     group: 'UI Usage Telemetry',
     items: [
-      { label: 'Coming soon', href: '#', disabled: true },
+      { label: 'Platform Usage', href: '/platform-usage' },
     ],
   },
 ]

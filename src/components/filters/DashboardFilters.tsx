@@ -1,9 +1,9 @@
 'use client'
 
 import { MultiSelect } from './MultiSelect'
+import { SingleSelect } from './SingleSelect'
 import { DateRangePicker } from './DateRangePicker'
 import { ContractType, Granularity } from '@/lib/types'
-import { cn } from '@/lib/utils'
 
 const CONTRACT_TYPE_OPTIONS = [
   { value: 'consumption', label: 'Consumption' },
@@ -97,22 +97,12 @@ export function DashboardFilters({
           )}
 
           {granularity && onGranularityChange && (
-            <div className="flex flex-col gap-1">
-              <label className="text-xs text-muted-foreground font-medium">Group By</label>
-              <select
-                value={granularity}
-                onChange={(e) => onGranularityChange(e.target.value as Granularity)}
-                className={cn(
-                  'px-3 py-1.5 rounded border text-sm min-w-[200px]',
-                  'bg-card border-border text-foreground',
-                  'hover:border-ring/50 transition-colors'
-                )}
-              >
-                {GRANULARITY_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
+            <SingleSelect
+              label="Group By"
+              options={GRANULARITY_OPTIONS}
+              value={granularity}
+              onChange={(v) => onGranularityChange(v as Granularity)}
+            />
           )}
         </>
       )}

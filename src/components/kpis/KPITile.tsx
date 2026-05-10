@@ -9,18 +9,26 @@ interface KPITileProps {
   unit: string
   value: number
   delta: number
-  format: 'dbu' | 'pct'
+  format: 'dbu' | 'pct' | 'count'
   higherIsBetter: boolean
+  periodLabel?: string
+  decimals?: number
 }
 
-function formatValue(v: number, fmt: 'dbu' | 'pct'): string {
+function formatValue(v: number, fmt: 'dbu' | 'pct' | 'count', decimals = 0): string {
   if (fmt === 'pct') return `${v.toFixed(1)}%`
+  if (fmt === 'count') {
+    const abs = Math.abs(v)
+    if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(1)}M`
+    if (abs >= 1_000) return `${(v / 1_000).toFixed(1)}K`
+    return v.toFixed(decimals)
+  }
   if (Math.abs(v) >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`
   if (Math.abs(v) >= 1_000) return `${(v / 1_000).toFixed(1)}K`
   return v.toFixed(1)
 }
 
-export function KPITile({ label, unit, value, delta, format, higherIsBetter }: KPITileProps) {
+export function KPITile({ label, unit, value, delta, format, higherIsBetter, periodLabel = 'vs Previous Week', decimals = 0 }: KPITileProps) {
   const { theme } = useTheme()
   const dark = theme === 'dark'
 
@@ -62,7 +70,7 @@ export function KPITile({ label, unit, value, delta, format, higherIsBetter }: K
             'text-[40px] leading-[53px] font-heading font-semibold tabular-nums',
             dark ? 'text-[#F5F5F5]' : 'text-[#2D2A2A]'
           )}>
-            {formatValue(value, format)}
+            {formatValue(value, format, decimals)}
           </div>
           <div className={cn(
             'text-[14px] leading-5',
@@ -79,13 +87,13 @@ export function KPITile({ label, unit, value, delta, format, higherIsBetter }: K
             badgeStyle.text
           )}>
             <DeltaIcon className="w-3 h-3 shrink-0" />
-            {sign}{formatValue(delta, format)}
+            {sign}{formatValue(delta, format, decimals)}
           </div>
           <div className={cn(
             'text-[14px] leading-5 text-right',
             dark ? 'text-[#F5F5F5]' : 'text-[#4E575B]'
           )}>
-            vs Previous Week
+            {periodLabel}
           </div>
         </div>
       </div>

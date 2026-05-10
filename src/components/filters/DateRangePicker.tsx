@@ -26,14 +26,14 @@ const PRESETS: { label: string; getRange: () => DateRange }[] = [
 
 // Override react-day-picker CSS variables to match project theme
 const RDP_VARS = {
-  '--rdp-accent-color':                      '#2a6985',
-  '--rdp-accent-background-color':           'color-mix(in srgb, #2a6985 15%, transparent)',
-  '--rdp-range_middle-background-color':     '#9ac6da',
+  '--rdp-accent-color':                      'var(--primary)',
+  '--rdp-accent-background-color':           'color-mix(in srgb, var(--primary) 15%, transparent)',
+  '--rdp-range_middle-background-color':     'var(--secondary)',
   '--rdp-range_middle-color':                'var(--muted-foreground)',
   '--rdp-range_start-color':                 'var(--muted-foreground)',
   '--rdp-range_end-color':                   'var(--muted-foreground)',
-  '--rdp-range_start-date-background-color': '#2a6985',
-  '--rdp-range_end-date-background-color':   '#2a6985',
+  '--rdp-range_start-date-background-color': 'var(--primary)',
+  '--rdp-range_end-date-background-color':   'var(--primary)',
   '--rdp-today-color':                       'var(--primary)',
   '--rdp-day-height':                        '36px',
   '--rdp-day-width':                         '36px',

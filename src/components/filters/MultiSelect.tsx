@@ -58,7 +58,7 @@ export function MultiSelect({ label, options, selected, onChange, disabled, plac
       : `${selected.length} selected`
 
   return (
-    <div className="flex flex-col gap-1" ref={ref}>
+    <div className="inline-flex flex-col gap-1" ref={ref}>
       <label className="text-xs text-muted-foreground font-medium">{label}</label>
       <div className="relative">
         <button
@@ -66,27 +66,27 @@ export function MultiSelect({ label, options, selected, onChange, disabled, plac
           disabled={disabled}
           onClick={() => setOpen((v) => !v)}
           className={cn(
-            'flex items-center justify-between w-full min-w-[160px] px-3 py-1.5 rounded border text-sm',
+            'flex items-center justify-between w-full min-w-[120px] px-3 py-1.5 rounded border text-sm',
             'bg-card border-border text-foreground',
             'hover:border-ring/50 transition-colors',
             disabled && 'opacity-40 cursor-not-allowed'
           )}
         >
-          <span className="truncate">{displayText}</span>
+          <span className="truncate whitespace-nowrap">{displayText}</span>
           <ChevronDown className="w-3.5 h-3.5 ml-2 shrink-0 text-muted-foreground" />
         </button>
 
         {open && (
-          <div className="absolute z-50 mt-1 w-full min-w-[180px] bg-popover border border-border rounded shadow-lg max-h-64 overflow-y-auto">
+          <div className="absolute z-50 mt-1 w-max max-w-[560px] min-w-full bg-popover border border-border rounded shadow-lg max-h-64 overflow-y-auto">
             <button
               type="button"
               onClick={toggleSelectAll}
-              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-secondary border-b border-border"
+              className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-secondary border-b border-border whitespace-nowrap"
             >
               <span className={cn('w-4 h-4 border rounded flex items-center justify-center shrink-0',
-                allSelected ? 'bg-primary border-primary' : 'border-border'
+                allSelected ? 'bg-[#F5F5F5] border-primary dark:bg-secondary dark:border-secondary' : 'border-border'
               )}>
-                {allSelected && <Check className="w-3 h-3 text-primary-foreground" />}
+                {allSelected && <Check className="w-3 h-3 text-primary dark:text-secondary-foreground" />}
               </span>
               Select All
             </button>
@@ -97,14 +97,14 @@ export function MultiSelect({ label, options, selected, onChange, disabled, plac
                   key={opt.value}
                   type="button"
                   onClick={() => toggleItem(opt.value)}
-                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-secondary"
+                  className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-secondary whitespace-nowrap overflow-hidden"
                 >
                   <span className={cn('w-4 h-4 border rounded flex items-center justify-center shrink-0',
-                    checked ? 'bg-primary border-primary' : 'border-border'
+                    checked ? 'bg-[#F5F5F5] border-primary dark:bg-secondary dark:border-secondary' : 'border-border'
                   )}>
-                    {checked && <Check className="w-3 h-3 text-primary-foreground" />}
+                    {checked && <Check className="w-3 h-3 text-primary dark:text-secondary-foreground" />}
                   </span>
-                  {opt.label}
+                  <span className="truncate">{opt.label}</span>
                 </button>
               )
             })}
