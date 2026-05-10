@@ -52,7 +52,7 @@ export function KPITile({ label, unit, value, delta, format, higherIsBetter, per
 
   return (
     <div
-      className="rounded-[15px] p-[30px] flex flex-col justify-between min-h-[178px]"
+      className="@container rounded-[15px] p-[30px] flex flex-col justify-between min-h-[178px]"
       style={cardStyle}
     >
       {/* Title row */}
@@ -80,7 +80,7 @@ export function KPITile({ label, unit, value, delta, format, higherIsBetter, per
           </div>
         </div>
 
-        <div className="flex flex-col items-end gap-1 shrink-0">
+        <div className="flex flex-col items-end gap-1 shrink-0 @max-[260px]:hidden">
           <div className={cn(
             'flex items-center gap-1 px-2 py-1 rounded-[5px] text-[14px] font-medium leading-5 tabular-nums',
             badgeStyle.bg,
