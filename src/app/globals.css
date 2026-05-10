@@ -96,7 +96,7 @@
   --sidebar-accent: #c5dcea;
   --sidebar-accent-foreground: #061c27;
   --sidebar-border: rgba(0, 40, 58, 0.15);
-  --sidebar-ring: #3770f7;
+  --sidebar-ring: #2a6985;
 }
 
 /* Keebo dark theme */
@@ -145,7 +145,7 @@
   --sidebar-accent: #04202d;
   --sidebar-accent-foreground: #f5f5f5;
   --sidebar-border: rgba(94, 108, 114, 0.5);
-  --sidebar-ring: #3770f7;
+  --sidebar-ring: #9ac6da;
 }
 
 @layer base {

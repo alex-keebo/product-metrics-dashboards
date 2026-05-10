@@ -1,6 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { hogql } from '@/lib/posthog'
-import { subDays, differenceInCalendarDays, parseISO, format } from 'date-fns'
+import { subDays, differenceInCalendarDays, parseISO, format, isValid } from 'date-fns'
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/
+function validateDate(s: string, field: string): string {
+  if (!DATE_RE.test(s) || !isValid(parseISO(s))) {
+    throw new Error(`Invalid ${field} date: must be YYYY-MM-DD`)
+  }
+  return s
+}
 
 const ALL_MODULE_SLUGS = [
   'databricks-warehouse-optimization',
@@ -99,8 +107,8 @@ export async function GET(req: NextRequest) {
     const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd')
     const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd')
 
-    const start = searchParams.get('start') ?? sevenDaysAgo
-    const end = searchParams.get('end') ?? yesterday
+    const start = validateDate(searchParams.get('start') ?? sevenDaysAgo, 'start')
+    const end = validateDate(searchParams.get('end') ?? yesterday, 'end')
     const rawModules = searchParams.get('modules')
     const slugs = rawModules
       ? rawModules.split(',').filter((s) => ALL_MODULE_SLUGS.includes(s))
@@ -108,10 +116,6 @@ export async function GET(req: NextRequest) {
     const userType = ['external', 'internal', 'all'].includes(searchParams.get('user_type') ?? '')
       ? (searchParams.get('user_type') as string)
       : 'external'
-
-    // Validate dates
-    parseISO(start)
-    parseISO(end)
 
     const prev = prevPeriod(start, end)
     const mf = buildModuleFilter(slugs.length ? slugs : ALL_MODULE_SLUGS)
