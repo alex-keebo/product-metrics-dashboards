@@ -82,15 +82,15 @@ export function DataTable<T extends Record<string, unknown>>({
   }
 
   return (
-    <div className="bg-white dark:bg-card rounded-[20px] shadow-[0px_5px_15px_rgba(0,0,0,0.05)] p-[30px] flex flex-col gap-3">
+    <div className="group/tile bg-white dark:bg-card rounded-[20px] shadow-[0px_5px_15px_rgba(0,0,0,0.05)] p-[30px] flex flex-col gap-3">
       <div className="flex items-center justify-between">
         <div className="text-[15px] text-muted-foreground">{rows.length} rows</div>
         <button
           onClick={downloadCSV}
           className="flex items-center gap-1.5 text-[15px] text-muted-foreground hover:text-foreground transition-colors"
         >
-          <Download className="w-3.5 h-3.5" />
-          Download CSV
+          <Download className="w-3.5 h-3.5 opacity-0 group-hover/tile:opacity-100 transition-opacity" />
+          <span className="opacity-0 group-hover/tile:opacity-100 transition-opacity">Download CSV</span>
         </button>
       </div>
 

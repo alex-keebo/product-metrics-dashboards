@@ -4,6 +4,7 @@ import path from 'path'
 const projectRoot = path.resolve(__dirname)
 
 const nextConfig: NextConfig = {
+  devIndicators: false,
   outputFileTracingRoot: projectRoot,
   experimental: {
     workerThreads: false,
