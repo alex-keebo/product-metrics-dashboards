@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { useTheme } from './ThemeProvider'
-import { Moon, Sun } from 'lucide-react'
+import { Moon, Sun, Settings as SettingsIcon } from 'lucide-react'
 
 const nav = [
   {
@@ -58,7 +58,19 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="border-t border-sidebar-border pt-4 mt-4">
+      <div className="border-t border-sidebar-border pt-4 mt-4 flex flex-col gap-0.5">
+        <Link
+          href="/settings"
+          className={cn(
+            'flex items-center gap-2 w-full px-3 py-1.5 rounded text-sm transition-colors',
+            pathname === '/settings'
+              ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
+              : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60',
+          )}
+        >
+          <SettingsIcon size={15} />
+          Settings
+        </Link>
         <button
           onClick={toggle}
           className="flex items-center gap-2 w-full px-3 py-1.5 rounded text-sm text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60 transition-colors"

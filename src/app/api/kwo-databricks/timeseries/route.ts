@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET, SILVER_DATASET } from '@/lib/bigquery'
+import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET, SILVER_DATASET, AdcAuthError } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractPeriodsForOrg } from '@/lib/customers'
 import { buildPeriods, defaultTimeSeriesRange, toDateString } from '@/lib/dates'
 import { ContractType, Granularity, TimeSeriesPoint } from '@/lib/types'
@@ -170,6 +170,12 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ points, data_as_of, available_customers, all_periods })
   } catch (err) {
     console.error('[timeseries]', err)
+    if (err instanceof AdcAuthError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status: 401 },
+      )
+    }
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }

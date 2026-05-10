@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { DashboardFilters } from '@/components/filters/DashboardFilters'
 import { KPITile } from '@/components/kpis/KPITile'
 import { TimeSeriesCharts } from '@/components/charts/TimeSeriesCharts'
@@ -8,6 +9,11 @@ import { DataTable, Column } from '@/components/tables/DataTable'
 import { ContractType, Granularity, KPIRow, SnapshotKPIWithDelta, TimeSeriesPoint } from '@/lib/types'
 import { defaultTimeSeriesRange, toDateString, formatCompactDateRange } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+
+interface FetchError {
+  message: string
+  code?: string
+}
 
 const ALL_CONTRACT_TYPES: ContractType[] = ['consumption', 'subscription', 'trial', 'churn', 'lost_trial']
 
@@ -66,10 +72,23 @@ const TIMESERIES_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'resizing_events', label: 'Resizing Optimizations', format: formatInt, align: 'right' },
 ]
 
-function SectionError({ message }: { message: string }) {
+function SectionError({ error }: { error: FetchError }) {
+  if (error.code === 'ADC_UNAUTHENTICATED') {
+    return (
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300 flex items-center justify-between gap-4 flex-wrap">
+        <span>BigQuery credentials are missing or expired.</span>
+        <Link
+          href="/settings"
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1 text-xs font-medium"
+        >
+          Re-authenticate
+        </Link>
+      </div>
+    )
+  }
   return (
     <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive">
-      Failed to load: {message}
+      Failed to load: {error.message}
     </div>
   )
 }
@@ -101,12 +120,12 @@ export default function KWODatabricksPage() {
   // Snapshot state
   const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null)
   const [snapshotLoading, setSnapshotLoading] = useState(false)
-  const [snapshotError, setSnapshotError] = useState<string | null>(null)
+  const [snapshotError, setSnapshotError] = useState<FetchError | null>(null)
 
   // Time series state
   const [timeseries, setTimeseries] = useState<TimeSeriesResponse | null>(null)
   const [tsLoading, setTsLoading] = useState(false)
-  const [tsError, setTsError] = useState<string | null>(null)
+  const [tsError, setTsError] = useState<FetchError | null>(null)
 
   // Available customers derived from contract type selection
   const [availableCustomers, setAvailableCustomers] = useState<{ org_id: string; name: string }[]>([])
@@ -127,10 +146,14 @@ export default function KWODatabricksPage() {
     setSnapshotError(null)
     try {
       const res = await fetch(`/api/kwo-databricks/snapshot?${buildParams()}`)
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setSnapshotError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
+        return
+      }
       setSnapshot(await res.json())
     } catch (e) {
-      setSnapshotError(String(e))
+      setSnapshotError({ message: e instanceof Error ? e.message : String(e) })
     } finally {
       setSnapshotLoading(false)
     }
@@ -149,10 +172,14 @@ export default function KWODatabricksPage() {
       params.set('start', startDate)
       params.set('end', endDate)
       const res = await fetch(`/api/kwo-databricks/timeseries?${params}`)
-      if (!res.ok) throw new Error(await res.text())
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        setTsError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
+        return
+      }
       setTimeseries(await res.json())
     } catch (e) {
-      setTsError(String(e))
+      setTsError({ message: e instanceof Error ? e.message : String(e) })
     } finally {
       setTsLoading(false)
     }
@@ -243,7 +270,7 @@ export default function KWODatabricksPage() {
           ) : (
             <>
               {snapshotLoading && <SectionLoader />}
-              {snapshotError && <SectionError message={snapshotError} />}
+              {snapshotError && <SectionError error={snapshotError} />}
               {!snapshotLoading && !snapshotError && snapshot && (
                 <>
                   {snapshot.week_start && (
@@ -302,7 +329,7 @@ export default function KWODatabricksPage() {
           ) : (
             <>
               {tsLoading && <SectionLoader />}
-              {tsError && <SectionError message={tsError} />}
+              {tsError && <SectionError error={tsError} />}
               {!tsLoading && !tsError && timeseries && (
                 <>
                   <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} />

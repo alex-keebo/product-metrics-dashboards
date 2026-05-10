@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET } from '@/lib/bigquery'
+import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, AdcAuthError } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractTypeForOrgInRange } from '@/lib/customers'
 import { computeKPIRows, aggregateKPIRows, computeDeltas } from '@/lib/kpi'
 import { lastCompleteWeek, priorWeek, toDateString } from '@/lib/dates'
@@ -102,6 +102,12 @@ export async function GET(req: NextRequest) {
     })
   } catch (err) {
     console.error('[snapshot]', err)
+    if (err instanceof AdcAuthError) {
+      return NextResponse.json(
+        { error: err.message, code: err.code },
+        { status: 401 },
+      )
+    }
     return NextResponse.json({ error: String(err) }, { status: 500 })
   }
 }
