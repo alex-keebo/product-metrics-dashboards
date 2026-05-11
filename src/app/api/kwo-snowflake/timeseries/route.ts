@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET, SILVER_DATASET, AdcAuthError } from '@/lib/bigquery'
+import {
+  runQuery, getSnfDataAsOf, getSnfOrgIdsWithData, getSnfQueryHistoryDatasets,
+  PROJECT, SNF_DATASET, AdcAuthError,
+} from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractPeriodsForOrg } from '@/lib/customers'
 import { buildPeriods, defaultTimeSeriesRange, toDateString } from '@/lib/dates'
 import { ContractType, Granularity, TimeSeriesPoint } from '@/lib/types'
@@ -19,7 +22,7 @@ interface EventRow {
 }
 
 interface RawRow {
-  date: { value: string }
+  date: { value: string } | string
   org_id: string
   warehouse_id: string
   actual_dbus: number
@@ -53,6 +56,47 @@ function sumOrgDateMap(m: OrgDateMap, orgId: string, start: string, end: string)
   return total
 }
 
+async function fetchQueryVolume(
+  orgIds: string[],
+  startDate: string,
+  endDate: string,
+): Promise<QVRow[]> {
+  // Query history is sharded per org into separate BigQuery datasets.
+  // Only fetch from datasets that actually exist.
+  const allDatasets = orgIds.map((id) => ({ org_id: id, dataset: `k3o_prd_${id}_000_tf` }))
+  const existingDatasets = await getSnfQueryHistoryDatasets(orgIds)
+  const existingSet = new Set(existingDatasets)
+
+  const eligible = allDatasets.filter((d) => existingSet.has(d.dataset))
+  if (eligible.length === 0) return []
+
+  // Query history contains every warehouse — filter to those registered with
+  // Keebo (present in sql_estimated_costs for this org and date range).
+  // sql_estimated_costs keys on warehouse_id; query history keys on
+  // warehouse_name; database_warehouses maps between them. The query_history
+  // dataset is per-org so org-scoping is implicit.
+  const unionParts = eligible.map(({ org_id, dataset }) => `
+    SELECT
+      DATE(TIMESTAMP_MILLIS(q.start_time)) AS date,
+      '${org_id}'        AS org_id,
+      COUNT(*)           AS query_count
+    FROM \`${PROJECT}.${dataset}.query_history_view_tf\` q
+    INNER JOIN (
+      SELECT DISTINCT w.warehouse_name
+      FROM \`${PROJECT}.${SNF_DATASET}.sql_estimated_costs\` v
+      JOIN \`${PROJECT}.${SNF_DATASET}.database_warehouses\` w
+        ON v.org_id = w.org_id AND v.warehouse_id = w.warehouse_id
+      WHERE v.org_id = '${org_id}'
+        AND DATE(v.ts_hour) BETWEEN @start_date AND @end_date
+    ) reg
+      ON q.warehouse_name = reg.warehouse_name
+    WHERE DATE(TIMESTAMP_MILLIS(q.start_time)) BETWEEN @start_date AND @end_date
+    GROUP BY date`)
+
+  const query = unionParts.join('\nUNION ALL\n') + '\nORDER BY date, org_id'
+  return runQuery<QVRow>(query, { start_date: startDate, end_date: endDate })
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = req.nextUrl
@@ -66,50 +110,48 @@ export async function GET(req: NextRequest) {
     const startDate = searchParams.get('start') ?? toDateString(defaults.start)
     const endDate = searchParams.get('end') ?? toDateString(defaults.end)
 
-    const allOrgIds = getOrgIdsForContractTypes('kwo-databricks', contractTypes, startDate, endDate)
+    const allOrgIds = getOrgIdsForContractTypes('kwo-snowflake', contractTypes, startDate, endDate)
     const orgIds = selectedOrgIds?.length
       ? allOrgIds.filter((id) => selectedOrgIds.includes(id))
       : allOrgIds
 
-    const nameMap = getCustomerNameMap('kwo-databricks')
-    const orgIdsWithData = await getOrgIdsWithData()
+    const nameMap = getCustomerNameMap('kwo-snowflake')
+    const orgIdsWithData = await getSnfOrgIdsWithData()
     const available_customers = allOrgIds
       .filter((org_id) => orgIdsWithData.has(org_id))
       .map((org_id) => ({ org_id, name: nameMap.get(org_id) ?? 'Unknown' }))
       .sort((a, b) => a.name.localeCompare(b.name))
 
     if (orgIds.length === 0) {
-      const data_as_of = await getDataAsOf()
+      const data_as_of = await getSnfDataAsOf()
       return NextResponse.json({ points: [], data_as_of, available_customers, all_periods: [] })
     }
 
-    const sqlPath = path.join(process.cwd(), 'sql', 'kwo_databricks_timeseries.sql')
+    const sqlPath = path.join(process.cwd(), 'sql', 'kwo_snowflake_timeseries.sql')
     const sqlTemplate = fs.readFileSync(sqlPath, 'utf-8')
-    const query = sqlTemplate.replace(/`keebo-portal\.k3o_dbx_gold_tf\./g, `\`${PROJECT}.${DATASET}.`)
+    const query = sqlTemplate.replace(/`keebo-portal\.federated_views_tf\./g, `\`${PROJECT}.${SNF_DATASET}.`)
 
-    const sqlPathQV = path.join(process.cwd(), 'sql', 'kwo_databricks_query_volume.sql')
-    const sqlTemplateQV = fs.readFileSync(sqlPathQV, 'utf-8')
-    const queryQV = sqlTemplateQV.replace(/`keebo-portal\.k3o_dbx_bronze_tf\./g, `\`${PROJECT}.${BRONZE_DATASET}.`)
-
-    const sqlPathAS = path.join(process.cwd(), 'sql', 'kwo_databricks_auto_stop_events.sql')
+    const sqlPathAS = path.join(process.cwd(), 'sql', 'kwo_snowflake_auto_suspend_events.sql')
     const queryAS = fs.readFileSync(sqlPathAS, 'utf-8')
-      .replace(/`keebo-portal\.k3o_dbx_silver_tf\./g, `\`${PROJECT}.${SILVER_DATASET}.`)
+      .replace(/`keebo-portal\.federated_views_tf\./g, `\`${PROJECT}.${SNF_DATASET}.`)
 
-    const sqlPathRS = path.join(process.cwd(), 'sql', 'kwo_databricks_resizing_events.sql')
+    const sqlPathRS = path.join(process.cwd(), 'sql', 'kwo_snowflake_resizing_events.sql')
     const queryRS = fs.readFileSync(sqlPathRS, 'utf-8')
-      .replace(/`keebo-portal\.k3o_dbx_silver_tf\./g, `\`${PROJECT}.${SILVER_DATASET}.`)
+      .replace(/`keebo-portal\.federated_views_tf\./g, `\`${PROJECT}.${SNF_DATASET}.`)
 
     const params = { start_date: startDate, end_date: endDate, org_ids: orgIds }
-    const [rows, qvRows, asRows, rsRows] = await Promise.all([
-      runQuery<RawRow>(query, params),
-      runQuery<QVRow>(queryQV, params),
-      runQuery<EventRow>(queryAS, params),
-      runQuery<EventRow>(queryRS, params),
+    const t0 = Date.now()
+    const [rows, asRows, rsRows, qvRows, data_as_of] = await Promise.all([
+      runQuery<RawRow>(query, params).then(r => { console.log(`[snf-ts] timeseries: ${Date.now()-t0}ms`); return r }),
+      runQuery<EventRow>(queryAS, params).then(r => { console.log(`[snf-ts] auto_suspend: ${Date.now()-t0}ms`); return r }),
+      runQuery<EventRow>(queryRS, params).then(r => { console.log(`[snf-ts] resizing: ${Date.now()-t0}ms`); return r }),
+      fetchQueryVolume(orgIds, startDate, endDate).then(r => { console.log(`[snf-ts] query_volume: ${Date.now()-t0}ms`); return r }),
+      getSnfDataAsOf(),
     ])
 
-    const qvMap = buildOrgDateMap(qvRows, (r) => Number(r.query_count))
     const asMap = buildOrgDateMap(asRows, (r) => Number(r.event_count))
     const rsMap = buildOrgDateMap(rsRows, (r) => Number(r.event_count))
+    const qvMap = buildOrgDateMap(qvRows, (r) => Number(r.query_count))
 
     const periods = buildPeriods(startDate, endDate, granularity)
 
@@ -118,17 +160,17 @@ export async function GET(req: NextRequest) {
     for (const period of periods) {
       const byOrg = new Map<string, RawRow[]>()
       for (const row of rows) {
-        const d = row.date?.value ?? row.date
+        const d = (row.date as { value: string })?.value ?? (row.date as string)
         if (d < period.start || d > period.end) continue
         if (!byOrg.has(row.org_id)) byOrg.set(row.org_id, [])
         byOrg.get(row.org_id)!.push(row)
       }
 
       for (const [org_id, orgRows] of byOrg) {
-        const contractSegments = getContractPeriodsForOrg(org_id, period.start, period.end, 'kwo-databricks')
+        const contractSegments = getContractPeriodsForOrg(org_id, period.start, period.end, 'kwo-snowflake')
         for (const segment of contractSegments) {
           const segRows = orgRows.filter((r) => {
-            const d = r.date?.value ?? r.date
+            const d = (r.date as { value: string })?.value ?? (r.date as string)
             return d >= segment.period_start && d <= segment.period_end
           })
           if (segRows.length === 0) continue
@@ -166,10 +208,9 @@ export async function GET(req: NextRequest) {
 
     const all_periods = periods.map((p) => ({ period_start: p.start, period_label_display: p.displayLabel }))
 
-    const data_as_of = await getDataAsOf()
     return NextResponse.json({ points, data_as_of, available_customers, all_periods })
   } catch (err) {
-    console.error('[timeseries]', err)
+    console.error('[snf-timeseries]', err)
     if (err instanceof AdcAuthError) {
       return NextResponse.json(
         { error: err.message, code: err.code },

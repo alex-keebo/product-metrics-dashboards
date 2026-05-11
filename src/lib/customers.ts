@@ -1,6 +1,6 @@
 import fs from 'fs'
 import path from 'path'
-import { Customer, ContractType, CustomerPeriod } from './types'
+import { Customer, ContractType, CustomerPeriod, Module } from './types'
 
 let _cache: Customer[] | null = null
 
@@ -13,11 +13,12 @@ export function loadCustomers(): Customer[] {
 }
 
 export function getCustomersForContractTypes(
+  module: Module,
   contractTypes: ContractType[],
   dateStart: string,
   dateEnd: string
 ): CustomerPeriod[] {
-  const customers = loadCustomers()
+  const customers = loadCustomers().filter((c) => c.module === module)
   const results: CustomerPeriod[] = []
 
   for (const c of customers) {
@@ -46,16 +47,17 @@ export function getCustomersForContractTypes(
 }
 
 export function getOrgIdsForContractTypes(
+  module: Module,
   contractTypes: ContractType[],
   dateStart: string,
   dateEnd: string
 ): string[] {
-  const periods = getCustomersForContractTypes(contractTypes, dateStart, dateEnd)
+  const periods = getCustomersForContractTypes(module, contractTypes, dateStart, dateEnd)
   return [...new Set(periods.map((p) => p.org_id))]
 }
 
-export function getCustomerNameMap(): Map<string, string> {
-  const customers = loadCustomers()
+export function getCustomerNameMap(module: Module): Map<string, string> {
+  const customers = loadCustomers().filter((c) => c.module === module)
   const map = new Map<string, string>()
   for (const c of customers) {
     if (!map.has(c.org_id)) map.set(c.org_id, c.name)
@@ -66,9 +68,10 @@ export function getCustomerNameMap(): Map<string, string> {
 export function getContractPeriodsForOrg(
   orgId: string,
   dateStart: string,
-  dateEnd: string
+  dateEnd: string,
+  module: Module
 ): CustomerPeriod[] {
-  const customers = loadCustomers()
+  const customers = loadCustomers().filter((c) => c.module === module)
   const results: CustomerPeriod[] = []
   for (const c of customers) {
     if (c.org_id !== orgId) continue
@@ -87,9 +90,10 @@ export function getContractPeriodsForOrg(
 
 export function getContractTypeForOrgInPeriod(
   orgId: string,
-  date: string
+  date: string,
+  module: Module
 ): ContractType | null {
-  const customers = loadCustomers()
+  const customers = loadCustomers().filter((c) => c.module === module)
   for (const c of customers) {
     if (c.org_id !== orgId) continue
     const end = c.valid_to ?? '9999-12-31'
@@ -103,9 +107,10 @@ export function getContractTypeForOrgInPeriod(
 export function getContractTypeForOrgInRange(
   orgId: string,
   dateStart: string,
-  dateEnd: string
+  dateEnd: string,
+  module: Module
 ): ContractType | null {
-  const customers = loadCustomers()
+  const customers = loadCustomers().filter((c) => c.module === module)
   let best: { valid_from: string; contract_type: ContractType } | null = null
   for (const c of customers) {
     if (c.org_id !== orgId) continue

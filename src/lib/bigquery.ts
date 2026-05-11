@@ -11,6 +11,8 @@ const bigquery = new BigQuery({
 export const DATASET = process.env.BIGQUERY_DATASET ?? 'k3o_dbx_gold_tf'
 export const BRONZE_DATASET = process.env.BIGQUERY_BRONZE_DATASET ?? 'k3o_dbx_bronze_tf'
 export const SILVER_DATASET = process.env.BIGQUERY_SILVER_DATASET ?? 'k3o_dbx_silver_tf'
+export const SNF_DATASET = process.env.BIGQUERY_SNF_DATASET ?? 'federated_views_tf'
+export const SNF_ADHOC_DATASET = process.env.BIGQUERY_SNF_ADHOC_DATASET ?? 'adhoc_analysis_tf'
 export const PROJECT = process.env.BIGQUERY_PROJECT_ID ?? 'keebo-portal'
 export const LOCATION = process.env.BIGQUERY_LOCATION ?? 'us-central1'
 
@@ -90,6 +92,67 @@ export async function getDataAsOf(): Promise<string> {
     }
     throw err
   }
+}
+
+let _snfOrgIdsWithDataCache: Set<string> | null = null
+
+export async function getSnfOrgIdsWithData(): Promise<Set<string>> {
+  if (_snfOrgIdsWithDataCache) return _snfOrgIdsWithDataCache
+  try {
+    const query = `SELECT DISTINCT org_id FROM \`${PROJECT}.${SNF_DATASET}.sql_estimated_costs\``
+    const [rows] = await bigquery.query({ query, location: LOCATION })
+    _snfOrgIdsWithDataCache = new Set((rows as { org_id: string }[]).map((r) => r.org_id))
+    return _snfOrgIdsWithDataCache
+  } catch (err) {
+    if (isAdcAuthError(err)) {
+      throw new AdcAuthError(err instanceof Error ? err.message : String(err), err)
+    }
+    throw err
+  }
+}
+
+let _snfDataAsOfCache: string | null = null
+
+export async function getSnfDataAsOf(): Promise<string> {
+  if (_snfDataAsOfCache) return _snfDataAsOfCache
+  try {
+    const query = `
+      SELECT FORMAT_DATE('%Y-%m-%d', MAX(DATE(ts_hour))) AS max_date
+      FROM \`${PROJECT}.${SNF_DATASET}.sql_estimated_costs\`
+    `
+    const [rows] = await bigquery.query({ query, location: LOCATION })
+    _snfDataAsOfCache = (rows[0] as { max_date: string }).max_date
+    return _snfDataAsOfCache
+  } catch (err) {
+    if (isAdcAuthError(err)) {
+      throw new AdcAuthError(err instanceof Error ? err.message : String(err), err)
+    }
+    throw err
+  }
+}
+
+// Datasets rarely change — cache the full set once per server lifetime.
+let _snfQueryHistoryDatasetsCache: Set<string> | null = null
+
+export async function getSnfQueryHistoryDatasets(orgIds: string[]): Promise<string[]> {
+  if (!_snfQueryHistoryDatasetsCache) {
+    try {
+      const query = `
+        SELECT schema_name
+        FROM \`${PROJECT}.INFORMATION_SCHEMA.SCHEMATA\`
+        WHERE STARTS_WITH(schema_name, 'k3o_prd_')
+      `
+      const [rows] = await bigquery.query({ query, location: LOCATION })
+      _snfQueryHistoryDatasetsCache = new Set((rows as { schema_name: string }[]).map((r) => r.schema_name))
+    } catch (err) {
+      if (isAdcAuthError(err)) {
+        throw new AdcAuthError(err instanceof Error ? err.message : String(err), err)
+      }
+      throw err
+    }
+  }
+  const wanted = new Set(orgIds.map((id) => `k3o_prd_${id}_000_tf`))
+  return [..._snfQueryHistoryDatasetsCache].filter((d) => wanted.has(d))
 }
 
 export type AdcStatus =

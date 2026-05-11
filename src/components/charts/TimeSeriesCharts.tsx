@@ -222,9 +222,10 @@ function makeKMFormatter(data: ChartData[]): (v: number) => string {
 interface TimeSeriesChartsProps {
   points: TimeSeriesPoint[]
   allPeriods?: PeriodMeta[]
+  unit?: string
 }
 
-export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs' }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -309,7 +310,7 @@ export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) 
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Usage & Savings (DBUs)" isLight={isLight}>
+      <ChartWrapper title={`Usage & Savings (${unit})`} isLight={isLight}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={stackedSavings} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />

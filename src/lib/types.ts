@@ -1,10 +1,13 @@
 export type ContractType = 'trial' | 'lost_trial' | 'subscription' | 'consumption' | 'churn'
 
+export type Module = 'kwo-databricks' | 'kwo-snowflake' | 'kwi-snowflake'
+
 export type Granularity = 'day' | 'week' | 'month' | 'rolling7'
 
 export interface Customer {
   org_id: string
   name: string
+  module: Module
   valid_from: string   // YYYY-MM-DD
   valid_to: string | null
   contract_type: ContractType

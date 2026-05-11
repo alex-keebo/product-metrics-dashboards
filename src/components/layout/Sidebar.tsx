@@ -11,7 +11,7 @@ const nav = [
     group: 'Warehouse Optimization',
     items: [
       { label: 'KWO for Databricks', href: '/kwo-databricks' },
-      { label: 'KWO for Snowflake', href: '/kwo-snowflake', disabled: true },
+      { label: 'KWO for Snowflake', href: '/kwo-snowflake' },
     ],
   },
   {
@@ -41,12 +41,10 @@ export function Sidebar() {
             {section.items.map((item) => (
               <Link
                 key={item.href}
-                href={item.disabled ? '#' : item.href}
+                href={item.href}
                 className={cn(
                   'block px-3 py-1.5 rounded text-sm transition-colors',
-                  item.disabled
-                    ? 'text-sidebar-foreground/25 cursor-not-allowed pointer-events-none'
-                    : pathname === item.href
+                  pathname === item.href
                     ? 'bg-sidebar-accent text-sidebar-accent-foreground font-medium'
                     : 'text-sidebar-foreground/70 hover:text-sidebar-foreground hover:bg-sidebar-accent/60'
                 )}

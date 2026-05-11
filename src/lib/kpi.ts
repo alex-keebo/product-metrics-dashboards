@@ -31,8 +31,6 @@ export function computeKPIRows(
 }
 
 export function aggregateKPIRows(rows: KPIRow[]): AggregatedKPIs {
-  const rowsWithSavings = rows.filter((r) => r.savings_dbus > 0 || r.warehouses > 0)
-
   const savings_dbus = rows.reduce((s, r) => s + r.savings_dbus, 0)
   const total_spend_dbus = rows.reduce((s, r) => s + r.total_spend_dbus, 0)
   const paused_spend_dbus = rows.reduce((s, r) => s + r.paused_spend_dbus, 0)
