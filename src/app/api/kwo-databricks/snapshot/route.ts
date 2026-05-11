@@ -12,7 +12,7 @@ interface RawRow {
   week_start: { value: string }
   savings_dbus: number
   total_spend_dbus: number
-  unoptimized_spend_dbus: number
+  paused_spend_dbus: number
   optimized_actual_dbus: number
   warehouses: number
 }

@@ -54,7 +54,7 @@ const SNAPSHOT_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'savings_dbus', label: 'Savings (DBUs)', format: formatDbu, align: 'right' },
   { key: 'savings_pct', label: 'Savings (%)', format: formatPct, align: 'right' },
   { key: 'warehouses', label: 'Warehouses (#)', format: formatInt, align: 'right' },
-  { key: 'unoptimized_spend_dbus', label: 'Unoptimized Spend (DBUs)', format: formatDbu, align: 'right' },
+  { key: 'paused_spend_dbus', label: 'Optimization Paused Spend (DBUs)', format: formatDbu, align: 'right' },
   { key: 'total_spend_dbus', label: 'Total Spend (DBUs)', format: formatDbu, align: 'right' },
 ]
 
@@ -65,7 +65,7 @@ const TIMESERIES_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'savings_dbus', label: 'Savings (DBUs)', format: formatDbu2, align: 'right' },
   { key: 'savings_pct', label: 'Savings (%)', format: formatPct2, align: 'right' },
   { key: 'warehouses', label: 'Warehouses (#)', format: formatInt2, align: 'right' },
-  { key: 'unoptimized_spend_dbus', label: 'Unoptimized Spend (DBUs)', format: formatDbu2, align: 'right' },
+  { key: 'paused_spend_dbus', label: 'Optimization Paused Spend (DBUs)', format: formatDbu2, align: 'right' },
   { key: 'total_spend_dbus', label: 'Total Spend (DBUs)', format: formatDbu2, align: 'right' },
   { key: 'query_volume', label: 'Query Volume', format: formatInt, align: 'right' },
   { key: 'auto_stop_events', label: 'Auto-stop Optimizations', format: formatInt, align: 'right' },
@@ -285,7 +285,7 @@ export default function KWODatabricksPage() {
                       <KPITile label="Savings" unit="%" value={snapshot.kpis.savings_pct} delta={snapshot.kpis.delta_savings_pct} format="pct" higherIsBetter={true} />
                       <KPITile label="Avg Savings Across Customers" unit="%" value={snapshot.kpis.avg_savings_pct} delta={snapshot.kpis.delta_avg_savings_pct} format="pct" higherIsBetter={true} />
                       <KPITile label="Warehouses" unit="Count" value={snapshot.kpis.warehouses} delta={snapshot.kpis.delta_warehouses} format="dbu" higherIsBetter={true} />
-                      <KPITile label="Unoptimized Spend" unit="DBUs" value={snapshot.kpis.unoptimized_spend_dbus} delta={snapshot.kpis.delta_unoptimized_spend_dbus} format="dbu" higherIsBetter={false} />
+                      <KPITile label="Optimization Paused Spend" unit="DBUs" value={snapshot.kpis.paused_spend_dbus} delta={snapshot.kpis.delta_paused_spend_dbus} format="dbu" higherIsBetter={false} />
                       <KPITile label="Total Spend" unit="DBUs" value={snapshot.kpis.total_spend_dbus} delta={snapshot.kpis.delta_total_spend_dbus} format="dbu" higherIsBetter={false} />
                     </div>
                   ) : (

@@ -56,7 +56,7 @@ Fixed time window — no date or granularity controls.
   - Delta below: absolute change + directional arrow (e.g. "+120 DBUs ↑")
   - Color coding: green = improvement (savings up, spend down); red = deterioration (savings down, spend up)
 - **Per-customer breakdown table**:
-  - Columns: Customer Name, Contract Type, Savings (DBUs), Savings (%), Warehouses (#), Unoptimized Spend (DBUs), Total Spend (DBUs)
+  - Columns: Customer Name, Contract Type, Savings (DBUs), Savings (%), Warehouses (#), Optimization Paused Spend (DBUs), Total Spend (DBUs)
   - Sortable by any column header (click to sort, click again to reverse)
   - Default sort: Savings (DBUs) descending
   - CSV export
@@ -75,7 +75,7 @@ Controlled by date range and granularity filters (in addition to global contract
 |---|---|
 | Savings (%) | Line |
 | Savings (DBUs) | Bar |
-| Unoptimized Spend (DBUs) | Bar |
+| Optimization Paused Spend (DBUs) | Bar |
 | Total Spend (DBUs) | Bar |
 | Warehouses (#) | Line |
 
@@ -88,7 +88,7 @@ Controlled by date range and granularity filters (in addition to global contract
   - Daily → `Date` (e.g. `2026-05-08`)
   - Calendar Week or 7-day interval → `Period` (e.g. `2026-05-01 – 2026-05-07`)
   - Calendar Month → `Month` (e.g. `2025-01`)
-- Columns: Period, Customer Name, Contract Type, Savings (DBUs), Savings (%), Warehouses (#), Unoptimized Spend (DBUs), Total Spend (DBUs)
+- Columns: Period, Customer Name, Contract Type, Savings (DBUs), Savings (%), Warehouses (#), Optimization Paused Spend (DBUs), Total Spend (DBUs)
 - Sortable by any column header
 - Default sort: period descending, then Savings (DBUs) descending
 - Pagination: 10 / 20 / 100 rows per page
@@ -105,7 +105,7 @@ All computed from `keebo-portal.k3o_dbx_gold_tf.savings_history_tf` joined to `c
 | Savings (DBUs) | `SUM(saved_dbus)` WHERE `active = true` |
 | Total Spend (DBUs) | `SUM(actual_dbus)` — all rows (active and inactive) |
 | Savings (%) | `SUM(saved_dbus) / (SUM(actual_dbus) + SUM(saved_dbus)) * 100` WHERE `active = true` |
-| Unoptimized Spend (DBUs) | `SUM(actual_dbus)` WHERE `active = false` |
+| Optimization Paused Spend (DBUs) | `SUM(actual_dbus)` WHERE `active = false` |
 | Warehouses (#) | `COUNT(DISTINCT warehouse_id)` WHERE `active = true` |
 | Avg Across Customers (%) | Unweighted mean of per-`org_id` Savings (%); customers with no `active = true` rows in the period are excluded from the average |
 

@@ -135,7 +135,7 @@ export async function GET(req: NextRequest) {
 
           const savings_dbus = segRows.filter((r) => r.active).reduce((s, r) => s + Number(r.saved_dbus), 0)
           const optimized_actual = segRows.filter((r) => r.active).reduce((s, r) => s + Number(r.actual_dbus), 0)
-          const unoptimized_spend_dbus = segRows.filter((r) => !r.active).reduce((s, r) => s + Number(r.actual_dbus), 0)
+          const paused_spend_dbus = segRows.filter((r) => !r.active).reduce((s, r) => s + Number(r.actual_dbus), 0)
           const total_spend_dbus = segRows.reduce((s, r) => s + Number(r.actual_dbus), 0)
           const grossSpend = optimized_actual + savings_dbus
           const savings_pct = grossSpend > 0 ? (savings_dbus / grossSpend) * 100 : 0
@@ -152,7 +152,7 @@ export async function GET(req: NextRequest) {
             savings_dbus,
             savings_pct,
             total_spend_dbus,
-            unoptimized_spend_dbus,
+            paused_spend_dbus,
             warehouses,
             query_volume: sumOrgDateMap(qvMap, org_id, segment.period_start, segment.period_end),
             auto_stop_events: sumOrgDateMap(asMap, org_id, segment.period_start, segment.period_end),

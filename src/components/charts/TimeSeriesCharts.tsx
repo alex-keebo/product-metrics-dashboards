@@ -18,7 +18,7 @@ interface ChartData {
 interface StackedChartData {
   label: string
   actual: number
-  unoptimized: number
+  paused: number
   saved: number
 }
 
@@ -44,21 +44,21 @@ function buildChartData(points: TimeSeriesPoint[], key: keyof TimeSeriesPoint, a
 }
 
 function buildStackedSavingsData(points: TimeSeriesPoint[], allPeriods?: PeriodMeta[]): StackedChartData[] {
-  const byPeriod = new Map<string, { actual: number; unoptimized: number; saved: number; label: string }>()
+  const byPeriod = new Map<string, { actual: number; paused: number; saved: number; label: string }>()
   for (const p of (allPeriods ?? [])) {
-    byPeriod.set(p.period_start, { actual: 0, unoptimized: 0, saved: 0, label: p.period_label_display })
+    byPeriod.set(p.period_start, { actual: 0, paused: 0, saved: 0, label: p.period_label_display })
   }
   for (const p of points) {
-    const existing = byPeriod.get(p.period_start) ?? { actual: 0, unoptimized: 0, saved: 0, label: p.period_label_display }
-    existing.actual += p.total_spend_dbus - p.unoptimized_spend_dbus
-    existing.unoptimized += p.unoptimized_spend_dbus
+    const existing = byPeriod.get(p.period_start) ?? { actual: 0, paused: 0, saved: 0, label: p.period_label_display }
+    existing.actual += p.total_spend_dbus - p.paused_spend_dbus
+    existing.paused += p.paused_spend_dbus
     existing.saved += p.savings_dbus
     byPeriod.set(p.period_start, existing)
   }
 
   return Array.from(byPeriod.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, v]) => ({ label: v.label, actual: v.actual, unoptimized: v.unoptimized, saved: v.saved }))
+    .map(([, v]) => ({ label: v.label, actual: v.actual, paused: v.paused, saved: v.saved }))
 }
 
 function buildSavingsPctData(points: TimeSeriesPoint[], allPeriods?: PeriodMeta[]): ChartData[] {
@@ -69,7 +69,7 @@ function buildSavingsPctData(points: TimeSeriesPoint[], allPeriods?: PeriodMeta[
   for (const p of points) {
     const existing = byPeriod.get(p.period_start) ?? { savings: 0, optimized: 0, label: p.period_label_display }
     existing.savings += p.savings_dbus
-    existing.optimized += p.total_spend_dbus - p.unoptimized_spend_dbus
+    existing.optimized += p.total_spend_dbus - p.paused_spend_dbus
     byPeriod.set(p.period_start, existing)
   }
 
@@ -121,9 +121,9 @@ function UsageTooltip({ active, payload, label, isLight }: UsageTooltipProps) {
 
   const byKey = Object.fromEntries(payload.map(p => [p.name, p.value]))
   const optimized   = byKey.actual      ?? 0
-  const unoptimized = byKey.unoptimized ?? 0
+  const paused      = byKey.paused ?? 0
   const savings     = byKey.saved       ?? 0
-  const total           = optimized + unoptimized
+  const total           = optimized + paused
   const optimizedWithoutKeebo = optimized + savings
   const savingsPct      = optimizedWithoutKeebo > 0 ? (savings / optimizedWithoutKeebo) * 100 : 0
 
@@ -147,7 +147,7 @@ function UsageTooltip({ active, payload, label, isLight }: UsageTooltipProps) {
     }}>
       <div style={{ color: muted, fontSize: 11, marginBottom: 8 }}>{label}</div>
       {row('Optimized spend', fmtDbu.format(optimized))}
-      {row('Unoptimized spend', fmtDbu.format(unoptimized))}
+      {row('Optimization paused spend', fmtDbu.format(paused))}
       <div style={{ borderTop: `1px solid ${border}`, margin: '6px 0' }} />
       {row('Total spend', fmtDbu.format(total), true)}
       {row('Savings', fmtDbu.format(savings), false, C_GREEN)}
@@ -321,7 +321,7 @@ export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) 
               content={() => {
                 const items: { key: string; label: string; color: string }[] = [
                   { key: 'actual',      label: 'Optimized spend',   color: C_NAVY  },
-                  { key: 'unoptimized', label: 'Unoptimized spend', color: C_TEAL  },
+                  { key: 'paused', label: 'Optimization paused spend', color: C_TEAL  },
                   { key: 'saved',       label: 'Savings',           color: C_GREEN },
                 ]
                 return (
@@ -358,7 +358,7 @@ export function TimeSeriesCharts({ points, allPeriods }: TimeSeriesChartsProps) 
               }}
             />
             <Bar dataKey="actual"      stackId="s" fill={C_NAVY}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('actual')} />
-            <Bar dataKey="unoptimized" stackId="s" fill={C_TEAL}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('unoptimized')} />
+            <Bar dataKey="paused" stackId="s" fill={C_TEAL}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('paused')} />
             <Bar dataKey="saved"       stackId="s" fill={C_GREEN} radius={[3, 3, 0, 0]} hide={hiddenBars.has('saved')} />
           </BarChart>
         </ResponsiveContainer>

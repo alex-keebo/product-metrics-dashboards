@@ -4,7 +4,7 @@ interface RawRow {
   org_id: string
   savings_dbus: number
   total_spend_dbus: number
-  unoptimized_spend_dbus: number
+  paused_spend_dbus: number
   optimized_actual_dbus: number
   warehouses: number
 }
@@ -24,7 +24,7 @@ export function computeKPIRows(
       savings_dbus: r.savings_dbus,
       savings_pct,
       total_spend_dbus: r.total_spend_dbus,
-      unoptimized_spend_dbus: r.unoptimized_spend_dbus,
+      paused_spend_dbus: r.paused_spend_dbus,
       warehouses: r.warehouses,
     }
   })
@@ -35,12 +35,12 @@ export function aggregateKPIRows(rows: KPIRow[]): AggregatedKPIs {
 
   const savings_dbus = rows.reduce((s, r) => s + r.savings_dbus, 0)
   const total_spend_dbus = rows.reduce((s, r) => s + r.total_spend_dbus, 0)
-  const unoptimized_spend_dbus = rows.reduce((s, r) => s + r.unoptimized_spend_dbus, 0)
+  const paused_spend_dbus = rows.reduce((s, r) => s + r.paused_spend_dbus, 0)
   const warehouses = rows.reduce((s, r) => s + r.warehouses, 0)
 
   const optimizedRows = rows.filter((r) => r.savings_dbus > 0 || r.warehouses > 0)
   const grossSpend = rows.reduce((s, r) => {
-    const gross = r.savings_dbus + (r.total_spend_dbus - r.unoptimized_spend_dbus)
+    const gross = r.savings_dbus + (r.total_spend_dbus - r.paused_spend_dbus)
     return s + gross
   }, 0)
   const savings_pct = grossSpend > 0 ? (savings_dbus / grossSpend) * 100 : 0
@@ -50,7 +50,7 @@ export function aggregateKPIRows(rows: KPIRow[]): AggregatedKPIs {
       ? optimizedRows.reduce((s, r) => s + r.savings_pct, 0) / optimizedRows.length
       : 0
 
-  return { savings_dbus, savings_pct, avg_savings_pct, total_spend_dbus, unoptimized_spend_dbus, warehouses }
+  return { savings_dbus, savings_pct, avg_savings_pct, total_spend_dbus, paused_spend_dbus, warehouses }
 }
 
 export function computeDeltas(
@@ -63,7 +63,7 @@ export function computeDeltas(
     delta_savings_pct: current.savings_pct - prior.savings_pct,
     delta_avg_savings_pct: current.avg_savings_pct - prior.avg_savings_pct,
     delta_total_spend_dbus: current.total_spend_dbus - prior.total_spend_dbus,
-    delta_unoptimized_spend_dbus: current.unoptimized_spend_dbus - prior.unoptimized_spend_dbus,
+    delta_paused_spend_dbus: current.paused_spend_dbus - prior.paused_spend_dbus,
     delta_warehouses: current.warehouses - prior.warehouses,
   }
 }

@@ -12,16 +12,54 @@
 --
 -- Returns one row per org_id per day. The application layer aggregates into
 -- the requested granularity buckets.
+--
+-- Only warehouses registered in connected_warehouse_versions on a given day are
+-- included (most recent event with valid_from <= date has is_deleted = false).
+-- Warehouses present in savings_history_tf but never registered are excluded.
+
+WITH deduped_versions AS (
+  -- One row per (warehouse_id, calendar date): keep the latest event on each date.
+  SELECT
+    org_id,
+    warehouse_id,
+    is_deleted,
+    DATE(valid_from) AS valid_from_date,
+    ROW_NUMBER() OVER (
+      PARTITION BY warehouse_id, DATE(valid_from)
+      ORDER BY valid_from DESC
+    ) AS rn
+  FROM `keebo-portal.k3o_dbx_gold_tf.connected_warehouse_versions`
+  WHERE org_id IN UNNEST(@org_ids)
+),
+version_ranges AS (
+  -- Derive valid_to as the next event's date (exclusive upper bound).
+  SELECT
+    org_id,
+    warehouse_id,
+    is_deleted,
+    valid_from_date,
+    COALESCE(
+      LEAD(valid_from_date) OVER (PARTITION BY warehouse_id ORDER BY valid_from_date),
+      DATE('9999-12-31')
+    ) AS valid_to_date
+  FROM deduped_versions
+  WHERE rn = 1
+)
 
 SELECT
-  date,
-  org_id,
-  warehouse_id,
-  actual_dbus,
-  saved_dbus,
-  active
-FROM `keebo-portal.k3o_dbx_gold_tf.savings_history_tf`
-WHERE
-  date BETWEEN @start_date AND @end_date
-  AND org_id IN UNNEST(@org_ids)
-ORDER BY date, org_id
+  sh.date,
+  sh.org_id,
+  sh.warehouse_id,
+  sh.actual_dbus,
+  sh.saved_dbus,
+  sh.active
+FROM `keebo-portal.k3o_dbx_gold_tf.savings_history_tf` sh
+JOIN version_ranges vr
+  ON  sh.warehouse_id    = vr.warehouse_id
+  AND sh.org_id          = vr.org_id
+  AND sh.date           >= vr.valid_from_date
+  AND sh.date            < vr.valid_to_date
+WHERE vr.is_deleted = false
+  AND sh.date BETWEEN @start_date AND @end_date
+  AND sh.org_id IN UNNEST(@org_ids)
+ORDER BY sh.date, sh.org_id

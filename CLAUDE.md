@@ -109,7 +109,7 @@ All KPIs are computed from `keebo-portal.k3o_dbx_gold_tf.savings_history_tf` joi
 | Savings (%) | `SUM(saved_dbus) / (SUM(actual_dbus) + SUM(saved_dbus)) * 100` WHERE `active = true` — savings as % of gross potential spend |
 | Avg Across Customers (%) | Per-`org_id` Savings (%), then simple unweighted mean across orgs — e.g. (12% + 30% + 18%) / 3 = 20% |
 | Warehouses (#) | `COUNT(DISTINCT warehouse_id)` from `savings_history_tf` within date range |
-| Unoptimized Spend (DBUs) | `SUM(actual_dbus)` WHERE `active = false` |
+| Optimization Paused Spend (DBUs) | `SUM(actual_dbus)` WHERE `active = false` (registered warehouses with optimizations paused) |
 | Total Spend (DBUs) | `SUM(actual_dbus)` across all rows (active and inactive) |
 
 ### BigQuery Tables

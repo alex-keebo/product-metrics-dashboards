@@ -25,7 +25,7 @@ export interface KPIRow {
   savings_dbus: number
   savings_pct: number
   total_spend_dbus: number
-  unoptimized_spend_dbus: number
+  paused_spend_dbus: number
   warehouses: number
 }
 
@@ -46,7 +46,7 @@ export interface TimeSeriesPoint {
   savings_dbus: number
   savings_pct: number
   total_spend_dbus: number
-  unoptimized_spend_dbus: number
+  paused_spend_dbus: number
   warehouses: number
   query_volume: number
   auto_stop_events: number
@@ -63,7 +63,7 @@ export interface AggregatedKPIs {
   savings_pct: number
   avg_savings_pct: number
   total_spend_dbus: number
-  unoptimized_spend_dbus: number
+  paused_spend_dbus: number
   warehouses: number
 }
 
@@ -72,6 +72,6 @@ export interface SnapshotKPIWithDelta extends AggregatedKPIs {
   delta_savings_pct: number
   delta_avg_savings_pct: number
   delta_total_spend_dbus: number
-  delta_unoptimized_spend_dbus: number
+  delta_paused_spend_dbus: number
   delta_warehouses: number
 }
