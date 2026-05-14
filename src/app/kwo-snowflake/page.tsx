@@ -9,6 +9,7 @@ import { DataTable, Column } from '@/components/tables/DataTable'
 import { ContractType, Granularity, KPIRow, SnapshotKPIWithDelta, TimeSeriesPoint } from '@/lib/types'
 import { defaultTimeSeriesRange, toDateString, formatCompactDateRange } from '@/lib/dates'
 import { cn } from '@/lib/utils'
+import { useQueryVolumeSetting } from '@/lib/settings'
 
 interface FetchError {
   message: string
@@ -58,7 +59,7 @@ const SNAPSHOT_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'total_spend_dbus', label: 'Total Spend (Credits)', format: formatCredits, align: 'right' },
 ]
 
-const TIMESERIES_COLUMNS: Column<Record<string, unknown>>[] = [
+const TIMESERIES_COLUMNS_BASE: Column<Record<string, unknown>>[] = [
   { key: 'period_label', label: 'Period' },
   { key: 'name', label: 'Customer' },
   { key: 'contract_type', label: 'Contract Type' },
@@ -67,7 +68,6 @@ const TIMESERIES_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'warehouses', label: 'Warehouses (#)', format: formatInt2, align: 'right' },
   { key: 'paused_spend_dbus', label: 'Optimization Paused Spend (Credits)', format: formatCredits2, align: 'right' },
   { key: 'total_spend_dbus', label: 'Total Spend (Credits)', format: formatCredits2, align: 'right' },
-  { key: 'query_volume', label: 'Query Volume', format: formatInt, align: 'right' },
   { key: 'auto_stop_events', label: 'Auto-suspend Optimizations', format: formatInt, align: 'right' },
   { key: 'resizing_events', label: 'Resizing Optimizations', format: formatInt, align: 'right' },
 ]
@@ -105,6 +105,19 @@ function SectionLoader() {
 }
 
 export default function KWOSnowflakePage() {
+  const { enabled: queryVolumeEnabled } = useQueryVolumeSetting()
+
+  const TIMESERIES_COLUMNS: Column<Record<string, unknown>>[] = [
+    ...TIMESERIES_COLUMNS_BASE.slice(0, 8),
+    {
+      key: 'query_volume',
+      label: 'Query Volume',
+      format: queryVolumeEnabled ? formatInt : () => '---',
+      align: 'right',
+    },
+    ...TIMESERIES_COLUMNS_BASE.slice(8),
+  ]
+
   const [tab, setTab] = useState<Tab>('snapshot')
 
   // Global filters
@@ -171,6 +184,7 @@ export default function KWOSnowflakePage() {
       params.set('granularity', granularity)
       params.set('start', startDate)
       params.set('end', endDate)
+      if (queryVolumeEnabled) params.set('include_query_volume', 'true')
       const res = await fetch(`/api/kwo-snowflake/timeseries?${params}`)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
@@ -183,7 +197,7 @@ export default function KWOSnowflakePage() {
     } finally {
       setTsLoading(false)
     }
-  }, [buildParams, selectedOrgIds, granularity, startDate, endDate])
+  }, [buildParams, selectedOrgIds, granularity, startDate, endDate, queryVolumeEnabled])
 
   // Available customers come from the API's contract-type universe, not the
   // filtered result rows — so picking individual customers doesn't shrink the list.
@@ -332,7 +346,7 @@ export default function KWOSnowflakePage() {
               {tsError && <SectionError error={tsError} />}
               {!tsLoading && !tsError && timeseries && (
                 <>
-                  <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} unit="Credits" />
+                  <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} unit="Credits" queryVolumeEnabled={queryVolumeEnabled} />
                   <div>
                     <div className="text-sm font-medium text-foreground/80 mb-3">Data Table</div>
                     <DataTable

@@ -223,9 +223,10 @@ interface TimeSeriesChartsProps {
   points: TimeSeriesPoint[]
   allPeriods?: PeriodMeta[]
   unit?: string
+  queryVolumeEnabled?: boolean
 }
 
-export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs' }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolumeEnabled = true }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -406,44 +407,58 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs' }: TimeSeri
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Query Volumes" isLight={isLight}>
-        <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={queryVolumeData}>
-            <defs>
-              <linearGradient id="fillQueryVolume" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C_SLATE} stopOpacity={isLight ? 1 : 0.35} />
-                <stop offset="100%" stopColor={C_SLATE} stopOpacity={isLight ? 0.4 : 0.03} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid stroke={GRID} vertical={false} />
-            <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={fmtKM} />
-            <Tooltip {...TT} formatter={(v) => [fmtKM(Number(v)), 'Query Volume']} />
-            <Legend
-              verticalAlign="bottom"
-              iconType="square"
-              iconSize={20}
-              formatter={() => 'Query Volume'}
-              wrapperStyle={legendStyle}
-              onClick={() => setQueryVolumeHidden(h => !h)}
-            />
-            <Area
-              type="monotone"
-              dataKey="value"
-              hide={queryVolumeHidden}
-              stroke={isLight ? '#051c27' : C_TEAL}
-              strokeWidth={2}
-              fill="url(#fillQueryVolume)"
-              dot={isLight
-                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
-              activeDot={isLight
-                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
-              connectNulls={false}
-            />
-          </AreaChart>
-        </ResponsiveContainer>
+      <ChartWrapper title="Query Volumes" isLight={isLight} height={queryVolumeEnabled ? undefined : 290}>
+        {queryVolumeEnabled ? (
+          <ResponsiveContainer width="100%" height={220}>
+            <AreaChart data={queryVolumeData}>
+              <defs>
+                <linearGradient id="fillQueryVolume" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={C_SLATE} stopOpacity={isLight ? 1 : 0.35} />
+                  <stop offset="100%" stopColor={C_SLATE} stopOpacity={isLight ? 0.4 : 0.03} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid stroke={GRID} vertical={false} />
+              <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+              <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={fmtKM} />
+              <Tooltip {...TT} formatter={(v) => [fmtKM(Number(v)), 'Query Volume']} />
+              <Legend
+                verticalAlign="bottom"
+                iconType="square"
+                iconSize={20}
+                formatter={() => 'Query Volume'}
+                wrapperStyle={legendStyle}
+                onClick={() => setQueryVolumeHidden(h => !h)}
+              />
+              <Area
+                type="monotone"
+                dataKey="value"
+                hide={queryVolumeHidden}
+                stroke={isLight ? '#051c27' : C_TEAL}
+                strokeWidth={2}
+                fill="url(#fillQueryVolume)"
+                dot={isLight
+                  ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
+                  : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
+                activeDot={isLight
+                  ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                  : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+                connectNulls={false}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        ) : (
+          <div style={{
+            height: 220,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: isLight ? '#4d565a' : '#6b7f8a',
+            fontSize: 13,
+            fontFamily: 'IBM Plex Sans, sans-serif',
+          }}>
+            Configured to not collect this data
+          </div>
+        )}
       </ChartWrapper>
 
       <ChartWrapper title="Auto-stop Optimizations" isLight={isLight}>

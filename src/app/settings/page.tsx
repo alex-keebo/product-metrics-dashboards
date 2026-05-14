@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { CheckCircle2, AlertCircle, XCircle, Loader2, RefreshCw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { useQueryVolumeSetting } from '@/lib/settings'
 
 type AdcStatus =
   | { state: 'valid'; type: 'authorized_user' | 'service_account'; expires_at?: string }
@@ -145,6 +146,8 @@ export default function SettingsPage() {
     }
   }, [pollJob, fetchStatus])
 
+  const { enabled: queryVolumeEnabled, setEnabled: setQueryVolumeEnabled } = useQueryVolumeSetting()
+
   const adc = status?.adc
   const isRunning = job?.status === 'running' || starting
 
@@ -154,6 +157,41 @@ export default function SettingsPage() {
         <h1 className="text-xl font-semibold text-foreground font-heading">Settings</h1>
         <p className="text-sm text-muted-foreground mt-0.5">App-level settings and admin actions.</p>
       </div>
+
+      <section className="rounded-lg border border-border bg-card p-5">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h2 className="text-sm font-semibold text-foreground">Data Collection</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Controls which optional (expensive) queries run when loading dashboards.
+            </p>
+          </div>
+        </div>
+        <div className="mt-4 flex items-start justify-between gap-4">
+          <div>
+            <div className="text-sm font-medium text-foreground">Query Volume (KWO for Snowflake)</div>
+            <div className="text-xs text-muted-foreground mt-0.5">
+              Counts queries run through Keebo-managed warehouses per period. Disabled by default — can significantly slow down Time Series loads.
+            </div>
+          </div>
+          <button
+            role="switch"
+            aria-checked={queryVolumeEnabled}
+            onClick={() => setQueryVolumeEnabled(!queryVolumeEnabled)}
+            className={cn(
+              'relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors',
+              queryVolumeEnabled ? 'bg-primary' : 'bg-muted-foreground/30',
+            )}
+          >
+            <span
+              className={cn(
+                'pointer-events-none inline-block size-4 rounded-full bg-white shadow-sm transition-transform',
+                queryVolumeEnabled ? 'translate-x-4' : 'translate-x-0',
+              )}
+            />
+          </button>
+        </div>
+      </section>
 
       <section className="rounded-lg border border-border bg-card p-5">
         <div className="flex items-start justify-between gap-4 mb-4">

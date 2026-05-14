@@ -47,38 +47,41 @@ const RDP_VARS = {
 function CustomMonthCaption({ calendarMonth, displayIndex }: MonthCaptionProps) {
   const { goToMonth, previousMonth, nextMonth } = useDayPicker()
   const label = format(calendarMonth.date, 'MMMM yyyy')
-
-  if (displayIndex === 0) {
-    return (
-      <div className="flex items-center justify-between px-0.5 pb-1">
-        <span className="text-sm font-medium text-muted-foreground">{label}</span>
-        <div className="flex items-center gap-1">
-          <button
-            type="button"
-            aria-label="Go to previous month"
-            disabled={!previousMonth}
-            onClick={() => previousMonth && goToMonth(previousMonth)}
-            className="flex items-center justify-center w-7 h-7 rounded hover:bg-secondary disabled:opacity-30 transition-colors"
-          >
-            <ChevronLeft className="w-4 h-4 text-muted-foreground" />
-          </button>
-          <button
-            type="button"
-            aria-label="Go to next month"
-            disabled={!nextMonth}
-            onClick={() => nextMonth && goToMonth(nextMonth)}
-            className="flex items-center justify-center w-7 h-7 rounded hover:bg-secondary disabled:opacity-30 transition-colors"
-          >
-            <ChevronRight className="w-4 h-4 text-muted-foreground" />
-          </button>
-        </div>
-      </div>
-    )
-  }
+  const isFirst = displayIndex === 0
 
   return (
-    <div className="text-sm font-medium text-muted-foreground px-0.5 pb-1">
-      {label}
+    <div className="flex items-center justify-between pb-1">
+      {/* Left slot: prev arrow on first month, fixed-size spacer on second */}
+      {isFirst ? (
+        <button
+          type="button"
+          aria-label="Go to previous month"
+          disabled={!previousMonth}
+          onClick={() => previousMonth && goToMonth(previousMonth)}
+          className="flex items-center justify-center w-7 h-7 rounded hover:bg-secondary disabled:opacity-30 transition-colors shrink-0"
+        >
+          <ChevronLeft className="w-4 h-4 text-muted-foreground" />
+        </button>
+      ) : (
+        <span className="w-7 h-7 shrink-0" />
+      )}
+
+      <span className="text-sm font-medium text-muted-foreground">{label}</span>
+
+      {/* Right slot: next arrow on second month, fixed-size spacer on first */}
+      {!isFirst ? (
+        <button
+          type="button"
+          aria-label="Go to next month"
+          disabled={!nextMonth}
+          onClick={() => nextMonth && goToMonth(nextMonth)}
+          className="flex items-center justify-center w-7 h-7 rounded hover:bg-secondary disabled:opacity-30 transition-colors shrink-0"
+        >
+          <ChevronRight className="w-4 h-4 text-muted-foreground" />
+        </button>
+      ) : (
+        <span className="w-7 h-7 shrink-0" />
+      )}
     </div>
   )
 }
@@ -170,7 +173,7 @@ export function DateRangePicker({ startDate, endDate, onRangeChange }: DateRange
             ))}
           </div>
 
-          {/* Two-month calendar stacked vertically */}
+          {/* Two-month calendar side by side */}
           <div className="keebo-rdp p-4" style={{ fontFamily: 'IBM Plex Sans, var(--font-sans)' }}>
             <DayPicker
               mode="range"
@@ -182,7 +185,7 @@ export function DateRangePicker({ startDate, endDate, onRangeChange }: DateRange
               hideNavigation
               components={{ MonthCaption: CustomMonthCaption }}
               style={RDP_VARS as React.CSSProperties}
-              styles={{ months: { flexDirection: 'column' } }}
+              styles={{ months: { flexDirection: 'row', alignItems: 'flex-start' } }}
             />
           </div>
         </div>

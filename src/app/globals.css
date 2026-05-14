@@ -160,9 +160,12 @@
   }
 }
 
-/* Date range picker: stack months vertically */
+/* Date range picker: show months side by side */
 .keebo-rdp .rdp-months {
-  flex-direction: column !important;
+  flex-direction: row !important;
+  flex-wrap: nowrap !important;
+  align-items: flex-start !important;
+  max-width: none !important;
 }
 
 /* Date range picker: uniform font size/color across all dates */
