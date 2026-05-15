@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, AdcAuthError } from '@/lib/bigquery'
+import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, SILVER_DATASET, AdcAuthError } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractTypeForOrgInRange } from '@/lib/customers'
 import { computeKPIRows, aggregateKPIRows, computeDeltas } from '@/lib/kpi'
 import { lastCompleteWeek, priorWeek, toDateString } from '@/lib/dates'
@@ -15,6 +15,8 @@ interface RawRow {
   paused_spend_dbus: number
   optimized_actual_dbus: number
   warehouses: number
+  resizing_optimizations: number
+  auto_stop_optimizations: number
 }
 
 export async function GET(req: NextRequest) {
@@ -63,6 +65,7 @@ export async function GET(req: NextRequest) {
     // Replace template table references with actual project/dataset
     const query = sqlTemplate
       .replace(/`keebo-portal\.k3o_dbx_gold_tf\./g, `\`${PROJECT}.${DATASET}.`)
+      .replace(/`keebo-portal\.k3o_dbx_silver_tf\./g, `\`${PROJECT}.${SILVER_DATASET}.`)
       .replace(/-- Parameters[\s\S]*?ORDER BY 1, 2/, (m) => m)
 
     const rows = await runQuery<RawRow>(query, {

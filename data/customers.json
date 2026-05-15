@@ -24,6 +24,15 @@
     "contract_type": "trial"
   },
   {
+    "org_id": "18aed",
+    "name": "PayJoy",
+    "module": "kwo-databricks",
+    "valid_from": "2026-05-15",
+    "valid_to": null,
+    "contract_type": "trial"
+  },
+  
+  {
     "org_id": "org_initech_003",
     "name": "Initech Solutions",
     "module": "kwo-databricks",

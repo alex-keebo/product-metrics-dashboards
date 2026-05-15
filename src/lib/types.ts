@@ -30,6 +30,8 @@ export interface KPIRow {
   total_spend_dbus: number
   paused_spend_dbus: number
   warehouses: number
+  resizing_optimizations: number
+  auto_stop_optimizations: number
 }
 
 export interface KPISnapshot {
@@ -68,6 +70,8 @@ export interface AggregatedKPIs {
   total_spend_dbus: number
   paused_spend_dbus: number
   warehouses: number
+  resizing_optimizations: number
+  auto_stop_optimizations: number
 }
 
 export interface SnapshotKPIWithDelta extends AggregatedKPIs {
@@ -77,4 +81,6 @@ export interface SnapshotKPIWithDelta extends AggregatedKPIs {
   delta_total_spend_dbus: number
   delta_paused_spend_dbus: number
   delta_warehouses: number
+  delta_resizing_optimizations: number
+  delta_auto_stop_optimizations: number
 }

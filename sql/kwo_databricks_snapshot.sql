@@ -15,7 +15,27 @@
 -- included (most recent event with valid_from <= date has is_deleted = false).
 -- Warehouses present in savings_history_tf but never registered are excluded.
 
-WITH deduped_versions AS (
+WITH resizing_agg AS (
+  SELECT
+    DATE_TRUNC(DATE(publish_time), WEEK(SUNDAY)) AS week_start,
+    org_id,
+    COUNT(*) AS resizing_optimizations
+  FROM `keebo-portal.k3o_dbx_silver_tf.warehouse_resizing_events_tf`
+  WHERE DATE(publish_time) BETWEEN @prior_week_start AND @week_end
+    AND org_id IN UNNEST(@org_ids)
+  GROUP BY 1, 2
+),
+auto_stop_agg AS (
+  SELECT
+    DATE_TRUNC(DATE(publish_time), WEEK(SUNDAY)) AS week_start,
+    org_id,
+    COUNT(*) AS auto_stop_optimizations
+  FROM `keebo-portal.k3o_dbx_silver_tf.warehouse_auto_stop_events_tf`
+  WHERE DATE(publish_time) BETWEEN @prior_week_start AND @week_end
+    AND org_id IN UNNEST(@org_ids)
+  GROUP BY 1, 2
+),
+deduped_versions AS (
   -- One row per (warehouse_id, calendar date): keep the latest event on each date.
   SELECT
     org_id,
@@ -51,15 +71,23 @@ SELECT
   SUM(sh.actual_dbus)                                            AS total_spend_dbus,
   SUM(CASE WHEN NOT sh.active THEN sh.actual_dbus ELSE 0 END)    AS paused_spend_dbus,
   SUM(CASE WHEN sh.active THEN sh.actual_dbus ELSE 0 END)        AS optimized_actual_dbus,
-  COUNT(DISTINCT CASE WHEN sh.active THEN sh.warehouse_id END)   AS warehouses
+  COUNT(DISTINCT CASE WHEN sh.active THEN sh.warehouse_id END)   AS warehouses,
+  COALESCE(ra.resizing_optimizations, 0)                         AS resizing_optimizations,
+  COALESCE(aa.auto_stop_optimizations, 0)                        AS auto_stop_optimizations
 FROM `keebo-portal.k3o_dbx_gold_tf.savings_history_tf` sh
 JOIN version_ranges vr
   ON  sh.warehouse_id    = vr.warehouse_id
   AND sh.org_id          = vr.org_id
   AND sh.date           >= vr.valid_from_date
   AND sh.date            < vr.valid_to_date
+LEFT JOIN resizing_agg ra
+  ON  DATE_TRUNC(sh.date, WEEK(SUNDAY)) = ra.week_start
+  AND sh.org_id = ra.org_id
+LEFT JOIN auto_stop_agg aa
+  ON  DATE_TRUNC(sh.date, WEEK(SUNDAY)) = aa.week_start
+  AND sh.org_id = aa.org_id
 WHERE vr.is_deleted = false
   AND sh.date BETWEEN @prior_week_start AND @week_end
   AND sh.org_id IN UNNEST(@org_ids)
-GROUP BY 1, 2
+GROUP BY 1, 2, ra.resizing_optimizations, aa.auto_stop_optimizations
 ORDER BY 1, 2
