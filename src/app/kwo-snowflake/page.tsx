@@ -38,12 +38,14 @@ interface TimeSeriesResponse {
   all_periods: { period_start: string; period_label_display: string }[]
 }
 
+const fmt0 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
 const fmt1 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
 const fmt2 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 
 function formatCredits(v: unknown): string { return fmt1.format(Number(v)) }
 function formatPct(v: unknown): string { return `${fmt1.format(Number(v))}%` }
 function formatInt(v: unknown): string { return fmt1.format(Number(v)) }
+function formatCount(v: unknown): string { return fmt0.format(Number(v)) }
 
 function formatCredits2(v: unknown): string { return fmt2.format(Number(v)) }
 function formatPct2(v: unknown): string { return `${fmt2.format(Number(v))}%` }
@@ -57,6 +59,8 @@ const SNAPSHOT_COLUMNS: Column<Record<string, unknown>>[] = [
   { key: 'warehouses', label: 'Warehouses (#)', format: formatInt, align: 'right' },
   { key: 'paused_spend_dbus', label: 'Optimization Paused Spend (Credits)', format: formatCredits, align: 'right' },
   { key: 'total_spend_dbus', label: 'Total Spend (Credits)', format: formatCredits, align: 'right' },
+  { key: 'resizing_optimizations', label: 'Resizing Optimizations', format: formatCount, align: 'right' },
+  { key: 'auto_stop_optimizations', label: 'Auto-suspend Optimizations', format: formatCount, align: 'right' },
 ]
 
 const TIMESERIES_COLUMNS_BASE: Column<Record<string, unknown>>[] = [
