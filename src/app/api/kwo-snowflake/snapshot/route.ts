@@ -15,6 +15,8 @@ interface RawRow {
   paused_spend_dbus: number
   optimized_actual_dbus: number
   warehouses: number
+  resizing_optimizations: number
+  auto_stop_optimizations: number
 }
 
 export async function GET(req: NextRequest) {

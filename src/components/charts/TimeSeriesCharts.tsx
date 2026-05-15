@@ -224,9 +224,10 @@ interface TimeSeriesChartsProps {
   allPeriods?: PeriodMeta[]
   unit?: string
   queryVolumeEnabled?: boolean
+  autoStopLabel?: string
 }
 
-export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolumeEnabled = true }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolumeEnabled = true, autoStopLabel = 'Auto-stop' }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -461,7 +462,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
         )}
       </ChartWrapper>
 
-      <ChartWrapper title="Auto-stop Optimizations" isLight={isLight}>
+      <ChartWrapper title={`${autoStopLabel} Optimizations`} isLight={isLight}>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={autoStopData}>
             <defs>
@@ -473,12 +474,12 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={fmtKMAutoStop} />
-            <Tooltip {...TT} formatter={(v) => [fmtKMAutoStop(Number(v)), 'Auto-stop Events']} />
+            <Tooltip {...TT} formatter={(v) => [fmtKMAutoStop(Number(v)), `${autoStopLabel} Events`]} />
             <Legend
               verticalAlign="bottom"
               iconType="square"
               iconSize={20}
-              formatter={() => 'Auto-stop Events'}
+              formatter={() => `${autoStopLabel} Events`}
               wrapperStyle={legendStyle}
               onClick={() => setAutoStopHidden(h => !h)}
             />
