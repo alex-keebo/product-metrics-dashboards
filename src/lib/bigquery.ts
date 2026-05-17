@@ -62,13 +62,18 @@ export async function runQuery<T>(query: string, params: Record<string, unknown>
 }
 
 let _orgIdsWithDataCache: Set<string> | null = null
+let _orgIdsWithDataCacheTime = 0
+const ORG_IDS_CACHE_TTL_MS = 60 * 60 * 1000 // 1 hour
 
 export async function getOrgIdsWithData(): Promise<Set<string>> {
-  if (_orgIdsWithDataCache) return _orgIdsWithDataCache
+  if (_orgIdsWithDataCache && Date.now() - _orgIdsWithDataCacheTime < ORG_IDS_CACHE_TTL_MS) {
+    return _orgIdsWithDataCache
+  }
   try {
     const query = `SELECT DISTINCT org_id FROM \`${PROJECT}.${DATASET}.savings_history_tf\``
     const [rows] = await bigquery.query({ query, location: LOCATION })
     _orgIdsWithDataCache = new Set((rows as { org_id: string }[]).map((r) => r.org_id))
+    _orgIdsWithDataCacheTime = Date.now()
     return _orgIdsWithDataCache
   } catch (err) {
     if (isAdcAuthError(err)) {

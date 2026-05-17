@@ -27,6 +27,11 @@ function buildModuleFilter(slugs: string[]): string {
   return `extract(properties.$current_url, 'https?://[^/]+/([^/?]+)') IN (${list})`
 }
 
+const PROJECT_IDS: Record<string, string> = {
+  portal: process.env.POSTHOG_PROJECT_ID!,
+  integration: process.env.POSTHOG_INTEGRATION_PROJECT_ID!,
+}
+
 function buildUserFilter(userType: string): string {
   if (userType === 'external') return `person.properties.is_internal_user != true`
   if (userType === 'internal') return `person.properties.is_internal_user = true`
@@ -51,7 +56,7 @@ function slugsToDisplayString(slugsRaw: unknown): string {
     .join(', ')
 }
 
-async function queryCustomersPerModule(start: string, end: string, mf: string, uf: string) {
+async function queryCustomersPerModule(start: string, end: string, mf: string, uf: string, pid: string) {
   return hogql(`
     SELECT
       extract(properties.$current_url, 'https?://[^/]+/([^/?]+)') AS module_slug,
@@ -64,10 +69,10 @@ async function queryCustomersPerModule(start: string, end: string, mf: string, u
       AND isNotNull(org.properties.name)
       AND org.properties.name != ''
     GROUP BY module_slug
-  `)
+  `, pid)
 }
 
-async function queryUsersPerModule(start: string, end: string, mf: string, uf: string) {
+async function queryUsersPerModule(start: string, end: string, mf: string, uf: string, pid: string) {
   return hogql(`
     SELECT
       extract(properties.$current_url, 'https?://[^/]+/([^/?]+)') AS module_slug,
@@ -80,10 +85,10 @@ async function queryUsersPerModule(start: string, end: string, mf: string, uf: s
       AND isNotNull(properties.$user_id)
       AND properties.$user_id != ''
     GROUP BY module_slug
-  `)
+  `, pid)
 }
 
-async function queryMostActiveCustomers(start: string, end: string, mf: string, uf: string) {
+async function queryMostActiveCustomers(start: string, end: string, mf: string, uf: string, pid: string) {
   return hogql(`
     SELECT
       org.properties.name AS customer_name,
@@ -100,10 +105,10 @@ async function queryMostActiveCustomers(start: string, end: string, mf: string, 
     GROUP BY customer_name
     ORDER BY pageviews DESC
     LIMIT 100
-  `)
+  `, pid)
 }
 
-async function queryMostActiveUsers(start: string, end: string, mf: string, uf: string) {
+async function queryMostActiveUsers(start: string, end: string, mf: string, uf: string, pid: string) {
   return hogql(`
     SELECT
       properties.$user_id AS user_id,
@@ -122,7 +127,7 @@ async function queryMostActiveUsers(start: string, end: string, mf: string, uf: 
     GROUP BY user_id
     ORDER BY pageviews DESC
     LIMIT 100
-  `)
+  `, pid)
 }
 
 export async function GET(req: NextRequest) {
@@ -141,6 +146,8 @@ export async function GET(req: NextRequest) {
     const userType = ['external', 'internal', 'all'].includes(searchParams.get('user_type') ?? '')
       ? (searchParams.get('user_type') as string)
       : 'external'
+    const rawProject = searchParams.get('project') ?? 'portal'
+    const pid = PROJECT_IDS[rawProject] ?? PROJECT_IDS.portal
 
     const prev = prevPeriod(start, end)
     const mf = buildModuleFilter(slugs.length ? slugs : ALL_MODULE_SLUGS)
@@ -152,14 +159,14 @@ export async function GET(req: NextRequest) {
       curTopCustomers, prevTopCustomers,
       curTopUsers, prevTopUsers,
     ] = await Promise.all([
-      queryCustomersPerModule(start, end, mf, uf),
-      queryCustomersPerModule(prev.start, prev.end, mf, uf),
-      queryUsersPerModule(start, end, mf, uf),
-      queryUsersPerModule(prev.start, prev.end, mf, uf),
-      queryMostActiveCustomers(start, end, mf, uf),
-      queryMostActiveCustomers(prev.start, prev.end, mf, uf),
-      queryMostActiveUsers(start, end, mf, uf),
-      queryMostActiveUsers(prev.start, prev.end, mf, uf),
+      queryCustomersPerModule(start, end, mf, uf, pid),
+      queryCustomersPerModule(prev.start, prev.end, mf, uf, pid),
+      queryUsersPerModule(start, end, mf, uf, pid),
+      queryUsersPerModule(prev.start, prev.end, mf, uf, pid),
+      queryMostActiveCustomers(start, end, mf, uf, pid),
+      queryMostActiveCustomers(prev.start, prev.end, mf, uf, pid),
+      queryMostActiveUsers(start, end, mf, uf, pid),
+      queryMostActiveUsers(prev.start, prev.end, mf, uf, pid),
     ])
 
     // Build lookup maps for previous period counts

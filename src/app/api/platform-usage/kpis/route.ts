@@ -36,7 +36,12 @@ function prevPeriod(start: string, end: string) {
   return { start: format(prevStart, 'yyyy-MM-dd'), end: format(prevEnd, 'yyyy-MM-dd') }
 }
 
-async function queryTotalCustomers(start: string, end: string, mf: string, uf: string) {
+const PROJECT_IDS: Record<string, string> = {
+  portal: process.env.POSTHOG_PROJECT_ID!,
+  integration: process.env.POSTHOG_INTEGRATION_PROJECT_ID!,
+}
+
+async function queryTotalCustomers(start: string, end: string, mf: string, uf: string, pid: string) {
   const rows = await hogql(`
     SELECT count(distinct org.properties.name) AS count
     FROM events
@@ -46,11 +51,11 @@ async function queryTotalCustomers(start: string, end: string, mf: string, uf: s
       AND ${uf}
       AND isNotNull(org.properties.name)
       AND org.properties.name != ''
-  `)
+  `, pid)
   return Number(rows[0]?.count ?? 0)
 }
 
-async function queryAvgDailyCustomers(start: string, end: string, mf: string, uf: string) {
+async function queryAvgDailyCustomers(start: string, end: string, mf: string, uf: string, pid: string) {
   const rows = await hogql(`
     SELECT avg(daily_count) AS avg_count
     FROM (
@@ -64,11 +69,11 @@ async function queryAvgDailyCustomers(start: string, end: string, mf: string, uf
         AND org.properties.name != ''
       GROUP BY day
     )
-  `)
+  `, pid)
   return Number(rows[0]?.avg_count ?? 0)
 }
 
-async function queryTotalUsers(start: string, end: string, mf: string, uf: string) {
+async function queryTotalUsers(start: string, end: string, mf: string, uf: string, pid: string) {
   const rows = await hogql(`
     SELECT count(distinct properties.$user_id) AS count
     FROM events
@@ -78,11 +83,11 @@ async function queryTotalUsers(start: string, end: string, mf: string, uf: strin
       AND ${uf}
       AND isNotNull(properties.$user_id)
       AND properties.$user_id != ''
-  `)
+  `, pid)
   return Number(rows[0]?.count ?? 0)
 }
 
-async function queryAvgDailyUsers(start: string, end: string, mf: string, uf: string) {
+async function queryAvgDailyUsers(start: string, end: string, mf: string, uf: string, pid: string) {
   const rows = await hogql(`
     SELECT avg(daily_count) AS avg_count
     FROM (
@@ -96,7 +101,7 @@ async function queryAvgDailyUsers(start: string, end: string, mf: string, uf: st
         AND properties.$user_id != ''
       GROUP BY day
     )
-  `)
+  `, pid)
   return Number(rows[0]?.avg_count ?? 0)
 }
 
@@ -116,6 +121,8 @@ export async function GET(req: NextRequest) {
     const userType = ['external', 'internal', 'all'].includes(searchParams.get('user_type') ?? '')
       ? (searchParams.get('user_type') as string)
       : 'external'
+    const rawProject = searchParams.get('project') ?? 'portal'
+    const pid = PROJECT_IDS[rawProject] ?? PROJECT_IDS.portal
 
     const prev = prevPeriod(start, end)
     const mf = buildModuleFilter(slugs.length ? slugs : ALL_MODULE_SLUGS)
@@ -127,14 +134,14 @@ export async function GET(req: NextRequest) {
       curUsers, prevUsers,
       curAvgUsers, prevAvgUsers,
     ] = await Promise.all([
-      queryTotalCustomers(start, end, mf, uf),
-      queryTotalCustomers(prev.start, prev.end, mf, uf),
-      queryAvgDailyCustomers(start, end, mf, uf),
-      queryAvgDailyCustomers(prev.start, prev.end, mf, uf),
-      queryTotalUsers(start, end, mf, uf),
-      queryTotalUsers(prev.start, prev.end, mf, uf),
-      queryAvgDailyUsers(start, end, mf, uf),
-      queryAvgDailyUsers(prev.start, prev.end, mf, uf),
+      queryTotalCustomers(start, end, mf, uf, pid),
+      queryTotalCustomers(prev.start, prev.end, mf, uf, pid),
+      queryAvgDailyCustomers(start, end, mf, uf, pid),
+      queryAvgDailyCustomers(prev.start, prev.end, mf, uf, pid),
+      queryTotalUsers(start, end, mf, uf, pid),
+      queryTotalUsers(prev.start, prev.end, mf, uf, pid),
+      queryAvgDailyUsers(start, end, mf, uf, pid),
+      queryAvgDailyUsers(prev.start, prev.end, mf, uf, pid),
     ])
 
     return NextResponse.json({

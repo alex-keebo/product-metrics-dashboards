@@ -1,7 +1,7 @@
-const POSTHOG_PROJECT_ID = process.env.POSTHOG_PROJECT_ID!
+const DEFAULT_PROJECT_ID = process.env.POSTHOG_PROJECT_ID!
 
-export async function hogql(query: string): Promise<Record<string, unknown>[]> {
-  const url = `https://us.posthog.com/api/projects/${POSTHOG_PROJECT_ID}/query/`
+export async function hogql(query: string, projectId?: string): Promise<Record<string, unknown>[]> {
+  const url = `https://us.posthog.com/api/projects/${projectId ?? DEFAULT_PROJECT_ID}/query/`
 
   const res = await fetch(url, {
     method: 'POST',

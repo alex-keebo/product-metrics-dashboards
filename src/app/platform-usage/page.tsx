@@ -10,6 +10,7 @@ import { cn } from '@/lib/utils'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
+type Project = 'portal' | 'integration'
 type UserType = 'external' | 'internal' | 'all'
 
 interface KPIValue {
@@ -126,6 +127,35 @@ function SectionError({ message }: { message: string }) {
   )
 }
 
+function ProjectToggle({ value, onChange }: { value: Project; onChange: (v: Project) => void }) {
+  const options: { value: Project; label: string }[] = [
+    { value: 'portal', label: 'Portal' },
+    { value: 'integration', label: 'Integration' },
+  ]
+  return (
+    <div className="flex flex-col gap-1">
+      <label className="text-xs text-muted-foreground font-medium">Project</label>
+      <div className="flex rounded border border-border overflow-hidden text-sm">
+        {options.map((opt) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(opt.value)}
+            className={cn(
+              'px-3 py-1.5 transition-colors',
+              value === opt.value
+                ? 'bg-[#F5F5F5] text-primary font-semibold dark:bg-secondary dark:text-secondary-foreground'
+                : 'bg-card text-foreground hover:bg-secondary'
+            )}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 function UserTypeToggle({ value, onChange }: { value: UserType; onChange: (v: UserType) => void }) {
   const options: { value: UserType; label: string }[] = [
     { value: 'external', label: 'External' },
@@ -163,6 +193,7 @@ export default function PlatformUsagePage() {
   const [endDate, setEndDate] = useState(yesterday)
   const [selectedModules, setSelectedModules] = useState<string[]>(ALL_MODULE_SLUGS)
   const [userType, setUserType] = useState<UserType>('external')
+  const [project, setProject] = useState<Project>('portal')
 
   const [kpis, setKpis] = useState<KPIsResponse | null>(null)
   const [kpisLoading, setKpisLoading] = useState(false)
@@ -178,8 +209,9 @@ export default function PlatformUsagePage() {
     p.set('end', endDate)
     p.set('modules', (selectedModules.length ? selectedModules : ALL_MODULE_SLUGS).join(','))
     p.set('user_type', userType)
+    p.set('project', project)
     return p
-  }, [startDate, endDate, selectedModules, userType])
+  }, [startDate, endDate, selectedModules, userType, project])
 
   const fetchKpis = useCallback(async () => {
     setKpisLoading(true)
@@ -240,6 +272,7 @@ export default function PlatformUsagePage() {
           onChange={setSelectedModules}
         />
         <UserTypeToggle value={userType} onChange={setUserType} />
+        <ProjectToggle value={project} onChange={setProject} />
       </div>
 
       {/* KPI cards */}
