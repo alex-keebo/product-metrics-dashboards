@@ -2,14 +2,10 @@ import fs from 'fs'
 import path from 'path'
 import { Customer, ContractType, CustomerPeriod, Module } from './types'
 
-let _cache: Customer[] | null = null
-
 export function loadCustomers(): Customer[] {
-  if (_cache) return _cache
   const filePath = path.join(process.cwd(), 'data', 'customers.json')
   const raw = fs.readFileSync(filePath, 'utf-8')
-  _cache = JSON.parse(raw) as Customer[]
-  return _cache
+  return JSON.parse(raw) as Customer[]
 }
 
 export function getCustomersForContractTypes(

@@ -26,6 +26,13 @@ export function priorWeek(weekStart: Date): { start: Date; end: Date } {
   return { start, end }
 }
 
+export function last7DaysRange(): { start: Date; end: Date } {
+  const today = new Date()
+  const end = addDays(today, -1)
+  const start = addDays(today, -7)
+  return { start, end }
+}
+
 export function defaultTimeSeriesRange(): { start: Date; end: Date } {
   const { end } = lastCompleteWeek()
   // Go back ~13 complete weeks (91 days) from end of last complete week

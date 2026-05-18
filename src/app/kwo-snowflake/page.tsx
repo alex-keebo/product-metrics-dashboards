@@ -7,7 +7,7 @@ import { KPITile } from '@/components/kpis/KPITile'
 import { TimeSeriesCharts } from '@/components/charts/TimeSeriesCharts'
 import { DataTable, Column } from '@/components/tables/DataTable'
 import { ContractType, Granularity, KPIRow, SnapshotKPIWithDelta, TimeSeriesPoint } from '@/lib/types'
-import { defaultTimeSeriesRange, toDateString, formatCompactDateRange } from '@/lib/dates'
+import { last7DaysRange, toDateString, formatCompactDateRange } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { useQueryVolumeSetting } from '@/lib/settings'
 
@@ -128,11 +128,11 @@ export default function KWOSnowflakePage() {
   const [contractTypes, setContractTypes] = useState<ContractType[]>(ALL_CONTRACT_TYPES)
   // null = all customers (default); [] = user explicitly deselected all
   const [selectedOrgIds, setSelectedOrgIds] = useState<string[] | null>(null)
-  const [granularity, setGranularity] = useState<Granularity>('week')
+  const [granularity, setGranularity] = useState<Granularity>('day')
 
-  // Date range (time series only; initialized to ~13 complete weeks)
-  const [startDate, setStartDate] = useState<string>(() => toDateString(defaultTimeSeriesRange().start))
-  const [endDate, setEndDate] = useState<string>(() => toDateString(defaultTimeSeriesRange().end))
+  // Date range (time series only; initialized to last 7 days)
+  const [startDate, setStartDate] = useState<string>(() => toDateString(last7DaysRange().start))
+  const [endDate, setEndDate] = useState<string>(() => toDateString(last7DaysRange().end))
 
   // Snapshot state
   const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null)
