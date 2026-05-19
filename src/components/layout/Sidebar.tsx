@@ -20,6 +20,12 @@ const nav = [
       { label: 'Platform Usage', href: '/platform-usage' },
     ],
   },
+  {
+    group: 'Platform',
+    items: [
+      { label: 'Customers', href: '/platform/customers' },
+    ],
+  },
 ]
 
 export function Sidebar() {
