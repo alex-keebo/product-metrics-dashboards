@@ -7,6 +7,7 @@ import {
   getAllUsageSubscriptions,
   getPricingPlans,
   getPricingPlan,
+  getCustomer,
   SubscriptCustomer,
   SubscriptUsageSubscription,
   SubscriptPricingPlan,
@@ -109,25 +110,18 @@ export async function syncCustomers(): Promise<SyncLog> {
 
   // ── Step 2: fetch Subscript data ────────────────────────────────────────────
   log.steps.push('Fetching pricing plans from Subscript…')
-  console.log('[sync] fetching pricing plans…')
   const plans = await getPricingPlans()
   const planMap = new Map<string, SubscriptPricingPlan>(plans.map((p) => [p.id, p]))
   log.steps.push(`Fetched ${plans.length} pricing plans`)
-  console.log(`[sync] fetched ${plans.length} pricing plans`)
 
   log.steps.push('Fetching customers from Subscript…')
-  console.log('[sync] fetching customers…')
   const subscriptCustomers = await getAllCustomers()
-  const orgCustomers = subscriptCustomers.filter((c) => c.metadata?.org_id)
+  const orgCustomers = subscriptCustomers.filter((c) => c.metadata?.org_id || c.metadata?.['Org ID'])
   log.steps.push(`Fetched ${subscriptCustomers.length} Subscript customers (${orgCustomers.length} with org_id)`)
-  console.log(`[sync] fetched ${subscriptCustomers.length} customers (${orgCustomers.length} with org_id)`)
-
   // ── Step 3: fetch all subscriptions, group by customer_id ───────────────────
   log.steps.push('Fetching all usage subscriptions from Subscript…')
-  console.log('[sync] fetching usage subscriptions…')
   const allSubs = await getAllUsageSubscriptions()
   log.steps.push(`Fetched ${allSubs.length} usage subscriptions`)
-  console.log(`[sync] fetched ${allSubs.length} usage subscriptions`)
 
   // Back-fill any plan IDs referenced by subscriptions but missing from the active plans list
   // (archived plans won't appear in the /pricing-plans list endpoint)
@@ -149,11 +143,30 @@ export async function syncCustomers(): Promise<SyncLog> {
 
   // Map Subscript customer id → org_id
   const customerIdToOrgId = new Map<string, string>(
-    orgCustomers.map((c) => [c.id, normalizeOrgId(c.metadata.org_id!)])
+    orgCustomers.map((c) => [c.id, normalizeOrgId((c.metadata.org_id || c.metadata['Org ID'])!)])
   )
   const customerIdToName = new Map<string, string>(
     orgCustomers.map((c) => [c.id, c.name])
   )
+
+  // Back-fill any customers referenced by subscriptions but missing from the 1000-record page
+  const missingCustomerIds = [...new Set(allSubs.map((s) => s.customer_id))].filter(
+    (id) => !customerIdToOrgId.has(id)
+  )
+  if (missingCustomerIds.length > 0) {
+    const results = await Promise.allSettled(missingCustomerIds.map((id) => getCustomer(id)))
+    let fetched = 0
+    for (const result of results) {
+      if (result.status !== 'fulfilled') continue
+      const c = result.value
+      const rawOrgId = c.metadata?.org_id || c.metadata?.['Org ID']
+      if (!rawOrgId) continue
+      const orgId = normalizeOrgId(rawOrgId)
+      customerIdToOrgId.set(c.id, orgId)
+      customerIdToName.set(c.id, c.name)
+      fetched++
+    }
+  }
 
   // Group subscriptions by customer_id (client-side filter — API returns all)
   const subsByCustomerId = new Map<string, SubscriptUsageSubscription[]>()
@@ -166,6 +179,18 @@ export async function syncCustomers(): Promise<SyncLog> {
   // Drop all existing subscription/consumption/churn rows for orgs known to
   // Subscript — we'll re-add them cleanly from the authoritative source
   const subscriptOrgIdSet = new Set(customerIdToOrgId.values())
+
+  // ── Coverage report ───────────────────────────────────────────────────────────
+  const fileOrgIds = new Set(customers.map((c) => c.org_id))
+  const inSubscriptNotFile = [...subscriptOrgIdSet].filter((id) => !fileOrgIds.has(id)).sort()
+  if (inSubscriptNotFile.length > 0) {
+    const names = inSubscriptNotFile.map((id) => {
+      const custId = [...customerIdToOrgId.entries()].find(([, v]) => v === id)?.[0]
+      const name = custId ? customerIdToName.get(custId) : undefined
+      return name ? `${id} (${name})` : id
+    })
+    log.steps.push(`In Subscript but not in customers.json (${inSubscriptNotFile.length}): ${names.join(', ')}`)
+  }
   const before = customers.length
   const kept = customers.filter(
     (c) =>
@@ -208,23 +233,19 @@ export async function syncCustomers(): Promise<SyncLog> {
 
   // ── Step 4: BigQuery — Databricks trial dates ────────────────────────────────
   log.steps.push('Querying BigQuery for Databricks savings dates…')
-  console.log('[sync] querying BigQuery for Databricks savings dates…')
   const dbxDates = await getDbxSavingsDates()
   const dbxOrgIds = new Set(dbxDates.map((r) => r.org_id))
   log.steps.push(`Found ${dbxDates.length} Databricks orgs in BigQuery`)
 
   applyTrialDates(customers, dbxDates, 'kwo-databricks', log)
 
-  console.log(`[sync] Databricks: ${dbxDates.length} orgs`)
 
   // ── Step 5: BigQuery — Snowflake trial dates ─────────────────────────────────
   log.steps.push('Querying BigQuery for Snowflake savings dates…')
-  console.log('[sync] querying BigQuery for Snowflake savings dates…')
   const snfDates = await getSnfSavingsDates()
   const snfOrgIds = new Set(snfDates.map((r) => r.org_id))
   log.steps.push(`Found ${snfDates.length} Snowflake orgs in BigQuery`)
 
-  console.log(`[sync] Snowflake: ${snfDates.length} orgs`)
   applyTrialDates(customers, snfDates, 'kwo-snowflake', log)
 
   // ── Step 6: close trial → subscription transitions ───────────────────────────

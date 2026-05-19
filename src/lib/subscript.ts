@@ -4,7 +4,8 @@ export interface SubscriptCustomer {
   id: string
   name: string
   metadata: {
-    org_id?: string
+    org_id?: string | null
+    'Org ID'?: string | null
     product?: string
   }
   archived_at: string | null
@@ -66,22 +67,8 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 export async function getAllCustomers(): Promise<SubscriptCustomer[]> {
-  const PAGE_SIZE = 1000
-  const customers: SubscriptCustomer[] = []
-  let page = 1
-
-  while (true) {
-    console.log(`[subscript] fetching customers page ${page}…`)
-    const res = await getJson<PaginatedResponse<SubscriptCustomer>>(
-      `/customers?limit=${PAGE_SIZE}&page=${page}`
-    )
-    console.log(`[subscript] customers page ${page}: got ${res.data.length} records`)
-    customers.push(...res.data)
-    if (res.data.length < PAGE_SIZE) break
-    page++
-  }
-
-  return customers
+  const res = await getJson<PaginatedResponse<SubscriptCustomer>>('/customers?limit=1000')
+  return res.data
 }
 
 // Fetches ALL usage subscriptions across all customers (Subscript does not support
@@ -109,4 +96,9 @@ export async function getPricingPlans(): Promise<SubscriptPricingPlan[]> {
 
 export async function getPricingPlan(id: string): Promise<SubscriptPricingPlan> {
   return getJson<SubscriptPricingPlan>(`/pricing-plans/${id}`)
+}
+
+export async function getCustomer(id: string): Promise<SubscriptCustomer> {
+  const res = await getJson<{ data: SubscriptCustomer } | SubscriptCustomer>(`/customers/${id}`)
+  return 'data' in res ? res.data : res
 }
