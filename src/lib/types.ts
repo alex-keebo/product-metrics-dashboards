@@ -75,12 +75,20 @@ export interface AggregatedKPIs {
 }
 
 export interface SnapshotKPIWithDelta extends AggregatedKPIs {
-  delta_savings_dbus: number
-  delta_savings_pct: number
-  delta_avg_savings_pct: number
-  delta_total_spend_dbus: number
-  delta_paused_spend_dbus: number
-  delta_warehouses: number
-  delta_resizing_optimizations: number
-  delta_auto_stop_optimizations: number
+  delta_savings_dbus: number | null
+  delta_savings_pct: number | null
+  delta_avg_savings_pct: number | null
+  delta_total_spend_dbus: number | null
+  delta_paused_spend_dbus: number | null
+  delta_warehouses: number | null
+  delta_resizing_optimizations: number | null
+  delta_auto_stop_optimizations: number | null
+  abs_delta_savings_dbus: number
+  abs_delta_savings_pct: number
+  abs_delta_avg_savings_pct: number
+  abs_delta_total_spend_dbus: number
+  abs_delta_paused_spend_dbus: number
+  abs_delta_warehouses: number
+  abs_delta_resizing_optimizations: number
+  abs_delta_auto_stop_optimizations: number
 }

@@ -8,7 +8,8 @@ interface KPITileProps {
   label: string
   unit: string
   value: number
-  delta: number
+  delta: number | null
+  absoluteDelta?: number
   format: 'dbu' | 'pct' | 'count'
   higherIsBetter: boolean
   periodLabel?: string
@@ -28,14 +29,15 @@ function formatValue(v: number, fmt: 'dbu' | 'pct' | 'count', decimals = 0): str
   return v.toFixed(1)
 }
 
-export function KPITile({ label, unit, value, delta, format, higherIsBetter, periodLabel = 'vs Previous Week', decimals = 0 }: KPITileProps) {
+export function KPITile({ label, unit, value, delta, absoluteDelta, format, higherIsBetter, periodLabel = 'vs Previous Week', decimals = 0 }: KPITileProps) {
   const { theme } = useTheme()
   const dark = theme === 'dark'
 
-  const improved = higherIsBetter ? delta > 0 : delta < 0
-  const neutral = delta === 0
+  const noData = delta === null
+  const improved = !noData && (higherIsBetter ? delta > 0 : delta < 0)
+  const neutral = !noData && delta === 0
 
-  const badgeStyle = neutral
+  const badgeStyle = noData || neutral
     ? dark
       ? { bg: 'bg-[#1a3a4a]', text: 'text-[#9ac6da]' }
       : { bg: 'bg-[#E8EDF0]', text: 'text-[#4E575B]' }
@@ -43,8 +45,8 @@ export function KPITile({ label, unit, value, delta, format, higherIsBetter, per
     ? { bg: 'bg-[#E3FFEE]', text: 'text-[#055D35]' }
     : { bg: 'bg-[#FFC4C5]', text: 'text-[#86080A]' }
 
-  const DeltaIcon = neutral ? Minus : improved ? ArrowUp : ArrowDown
-  const sign = delta > 0 ? '+' : ''
+  const DeltaIcon = noData || neutral ? Minus : improved ? ArrowUp : ArrowDown
+  const sign = delta !== null && delta > 0 ? '+' : ''
 
   const cardStyle = dark
     ? { background: '#00283A', boxShadow: '0px 5px 10px rgba(0,0,0,0.1)' }
@@ -87,7 +89,13 @@ export function KPITile({ label, unit, value, delta, format, higherIsBetter, per
             badgeStyle.text
           )}>
             <DeltaIcon className="w-3 h-3 shrink-0" />
-            {sign}{formatValue(delta, format, decimals)}
+            {noData && absoluteDelta !== undefined
+              ? `N/A (△${absoluteDelta > 0 ? '+' : ''}${formatValue(absoluteDelta, format, decimals)})`
+              : noData
+              ? 'N/A'
+              : absoluteDelta !== undefined
+              ? `${sign}${delta!.toFixed(1)}% (△${absoluteDelta > 0 ? '+' : ''}${formatValue(absoluteDelta, format, decimals)})`
+              : `${sign}${formatValue(delta!, format, decimals)}`}
           </div>
           <div className={cn(
             'text-[14px] leading-5 text-right',

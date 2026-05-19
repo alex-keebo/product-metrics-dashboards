@@ -57,19 +57,32 @@ export function aggregateKPIRows(rows: KPIRow[]): AggregatedKPIs {
   return { savings_dbus, savings_pct, avg_savings_pct, total_spend_dbus, paused_spend_dbus, warehouses, resizing_optimizations, auto_stop_optimizations }
 }
 
+function pctChange(current: number, prior: number): number | null {
+  if (prior === 0) return null
+  return ((current - prior) / prior) * 100
+}
+
 export function computeDeltas(
   current: AggregatedKPIs,
   prior: AggregatedKPIs
 ): SnapshotKPIWithDelta {
   return {
     ...current,
-    delta_savings_dbus: current.savings_dbus - prior.savings_dbus,
-    delta_savings_pct: current.savings_pct - prior.savings_pct,
-    delta_avg_savings_pct: current.avg_savings_pct - prior.avg_savings_pct,
-    delta_total_spend_dbus: current.total_spend_dbus - prior.total_spend_dbus,
-    delta_paused_spend_dbus: current.paused_spend_dbus - prior.paused_spend_dbus,
-    delta_warehouses: current.warehouses - prior.warehouses,
-    delta_resizing_optimizations: current.resizing_optimizations - prior.resizing_optimizations,
-    delta_auto_stop_optimizations: current.auto_stop_optimizations - prior.auto_stop_optimizations,
+    delta_savings_dbus: pctChange(current.savings_dbus, prior.savings_dbus),
+    delta_savings_pct: pctChange(current.savings_pct, prior.savings_pct),
+    delta_avg_savings_pct: pctChange(current.avg_savings_pct, prior.avg_savings_pct),
+    delta_total_spend_dbus: pctChange(current.total_spend_dbus, prior.total_spend_dbus),
+    delta_paused_spend_dbus: pctChange(current.paused_spend_dbus, prior.paused_spend_dbus),
+    delta_warehouses: pctChange(current.warehouses, prior.warehouses),
+    delta_resizing_optimizations: pctChange(current.resizing_optimizations, prior.resizing_optimizations),
+    delta_auto_stop_optimizations: pctChange(current.auto_stop_optimizations, prior.auto_stop_optimizations),
+    abs_delta_savings_dbus: current.savings_dbus - prior.savings_dbus,
+    abs_delta_savings_pct: current.savings_pct - prior.savings_pct,
+    abs_delta_avg_savings_pct: current.avg_savings_pct - prior.avg_savings_pct,
+    abs_delta_total_spend_dbus: current.total_spend_dbus - prior.total_spend_dbus,
+    abs_delta_paused_spend_dbus: current.paused_spend_dbus - prior.paused_spend_dbus,
+    abs_delta_warehouses: current.warehouses - prior.warehouses,
+    abs_delta_resizing_optimizations: current.resizing_optimizations - prior.resizing_optimizations,
+    abs_delta_auto_stop_optimizations: current.auto_stop_optimizations - prior.auto_stop_optimizations,
   }
 }

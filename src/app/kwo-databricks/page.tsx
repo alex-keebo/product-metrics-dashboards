@@ -285,14 +285,14 @@ export default function KWODatabricksPage() {
 
                   {snapshot.kpis ? (
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                      <KPITile label="Savings" unit="DBUs" value={snapshot.kpis.savings_dbus} delta={snapshot.kpis.delta_savings_dbus} format="dbu" higherIsBetter={true} />
-                      <KPITile label="Savings" unit="%" value={snapshot.kpis.savings_pct} delta={snapshot.kpis.delta_savings_pct} format="pct" higherIsBetter={true} />
-                      <KPITile label="Avg Savings Across Customers" unit="%" value={snapshot.kpis.avg_savings_pct} delta={snapshot.kpis.delta_avg_savings_pct} format="pct" higherIsBetter={true} />
-                      <KPITile label="Warehouses" unit="Count" value={snapshot.kpis.warehouses} delta={snapshot.kpis.delta_warehouses} format="dbu" higherIsBetter={true} />
-                      <KPITile label="Optimization Paused Spend" unit="DBUs" value={snapshot.kpis.paused_spend_dbus} delta={snapshot.kpis.delta_paused_spend_dbus} format="dbu" higherIsBetter={false} />
-                      <KPITile label="Total Spend" unit="DBUs" value={snapshot.kpis.total_spend_dbus} delta={snapshot.kpis.delta_total_spend_dbus} format="dbu" higherIsBetter={false} />
-                      <KPITile label="Resizing Optimizations" unit="Count" value={snapshot.kpis.resizing_optimizations} delta={snapshot.kpis.delta_resizing_optimizations} format="count" higherIsBetter={true} />
-                      <KPITile label="Auto-stop Optimizations" unit="Count" value={snapshot.kpis.auto_stop_optimizations} delta={snapshot.kpis.delta_auto_stop_optimizations} format="count" higherIsBetter={true} />
+                      <KPITile label="Savings" unit="DBUs" value={snapshot.kpis.savings_dbus} delta={snapshot.kpis.delta_savings_dbus} absoluteDelta={snapshot.kpis.abs_delta_savings_dbus} format="dbu" higherIsBetter={true} />
+                      <KPITile label="Savings" unit="%" value={snapshot.kpis.savings_pct} delta={snapshot.kpis.delta_savings_pct} absoluteDelta={snapshot.kpis.abs_delta_savings_pct} format="pct" higherIsBetter={true} />
+                      <KPITile label="Avg Savings Across Customers" unit="%" value={snapshot.kpis.avg_savings_pct} delta={snapshot.kpis.delta_avg_savings_pct} absoluteDelta={snapshot.kpis.abs_delta_avg_savings_pct} format="pct" higherIsBetter={true} />
+                      <KPITile label="Warehouses" unit="Count" value={snapshot.kpis.warehouses} delta={snapshot.kpis.delta_warehouses} absoluteDelta={snapshot.kpis.abs_delta_warehouses} format="dbu" higherIsBetter={true} />
+                      <KPITile label="Optimization Paused Spend" unit="DBUs" value={snapshot.kpis.paused_spend_dbus} delta={snapshot.kpis.delta_paused_spend_dbus} absoluteDelta={snapshot.kpis.abs_delta_paused_spend_dbus} format="dbu" higherIsBetter={false} />
+                      <KPITile label="Total Spend" unit="DBUs" value={snapshot.kpis.total_spend_dbus} delta={snapshot.kpis.delta_total_spend_dbus} absoluteDelta={snapshot.kpis.abs_delta_total_spend_dbus} format="dbu" higherIsBetter={false} />
+                      <KPITile label="Resizing Optimizations" unit="Count" value={snapshot.kpis.resizing_optimizations} delta={snapshot.kpis.delta_resizing_optimizations} absoluteDelta={snapshot.kpis.abs_delta_resizing_optimizations} format="count" higherIsBetter={true} />
+                      <KPITile label="Auto-stop Optimizations" unit="Count" value={snapshot.kpis.auto_stop_optimizations} delta={snapshot.kpis.delta_auto_stop_optimizations} absoluteDelta={snapshot.kpis.abs_delta_auto_stop_optimizations} format="count" higherIsBetter={true} />
                     </div>
                   ) : (
                     <div className="text-sm text-muted-foreground py-4">No data for the selected filters</div>
