@@ -18,6 +18,7 @@ const nav = [
     group: 'UI Usage Telemetry',
     items: [
       { label: 'Platform Usage', href: '/platform-usage' },
+      { label: 'Feature Analytics', href: '/feature-analytics' },
     ],
   },
   {
