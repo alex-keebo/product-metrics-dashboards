@@ -144,11 +144,14 @@ export async function GET(req: NextRequest) {
       queryAvgDailyUsers(prev.start, prev.end, mf, uf, pid),
     ])
 
+    const pctDelta = (cur: number, prev: number) =>
+      prev === 0 ? null : ((cur - prev) / prev) * 100
+
     return NextResponse.json({
-      total_customers: { current: curCustomers, previous: prevCustomers, delta: curCustomers - prevCustomers },
-      avg_daily_customers: { current: curAvgCustomers, previous: prevAvgCustomers, delta: curAvgCustomers - prevAvgCustomers },
-      total_users: { current: curUsers, previous: prevUsers, delta: curUsers - prevUsers },
-      avg_daily_users: { current: curAvgUsers, previous: prevAvgUsers, delta: curAvgUsers - prevAvgUsers },
+      total_customers: { current: curCustomers, previous: prevCustomers, delta: pctDelta(curCustomers, prevCustomers), abs_delta: curCustomers - prevCustomers },
+      avg_daily_customers: { current: curAvgCustomers, previous: prevAvgCustomers, delta: pctDelta(curAvgCustomers, prevAvgCustomers), abs_delta: curAvgCustomers - prevAvgCustomers },
+      total_users: { current: curUsers, previous: prevUsers, delta: pctDelta(curUsers, prevUsers), abs_delta: curUsers - prevUsers },
+      avg_daily_users: { current: curAvgUsers, previous: prevAvgUsers, delta: pctDelta(curAvgUsers, prevAvgUsers), abs_delta: curAvgUsers - prevAvgUsers },
       period: { start, end },
       prev_period: prev,
     })

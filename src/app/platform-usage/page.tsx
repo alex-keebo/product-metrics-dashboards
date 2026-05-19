@@ -16,7 +16,8 @@ type UserType = 'external' | 'internal' | 'all'
 interface KPIValue {
   current: number
   previous: number
-  delta: number
+  delta: number | null
+  abs_delta: number
 }
 
 interface KPIsResponse {
@@ -287,6 +288,7 @@ export default function PlatformUsagePage() {
             unit="customers"
             value={kpis.total_customers.current}
             delta={kpis.total_customers.delta}
+            absoluteDelta={kpis.total_customers.abs_delta}
             format="count"
             higherIsBetter={true}
             periodLabel={periodLabel}
@@ -296,6 +298,7 @@ export default function PlatformUsagePage() {
             unit="customers / day"
             value={kpis.avg_daily_customers.current}
             delta={kpis.avg_daily_customers.delta}
+            absoluteDelta={kpis.avg_daily_customers.abs_delta}
             format="count"
             higherIsBetter={true}
             periodLabel={periodLabel}
@@ -306,6 +309,7 @@ export default function PlatformUsagePage() {
             unit="users"
             value={kpis.total_users.current}
             delta={kpis.total_users.delta}
+            absoluteDelta={kpis.total_users.abs_delta}
             format="count"
             higherIsBetter={true}
             periodLabel={periodLabel}
@@ -315,6 +319,7 @@ export default function PlatformUsagePage() {
             unit="users / day"
             value={kpis.avg_daily_users.current}
             delta={kpis.avg_daily_users.delta}
+            absoluteDelta={kpis.avg_daily_users.abs_delta}
             format="count"
             higherIsBetter={true}
             periodLabel={periodLabel}
