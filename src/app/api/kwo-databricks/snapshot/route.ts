@@ -2,14 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, SILVER_DATASET, AdcAuthError } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractTypeForOrgInRange } from '@/lib/customers'
 import { computeKPIRows, aggregateKPIRows, computeDeltas } from '@/lib/kpi'
-import { lastCompleteWeek, priorWeek, toDateString } from '@/lib/dates'
+import { lastCompleteWeek, toDateString } from '@/lib/dates'
 import { ContractType } from '@/lib/types'
+import { addDays, differenceInCalendarDays, parseISO } from 'date-fns'
 import fs from 'fs'
 import path from 'path'
 
 interface RawRow {
   org_id: string
-  week_start: { value: string }
   savings_dbus: number
   total_spend_dbus: number
   paused_spend_dbus: number
@@ -27,15 +27,20 @@ export async function GET(req: NextRequest) {
       .filter(Boolean) as ContractType[]
     const selectedOrgIds = searchParams.get('org_ids')?.split(',').filter(Boolean)
 
-    const { start: weekStart, end: weekEnd } = lastCompleteWeek()
-    const { start: priorStart, end: priorEnd } = priorWeek(weekStart)
+    const defaultRange = lastCompleteWeek()
+    const periodStart = searchParams.get('start') ?? toDateString(defaultRange.start)
+    const periodEnd = searchParams.get('end') ?? toDateString(defaultRange.end)
 
-    const weekStartStr = toDateString(weekStart)
-    const weekEndStr = toDateString(weekEnd)
+    const startDate = parseISO(periodStart)
+    const endDate = parseISO(periodEnd)
+    const lengthDays = differenceInCalendarDays(endDate, startDate)
+    const priorEnd = addDays(startDate, -1)
+    const priorStart = addDays(priorEnd, -lengthDays)
+
     const priorStartStr = toDateString(priorStart)
     const priorEndStr = toDateString(priorEnd)
 
-    const allOrgIds = getOrgIdsForContractTypes('kwo-databricks', contractTypes, priorStartStr, weekEndStr)
+    const allOrgIds = getOrgIdsForContractTypes('kwo-databricks', contractTypes, priorStartStr, periodEnd)
     const orgIds = selectedOrgIds?.length
       ? allOrgIds.filter((id) => selectedOrgIds.includes(id))
       : allOrgIds
@@ -50,35 +55,29 @@ export async function GET(req: NextRequest) {
     if (orgIds.length === 0) {
       const data_as_of = await getDataAsOf()
       return NextResponse.json({
-        current: null,
-        prior: null,
+        kpis: null,
         data_as_of,
-        week_start: weekStartStr,
-        week_end: weekEndStr,
+        period_start: periodStart,
+        period_end: periodEnd,
+        prior_start: priorStartStr,
+        prior_end: priorEndStr,
         available_customers,
       })
     }
 
     const sqlPath = path.join(process.cwd(), 'sql', 'kwo_databricks_snapshot.sql')
     const sqlTemplate = fs.readFileSync(sqlPath, 'utf-8')
-
-    // Replace template table references with actual project/dataset
     const query = sqlTemplate
       .replace(/`keebo-portal\.k3o_dbx_gold_tf\./g, `\`${PROJECT}.${DATASET}.`)
       .replace(/`keebo-portal\.k3o_dbx_silver_tf\./g, `\`${PROJECT}.${SILVER_DATASET}.`)
-      .replace(/-- Parameters[\s\S]*?ORDER BY 1, 2/, (m) => m)
 
-    const rows = await runQuery<RawRow>(query, {
-      prior_week_start: priorStartStr,
-      week_end: weekEndStr,
-      org_ids: orgIds,
-    })
-
-    const currentRaw = rows.filter((r) => r.week_start?.value === weekStartStr)
-    const priorRaw = rows.filter((r) => r.week_start?.value === priorStartStr)
+    const [currentRaw, priorRaw] = await Promise.all([
+      runQuery<RawRow>(query, { start: periodStart, end: periodEnd, org_ids: orgIds }),
+      runQuery<RawRow>(query, { start: priorStartStr, end: priorEndStr, org_ids: orgIds }),
+    ])
 
     const currentContractTypeMap = new Map(
-      orgIds.map((id) => [id, getContractTypeForOrgInRange(id, weekStartStr, weekEndStr, 'kwo-databricks') ?? 'consumption'])
+      orgIds.map((id) => [id, getContractTypeForOrgInRange(id, periodStart, periodEnd, 'kwo-databricks') ?? 'consumption'])
     )
     const priorContractTypeMap = new Map(
       orgIds.map((id) => [id, getContractTypeForOrgInRange(id, priorStartStr, priorEndStr, 'kwo-databricks') ?? 'consumption'])
@@ -97,10 +96,10 @@ export async function GET(req: NextRequest) {
       kpis: deltas,
       customer_rows: currentRows,
       data_as_of,
-      week_start: weekStartStr,
-      week_end: weekEndStr,
-      prior_week_start: priorStartStr,
-      prior_week_end: toDateString(priorEnd),
+      period_start: periodStart,
+      period_end: periodEnd,
+      prior_start: priorStartStr,
+      prior_end: priorEndStr,
       available_customers,
     })
   } catch (err) {

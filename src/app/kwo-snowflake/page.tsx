@@ -7,7 +7,7 @@ import { KPITile } from '@/components/kpis/KPITile'
 import { TimeSeriesCharts } from '@/components/charts/TimeSeriesCharts'
 import { DataTable, Column } from '@/components/tables/DataTable'
 import { ContractType, Granularity, KPIRow, SnapshotKPIWithDelta, TimeSeriesPoint } from '@/lib/types'
-import { last7DaysRange, toDateString, formatCompactDateRange } from '@/lib/dates'
+import { lastCompleteWeek, toDateString, formatCompactDateRange } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 import { useQueryVolumeSetting } from '@/lib/settings'
 
@@ -24,10 +24,10 @@ interface SnapshotResponse {
   kpis: SnapshotKPIWithDelta
   customer_rows: KPIRow[]
   data_as_of: string
-  week_start: string
-  week_end: string
-  prior_week_start: string
-  prior_week_end: string
+  period_start: string
+  period_end: string
+  prior_start: string
+  prior_end: string
   available_customers: { org_id: string; name: string }[]
 }
 
@@ -130,9 +130,8 @@ export default function KWOSnowflakePage() {
   const [selectedOrgIds, setSelectedOrgIds] = useState<string[] | null>(null)
   const [granularity, setGranularity] = useState<Granularity>('day')
 
-  // Date range (time series only; initialized to last 7 days)
-  const [startDate, setStartDate] = useState<string>(() => toDateString(last7DaysRange().start))
-  const [endDate, setEndDate] = useState<string>(() => toDateString(last7DaysRange().end))
+  const [startDate, setStartDate] = useState<string>(() => toDateString(lastCompleteWeek().start))
+  const [endDate, setEndDate] = useState<string>(() => toDateString(lastCompleteWeek().end))
 
   // Snapshot state
   const [snapshot, setSnapshot] = useState<SnapshotResponse | null>(null)
@@ -162,7 +161,10 @@ export default function KWOSnowflakePage() {
     setSnapshotLoading(true)
     setSnapshotError(null)
     try {
-      const res = await fetch(`/api/kwo-snowflake/snapshot?${buildParams()}`)
+      const params = buildParams()
+      params.set('start', startDate)
+      params.set('end', endDate)
+      const res = await fetch(`/api/kwo-snowflake/snapshot?${params}`)
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setSnapshotError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
@@ -174,7 +176,7 @@ export default function KWOSnowflakePage() {
     } finally {
       setSnapshotLoading(false)
     }
-  }, [buildParams, selectedOrgIds])
+  }, [buildParams, selectedOrgIds, startDate, endDate])
 
   const fetchTimeSeries = useCallback(async () => {
     if (selectedOrgIds !== null && selectedOrgIds.length === 0) {
@@ -260,12 +262,12 @@ export default function KWOSnowflakePage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             )}
           >
-            {t === 'snapshot' ? 'Weekly Snapshot' : 'Time Series'}
+            {t === 'snapshot' ? 'Snapshot' : 'Time Series'}
           </button>
         ))}
       </div>
 
-      {/* Weekly Snapshot */}
+      {/* Snapshot */}
       {tab === 'snapshot' && (
         <div className="flex flex-col gap-6">
           {noCustomers ? (
@@ -291,9 +293,9 @@ export default function KWOSnowflakePage() {
               {snapshotError && <SectionError error={snapshotError} />}
               {!snapshotLoading && !snapshotError && snapshot && (
                 <>
-                  {snapshot.week_start && (
+                  {snapshot.period_start && (
                     <div className="text-xs text-muted-foreground">
-                      {formatCompactDateRange(snapshot.week_start, snapshot.week_end)} vs {formatCompactDateRange(snapshot.prior_week_start, snapshot.prior_week_end)}
+                      {formatCompactDateRange(snapshot.period_start, snapshot.period_end)} vs Previous Period ({formatCompactDateRange(snapshot.prior_start, snapshot.prior_end)})
                     </div>
                   )}
 

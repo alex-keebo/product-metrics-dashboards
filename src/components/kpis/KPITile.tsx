@@ -29,7 +29,7 @@ function formatValue(v: number, fmt: 'dbu' | 'pct' | 'count', decimals = 0): str
   return v.toFixed(1)
 }
 
-export function KPITile({ label, unit, value, delta, absoluteDelta, format, higherIsBetter, periodLabel = 'vs Previous Week', decimals = 0 }: KPITileProps) {
+export function KPITile({ label, unit, value, delta, absoluteDelta, format, higherIsBetter, periodLabel = 'vs Previous Period', decimals = 0 }: KPITileProps) {
   const { theme } = useTheme()
   const dark = theme === 'dark'
 

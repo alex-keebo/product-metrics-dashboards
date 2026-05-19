@@ -86,25 +86,21 @@ export function DashboardFilters({
         placeholder={contractTypes.length === 0 ? 'Select contract type first' : 'None selected'}
       />
 
-      {showGranularity && (
-        <>
-          {startDate !== undefined && endDate !== undefined && onRangeChange && (
-            <DateRangePicker
-              startDate={startDate}
-              endDate={endDate}
-              onRangeChange={onRangeChange}
-            />
-          )}
+      {startDate !== undefined && endDate !== undefined && onRangeChange && (
+        <DateRangePicker
+          startDate={startDate}
+          endDate={endDate}
+          onRangeChange={onRangeChange}
+        />
+      )}
 
-          {granularity && onGranularityChange && (
-            <SingleSelect
-              label="Group By"
-              options={GRANULARITY_OPTIONS}
-              value={granularity}
-              onChange={(v) => onGranularityChange(v as Granularity)}
-            />
-          )}
-        </>
+      {showGranularity && granularity && onGranularityChange && (
+        <SingleSelect
+          label="Group By"
+          options={GRANULARITY_OPTIONS}
+          value={granularity}
+          onChange={(v) => onGranularityChange(v as Granularity)}
+        />
       )}
     </div>
   )
