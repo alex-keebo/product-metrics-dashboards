@@ -20,7 +20,7 @@ type SortDir = 'asc' | 'desc'
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
-const CONTRACT_TYPES: ContractType[] = ['trial', 'lost_trial', 'subscription', 'consumption', 'churn']
+const CONTRACT_TYPES: ContractType[] = ['trial', 'lost_trial', 'subscription', 'consumption', 'churn', 'internal']
 const MODULES: { value: Module; label: string }[] = [
   { value: 'kwo-databricks', label: 'KWO Databricks' },
   { value: 'kwo-snowflake', label: 'KWO Snowflake' },
@@ -32,6 +32,7 @@ const CONTRACT_TYPE_LABELS: Record<ContractType, string> = {
   subscription: 'Subscription',
   consumption: 'Consumption',
   churn: 'Churn',
+  internal: 'Internal',
 }
 
 const CONTRACT_TYPE_CLASSES: Record<ContractType, string> = {
@@ -40,6 +41,7 @@ const CONTRACT_TYPE_CLASSES: Record<ContractType, string> = {
   subscription: 'bg-success/10 text-success dark:bg-success/20',
   consumption: 'bg-secondary text-secondary-foreground',
   churn: 'bg-destructive/10 text-destructive dark:bg-destructive/20',
+  internal: 'bg-accent/10 text-accent-foreground dark:bg-accent/20',
 }
 
 const MODULE_LABELS: Record<string, string> = {

@@ -836,7 +836,7 @@
     "name": "Betr",
     "module": "kwo-snowflake",
     "valid_from": "2025-02-13",
-    "valid_to": "2026-05-15",
+    "valid_to": "2025-05-15",
     "contract_type": "trial"
   },
   {
@@ -1181,7 +1181,7 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-03-20",
     "valid_to": null,
-    "contract_type": "trial"
+    "contract_type": "internal"
   },
   {
     "org_id": "2a37e",

@@ -11,6 +11,7 @@ const CONTRACT_TYPE_OPTIONS = [
   { value: 'trial', label: 'Trials' },
   { value: 'churn', label: 'Churned' },
   { value: 'lost_trial', label: 'Lost Trials' },
+  { value: 'internal', label: 'Internal' },
 ]
 
 const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [

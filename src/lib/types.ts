@@ -1,4 +1,4 @@
-export type ContractType = 'trial' | 'lost_trial' | 'subscription' | 'consumption' | 'churn'
+export type ContractType = 'trial' | 'lost_trial' | 'subscription' | 'consumption' | 'churn' | 'internal'
 
 export type Module = 'kwo-databricks' | 'kwo-snowflake' | 'kwi-snowflake'
 
