@@ -165,7 +165,7 @@ interface ChartWrapperProps {
   height?: number
 }
 
-function ChartWrapper({ title, children, isLight, height }: ChartWrapperProps) {
+export function ChartWrapper({ title, children, isLight, height }: ChartWrapperProps) {
   if (isLight) {
     return (
       <div style={{
