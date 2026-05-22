@@ -7,7 +7,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend,
   type LegendPayload,
 } from 'recharts'
-import { TimeSeriesPoint } from '@/lib/types'
+import { TimeSeriesPoint, TimeSeriesRangeTotals } from '@/lib/types'
 import { useTheme } from '@/components/layout/ThemeProvider'
 
 interface ChartData {
@@ -163,9 +163,10 @@ interface ChartWrapperProps {
   children: React.ReactNode
   isLight: boolean
   height?: number
+  totals?: { label: string; value: string }[] | null
 }
 
-export function ChartWrapper({ title, children, isLight, height }: ChartWrapperProps) {
+export function ChartWrapper({ title, children, isLight, height, totals }: ChartWrapperProps) {
   if (isLight) {
     return (
       <div style={{
@@ -176,14 +177,29 @@ export function ChartWrapper({ title, children, isLight, height }: ChartWrapperP
         padding: '24px 30px',
         ...(height != null ? { height } : {}),
       }}>
-        <div style={{
-          fontFamily: 'Exo, sans-serif',
-          fontWeight: 500,
-          fontSize: 18,
-          lineHeight: '24px',
-          color: '#051c27',
-          marginBottom: 16,
-        }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+          <div style={{
+            fontFamily: 'Exo, sans-serif',
+            fontWeight: 500,
+            fontSize: 18,
+            lineHeight: '24px',
+            color: '#051c27',
+          }}>{title}</div>
+          {totals !== undefined && (
+            <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
+              {totals === null ? (
+                <div className="animate-pulse" style={{ width: 56, height: 36, background: '#e4f0f7', borderRadius: 4 }} />
+              ) : (
+                totals.map(({ label, value }) => (
+                  <div key={label} style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 15, fontWeight: 600, color: '#051c27' }}>{value}</div>
+                    <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 10, fontWeight: 400, color: '#4a6373', marginTop: 1 }}>{label}</div>
+                  </div>
+                ))
+              )}
+            </div>
+          )}
+        </div>
         {children}
       </div>
     )
@@ -197,20 +213,145 @@ export function ChartWrapper({ title, children, isLight, height }: ChartWrapperP
       padding: '20px 24px',
       ...(height != null ? { height } : {}),
     }}>
-      <div style={{
-        fontFamily: 'Exo, sans-serif',
-        fontWeight: 500,
-        fontSize: 16,
-        lineHeight: '22px',
-        color: '#e8f0f4',
-        marginBottom: 16,
-      }}>{title}</div>
+      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div style={{
+          fontFamily: 'Exo, sans-serif',
+          fontWeight: 500,
+          fontSize: 16,
+          lineHeight: '22px',
+          color: '#e8f0f4',
+        }}>{title}</div>
+        {totals !== undefined && (
+          <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
+            {totals === null ? (
+              <div className="animate-pulse" style={{ width: 56, height: 36, background: '#0d3344', borderRadius: 4 }} />
+            ) : (
+              totals.map(({ label, value }) => (
+                <div key={label} style={{ textAlign: 'right' }}>
+                  <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 15, fontWeight: 600, color: '#e8f0f4' }}>{value}</div>
+                  <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 10, fontWeight: 400, color: '#6b7f8a', marginTop: 1 }}>{label}</div>
+                </div>
+              ))
+            )}
+          </div>
+        )}
+      </div>
       {children}
     </div>
   )
 }
 
 
+
+export interface SimpleBarChartProps {
+  data: { label: string; value: number }[]
+  isLight: boolean
+  /** 'vertical' = column bars (label on X); 'horizontal' = sideways bars (label on Y) */
+  direction?: 'vertical' | 'horizontal'
+  formatter?: (v: number) => string
+  barColor?: string
+  valueName?: string
+  yAxisWidth?: number
+  height?: number
+  barSize?: number
+  labelMaxChars?: number
+}
+
+export function SimpleBarChart({
+  data,
+  isLight,
+  direction = 'vertical',
+  formatter = (v) => String(Math.round(v)),
+  barColor = C_NAVY,
+  valueName,
+  yAxisWidth = 160,
+  height = 220,
+  barSize,
+  labelMaxChars = 40,
+}: SimpleBarChartProps) {
+  const GRID = isLight ? LIGHT_GRID : DARK_GRID
+  const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
+  const TT   = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
+  const cursorFill = isLight ? '#F1F3F5' : '#0d3344'
+
+  if (direction === 'horizontal') {
+    return (
+      <ResponsiveContainer width="100%" height={height}>
+        <BarChart
+          data={data}
+          layout="vertical"
+          margin={{ top: 4, right: 12, bottom: 4, left: 0 }}
+        >
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} horizontal={false} />
+          <XAxis
+            type="number"
+            tick={AXIS}
+            axisLine={false}
+            tickLine={false}
+            tickFormatter={formatter}
+          />
+          <YAxis
+            type="category"
+            dataKey="label"
+            width={yAxisWidth}
+            tick={(props: { x: string | number; y: string | number; payload: { value: string } }) => {
+              const full = props.payload.value
+              const label = full.length > labelMaxChars ? full.slice(0, labelMaxChars) + '…' : full
+              return (
+                <g transform={`translate(${props.x},${props.y})`}>
+                  <title>{full}</title>
+                  <text
+                    x={-6} y={0} dy={4}
+                    textAnchor="end"
+                    fontSize={AXIS.fontSize}
+                    fontFamily={AXIS.fontFamily}
+                    fontWeight={AXIS.fontWeight}
+                    fill={AXIS.fill}
+                  >
+                    {label}
+                  </text>
+                </g>
+              )
+            }}
+            axisLine={false}
+            tickLine={false}
+            interval={0}
+          />
+          <Tooltip
+            contentStyle={TT.contentStyle}
+            labelStyle={TT.labelStyle}
+            itemStyle={TT.itemStyle}
+            cursor={{ fill: cursorFill }}
+            formatter={(v) => [formatter(Number(v)), valueName ?? '']}
+          />
+          <Bar dataKey="value" fill={barColor} radius={[0, 3, 3, 0]} maxBarSize={barSize ?? 28} />
+        </BarChart>
+      </ResponsiveContainer>
+    )
+  }
+
+  return (
+    <ResponsiveContainer width="100%" height={height}>
+      <BarChart
+        data={data}
+        margin={{ top: 4, right: 8, bottom: 4, left: 0 }}
+        barSize={barSize ?? (isLight ? 30 : undefined)}
+      >
+        <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+        <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
+        <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={formatter} />
+        <Tooltip
+          contentStyle={TT.contentStyle}
+          labelStyle={TT.labelStyle}
+          itemStyle={TT.itemStyle}
+          cursor={{ fill: cursorFill }}
+          formatter={(v) => [formatter(Number(v)), valueName ?? '']}
+        />
+        <Bar dataKey="value" fill={barColor} radius={[3, 3, 0, 0]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
+}
 
 function makeKMFormatter(data: ChartData[]): (v: number) => string {
   const max = data.length > 0 ? Math.max(...data.map((d) => d.value)) : 0
@@ -225,11 +366,45 @@ interface TimeSeriesChartsProps {
   unit?: string
   queryVolumeEnabled?: boolean
   autoStopLabel?: string
+  rangeTotals?: TimeSeriesRangeTotals | null
 }
 
-export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolumeEnabled = true, autoStopLabel = 'Auto-stop' }: TimeSeriesChartsProps) {
+export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolumeEnabled = true, autoStopLabel = 'Auto-stop', rangeTotals }: TimeSeriesChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
+
+  function fmtKMSingle(v: number): string {
+    if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`
+    if (v >= 1_000) return `${(v / 1_000).toFixed(2)}K`
+    return String(Math.round(v))
+  }
+
+  const totalsSavingsPct = rangeTotals
+    ? [{ label: 'Avg', value: `${rangeTotals.savings_pct.toFixed(1)}%` }]
+    : rangeTotals === null ? null : undefined
+
+  const totalsUsageSavings = rangeTotals
+    ? [
+        { label: 'Saved', value: fmtDbu.format(rangeTotals.savings_dbus) },
+        { label: 'Spent', value: fmtDbu.format(rangeTotals.total_spend_dbus) },
+      ]
+    : rangeTotals === null ? null : undefined
+
+  const totalsWarehouses = rangeTotals
+    ? [{ label: 'Total', value: fmtInt.format(rangeTotals.warehouses) }]
+    : rangeTotals === null ? null : undefined
+
+  const totalsQueryVolume = rangeTotals
+    ? [{ label: 'Total', value: fmtKMSingle(rangeTotals.query_volume) }]
+    : rangeTotals === null ? null : undefined
+
+  const totalsAutoStop = rangeTotals
+    ? [{ label: 'Total', value: fmtKMSingle(rangeTotals.auto_stop_events) }]
+    : rangeTotals === null ? null : undefined
+
+  const totalsResizing = rangeTotals
+    ? [{ label: 'Total', value: fmtKMSingle(rangeTotals.resizing_events) }]
+    : rangeTotals === null ? null : undefined
 
   const [hiddenBars, setHiddenBars] = useState<Set<string>>(new Set())
   const [savingsPctHidden, setSavingsPctHidden] = useState(false)
@@ -272,7 +447,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Savings (%)" isLight={isLight}>
+      <ChartWrapper title="Savings (%)" isLight={isLight} totals={totalsSavingsPct}>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={savingsPct}>
             <defs>
@@ -304,7 +479,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 ? { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 2, r: 4 }
                 : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 4 }}
               activeDot={isLight
-                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
                 : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />
@@ -312,7 +487,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title={`Usage & Savings (${unit})`} isLight={isLight}>
+      <ChartWrapper title={`Usage & Savings (${unit})`} isLight={isLight} totals={totalsUsageSavings}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={stackedSavings} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -368,7 +543,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
       </ChartWrapper>
 
 
-      <ChartWrapper title="Warehouses (#)" isLight={isLight}>
+      <ChartWrapper title="Warehouses (#)" isLight={isLight} totals={totalsWarehouses}>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={warehouses}>
             <defs>
@@ -400,7 +575,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               activeDot={isLight
-                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />
@@ -408,7 +583,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Query Volumes" isLight={isLight} height={queryVolumeEnabled ? undefined : 290}>
+      <ChartWrapper title="Query Volumes" isLight={isLight} height={queryVolumeEnabled ? undefined : 290} totals={totalsQueryVolume}>
         {queryVolumeEnabled ? (
           <ResponsiveContainer width="100%" height={220}>
             <AreaChart data={queryVolumeData}>
@@ -441,7 +616,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                   ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
                   : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
                 activeDot={isLight
-                  ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                  ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
                   : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
                 connectNulls={false}
               />
@@ -462,7 +637,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
         )}
       </ChartWrapper>
 
-      <ChartWrapper title={`${autoStopLabel} Optimizations`} isLight={isLight}>
+      <ChartWrapper title={`${autoStopLabel} Optimizations`} isLight={isLight} totals={totalsAutoStop}>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={autoStopData}>
             <defs>
@@ -494,7 +669,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               activeDot={isLight
-                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />
@@ -502,7 +677,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Resizing Optimizations" isLight={isLight}>
+      <ChartWrapper title="Resizing Optimizations" isLight={isLight} totals={totalsResizing}>
         <ResponsiveContainer width="100%" height={220}>
           <AreaChart data={resizingData}>
             <defs>
@@ -534,7 +709,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               activeDot={isLight
-                ? { fill: '#adc5fd', stroke: '#3770f7', strokeWidth: 2, r: 6 }
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
                 : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
               connectNulls={false}
             />

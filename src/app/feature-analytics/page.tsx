@@ -3,19 +3,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { subDays, addDays, format, parseISO } from 'date-fns'
 import {
-  BarChart,
-  Bar,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  Cell,
-  LabelList,
   AreaChart,
   Area,
   ResponsiveContainer,
 } from 'recharts'
-import { ChartWrapper } from '@/components/charts/TimeSeriesCharts'
+import { ChartWrapper, SimpleBarChart } from '@/components/charts/TimeSeriesCharts'
 import { MODULE_ACTIONS } from '@/lib/feature-action-defs'
 import { DateRangePicker } from '@/components/filters/DateRangePicker'
 import { useTheme } from '@/components/layout/ThemeProvider'
@@ -81,19 +77,19 @@ type ActiveTab = 'most-used-features' | ModuleSlug
 
 const TAB_DEFS: { id: ActiveTab; label: string }[] = [
   { id: 'most-used-features', label: 'Most Used Features' },
-  { id: 'platform', label: 'Platform' },
   { id: 'warehouse-optimization', label: 'KWO for Snowflake' },
-  { id: 'databricks-warehouse-optimization', label: 'KWO for Databricks' },
   { id: 'workload-iq', label: 'KWI for Snowflake' },
+  { id: 'databricks-warehouse-optimization', label: 'KWO for Databricks' },
+  { id: 'platform', label: 'Platform' },
 ]
 
 const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd')
 const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd')
 
 const LABEL_MAX = 40
-const BAR_HEIGHT = 28
+const BAR_HEIGHT = 36
 const MODULE_BAR_Y_AXIS_WIDTH = 200
-const MODULE_BAR_MAX_HEIGHT = 400
+const MODULE_BAR_MAX_HEIGHT = 420
 
 // Chart theme constants — mirrors TimeSeriesCharts.tsx
 const DARK_GRID = '#0d3344'
@@ -239,45 +235,6 @@ function UserTypeToggle({ value, onChange }: { value: UserType; onChange: (v: Us
 
 // ─── Most Used Features tab (per-module bar charts in 2×2 grid) ───────────────
 
-function ModuleYAxisTick({
-  x,
-  y,
-  payload,
-}: {
-  x?: number
-  y?: number
-  payload?: { value: string }
-}) {
-  if (x == null || y == null || !payload) return null
-  const full = payload.value
-  const label = full.length > LABEL_MAX ? full.slice(0, LABEL_MAX) + '…' : full
-  return (
-    <g transform={`translate(${x},${y})`}>
-      <title>{full}</title>
-      <text x={-6} y={0} dy={4} textAnchor="end" fontSize={11} className="fill-muted-foreground">
-        {label}
-      </text>
-    </g>
-  )
-}
-
-function ModuleChartTooltip({
-  active,
-  payload,
-}: {
-  active?: boolean
-  payload?: Array<{ payload: { page_name: string; count: number } }>
-}) {
-  if (!active || !payload?.length) return null
-  const { page_name, count } = payload[0].payload
-  return (
-    <div className="rounded-md border border-border bg-card px-3 py-2 text-sm shadow-md max-w-xs">
-      <p className="font-medium text-foreground mb-1">{page_name}</p>
-      <p className="text-muted-foreground">{count.toLocaleString()} pageviews</p>
-    </div>
-  )
-}
-
 function ModulePagesCard({
   label,
   prefix,
@@ -293,7 +250,6 @@ function ModulePagesCard({
 }) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
-  const cursorFill = isLight ? '#F1F3F5' : '#0d3344'
 
   const stripped = (data ?? []).map((r) => ({
     page_name: stripModulePrefix(r.page_name),
@@ -304,12 +260,13 @@ function ModulePagesCard({
   const containerHeight = Math.min(chartHeight, MODULE_BAR_MAX_HEIGHT)
   const scrollable = chartHeight > MODULE_BAR_MAX_HEIGHT
 
+  const total = (data ?? []).reduce((s, r) => s + r.count, 0)
+  const chartTotals: { label: string; value: string }[] | null = loading
+    ? null
+    : [{ label: 'Total', value: total.toLocaleString() }]
+
   return (
-    <div className="rounded-lg border border-border bg-card p-4 flex flex-col gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="text-sm font-heading font-semibold text-foreground">{label}</h3>
-        <span className="text-xs text-muted-foreground font-mono">{prefix}</span>
-      </div>
+    <ChartWrapper title={`${label} (${prefix})`} isLight={isLight} totals={chartTotals}>
       {loading ? (
         <CardLoader />
       ) : error ? (
@@ -318,48 +275,19 @@ function ModulePagesCard({
         <p className="text-sm text-muted-foreground py-6 text-center">No data in selected period</p>
       ) : (
         <div style={{ height: containerHeight, overflowY: scrollable ? 'auto' : 'visible' }}>
-          <BarChart
-            width={undefined as unknown as number}
+          <SimpleBarChart
+            data={stripped.map((r) => ({ label: r.page_name, value: r.count }))}
+            isLight={isLight}
+            direction="horizontal"
+            formatter={(v) => v.toLocaleString()}
+            valueName="pageviews"
+            yAxisWidth={MODULE_BAR_Y_AXIS_WIDTH}
             height={chartHeight}
-            data={stripped}
-            layout="vertical"
-            margin={{ top: 4, right: 48, bottom: 4, left: MODULE_BAR_Y_AXIS_WIDTH }}
-            style={{ width: '100%' }}
-          >
-            <CartesianGrid strokeDasharray="3 3" horizontal={false} className="stroke-border" />
-            <XAxis
-              type="number"
-              tickFormatter={(v) => v.toLocaleString()}
-              tick={{ fontSize: 10, fill: 'var(--muted-foreground)' }}
-              axisLine={false}
-              tickLine={false}
-              domain={[0, (dataMax: number) => Math.ceil(dataMax * 1.2)]}
-            />
-            <YAxis
-              type="category"
-              dataKey="page_name"
-              width={MODULE_BAR_Y_AXIS_WIDTH}
-              tick={ModuleYAxisTick as unknown as React.ReactElement}
-              axisLine={false}
-              tickLine={false}
-              interval={0}
-            />
-            <Tooltip content={<ModuleChartTooltip />} cursor={{ fill: cursorFill }} />
-            <Bar dataKey="count" radius={[0, 3, 3, 0]} maxBarSize={18}>
-              {stripped.map((_, i) => (
-                <Cell key={i} fill="#2a6985" />
-              ))}
-              <LabelList
-                dataKey="count"
-                position="right"
-                formatter={(v: unknown) => Number(v).toLocaleString()}
-                style={{ fontSize: 10, fill: '#4a6373' }}
-              />
-            </Bar>
-          </BarChart>
+            labelMaxChars={LABEL_MAX}
+          />
         </div>
       )}
-    </div>
+    </ChartWrapper>
   )
 }
 
@@ -399,6 +327,13 @@ function PageDauCard({ series, start, end }: { series: DauSeries; start: string;
   const padded = padDateRange(series.data, start, end)
   const gradientId = `dau-fill-${series.page.replace(/[^a-zA-Z0-9]/g, '-')}`
 
+  const avgDau = padded.length > 0
+    ? padded.reduce((s, d) => s + d.dau, 0) / padded.length
+    : 0
+  const dauTotals: { label: string; value: string }[] = [
+    { label: 'Avg', value: fmtInt.format(Math.round(avgDau)) },
+  ]
+
   const GRID = isLight ? LIGHT_GRID : DARK_GRID
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
   const TT   = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
@@ -411,7 +346,7 @@ function PageDauCard({ series, start, end }: { series: DauSeries; start: string;
     : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 6 }
 
   return (
-    <ChartWrapper title={title} isLight={isLight}>
+    <ChartWrapper title={title} isLight={isLight} totals={dauTotals}>
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={padded} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
           <defs>
@@ -465,6 +400,11 @@ function ActionTrendCard({ series, start, end }: { series: ActionSeries; start: 
   const padded = padActionRange(series.data, start, end)
   const gradientId = `action-fill-${series.key.replace(/[^a-zA-Z0-9]/g, '-')}`
 
+  const totalActions = padded.reduce((s, d) => s + d.count, 0)
+  const actionTotals: { label: string; value: string }[] = [
+    { label: 'Total', value: fmtInt.format(totalActions) },
+  ]
+
   const GRID = isLight ? LIGHT_GRID : DARK_GRID
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
   const TT   = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
@@ -477,7 +417,7 @@ function ActionTrendCard({ series, start, end }: { series: ActionSeries; start: 
     : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 6 }
 
   return (
-    <ChartWrapper title={series.label} isLight={isLight}>
+    <ChartWrapper title={series.label} isLight={isLight} totals={actionTotals}>
       <ResponsiveContainer width="100%" height={220}>
         <AreaChart data={padded} margin={{ top: 4, right: 8, bottom: 0, left: 0 }}>
           <defs>

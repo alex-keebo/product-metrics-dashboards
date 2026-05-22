@@ -58,9 +58,21 @@ export interface TimeSeriesPoint {
   resizing_events: number
 }
 
+export interface TimeSeriesRangeTotals {
+  savings_dbus: number
+  savings_pct: number
+  total_spend_dbus: number
+  paused_spend_dbus: number
+  warehouses: number
+  query_volume: number
+  auto_stop_events: number
+  resizing_events: number
+}
+
 export interface TimeSeriesResponse {
   points: TimeSeriesPoint[]
   data_as_of: string
+  range_totals: TimeSeriesRangeTotals
 }
 
 export interface AggregatedKPIs {

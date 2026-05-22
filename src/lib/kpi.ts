@@ -1,4 +1,4 @@
-import { KPIRow, AggregatedKPIs, SnapshotKPIWithDelta } from './types'
+import { KPIRow, AggregatedKPIs, SnapshotKPIWithDelta, TimeSeriesPoint, TimeSeriesRangeTotals } from './types'
 
 interface RawRow {
   org_id: string
@@ -55,6 +55,28 @@ export function aggregateKPIRows(rows: KPIRow[]): AggregatedKPIs {
       : 0
 
   return { savings_dbus, savings_pct, avg_savings_pct, total_spend_dbus, paused_spend_dbus, warehouses, resizing_optimizations, auto_stop_optimizations }
+}
+
+export function computeRangeTotalsFromPoints(
+  points: TimeSeriesPoint[],
+  warehouses: number,
+): TimeSeriesRangeTotals {
+  const savings_dbus = points.reduce((s, p) => s + p.savings_dbus, 0)
+  const total_spend_dbus = points.reduce((s, p) => s + p.total_spend_dbus, 0)
+  const paused_spend_dbus = points.reduce((s, p) => s + p.paused_spend_dbus, 0)
+  const optimized_actual = total_spend_dbus - paused_spend_dbus
+  const grossSpend = optimized_actual + savings_dbus
+  const savings_pct = grossSpend > 0 ? (savings_dbus / grossSpend) * 100 : 0
+  return {
+    savings_dbus,
+    savings_pct,
+    total_spend_dbus,
+    paused_spend_dbus,
+    warehouses,
+    query_volume: points.reduce((s, p) => s + p.query_volume, 0),
+    auto_stop_events: points.reduce((s, p) => s + p.auto_stop_events, 0),
+    resizing_events: points.reduce((s, p) => s + p.resizing_events, 0),
+  }
 }
 
 function pctChange(current: number, prior: number): number | null {

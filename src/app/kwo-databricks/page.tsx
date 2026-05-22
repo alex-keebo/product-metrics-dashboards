@@ -6,7 +6,7 @@ import { DashboardFilters } from '@/components/filters/DashboardFilters'
 import { KPITile } from '@/components/kpis/KPITile'
 import { TimeSeriesCharts } from '@/components/charts/TimeSeriesCharts'
 import { DataTable, Column } from '@/components/tables/DataTable'
-import { ContractType, Granularity, KPIRow, SnapshotKPIWithDelta, TimeSeriesPoint } from '@/lib/types'
+import { ContractType, Granularity, KPIRow, SnapshotKPIWithDelta, TimeSeriesPoint, TimeSeriesRangeTotals } from '@/lib/types'
 import { lastCompleteWeek, toDateString, formatCompactDateRange } from '@/lib/dates'
 import { cn } from '@/lib/utils'
 
@@ -15,7 +15,7 @@ interface FetchError {
   code?: string
 }
 
-const ALL_CONTRACT_TYPES: ContractType[] = ['consumption', 'subscription', 'trial', 'churn', 'lost_trial']
+const ALL_CONTRACT_TYPES: ContractType[] = ['consumption', 'subscription', 'trial', 'churn', 'lost_trial', 'internal']
 
 type Tab = 'snapshot' | 'timeseries'
 
@@ -35,6 +35,7 @@ interface TimeSeriesResponse {
   data_as_of: string
   available_customers: { org_id: string; name: string }[]
   all_periods: { period_start: string; period_label_display: string }[]
+  range_totals: TimeSeriesRangeTotals
 }
 
 const fmt0 = new Intl.NumberFormat('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })
@@ -340,7 +341,7 @@ export default function KWODatabricksPage() {
               {tsError && <SectionError error={tsError} />}
               {!tsLoading && !tsError && timeseries && (
                 <>
-                  <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} />
+                  <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} rangeTotals={timeseries.range_totals} />
                   <div>
                     <div className="text-sm font-medium text-foreground/80 mb-3">Data Table</div>
                     <DataTable

@@ -5,7 +5,8 @@ import {
 } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractPeriodsForOrg } from '@/lib/customers'
 import { buildPeriods, defaultTimeSeriesRange, toDateString } from '@/lib/dates'
-import { ContractType, Granularity, TimeSeriesPoint } from '@/lib/types'
+import { ContractType, Granularity, TimeSeriesPoint, TimeSeriesRangeTotals } from '@/lib/types'
+import { computeRangeTotalsFromPoints } from '@/lib/kpi'
 import fs from 'fs'
 import path from 'path'
 
@@ -117,7 +118,11 @@ export async function GET(req: NextRequest) {
 
     if (orgIds.length === 0) {
       const data_as_of = await getSnfDataAsOf()
-      return NextResponse.json({ points: [], data_as_of, available_customers, all_periods: [] })
+      const emptyTotals: TimeSeriesRangeTotals = {
+        savings_dbus: 0, savings_pct: 0, total_spend_dbus: 0, paused_spend_dbus: 0,
+        warehouses: 0, query_volume: 0, auto_stop_events: 0, resizing_events: 0,
+      }
+      return NextResponse.json({ points: [], data_as_of, available_customers, all_periods: [], range_totals: emptyTotals })
     }
 
     const sqlPath = path.join(process.cwd(), 'sql', 'kwo_snowflake_timeseries.sql')
@@ -200,9 +205,17 @@ export async function GET(req: NextRequest) {
 
     points.sort((a, b) => b.period_start.localeCompare(a.period_start) || b.savings_dbus - a.savings_dbus)
 
+    const byOrgWarehouseMax = new Map<string, number>()
+    for (const row of rows) {
+      const cur = byOrgWarehouseMax.get(row.org_id) ?? 0
+      byOrgWarehouseMax.set(row.org_id, Math.max(cur, Number(row.active_warehouses)))
+    }
+    const rangeWarehouses = Array.from(byOrgWarehouseMax.values()).reduce((s, v) => s + v, 0)
+    const range_totals: TimeSeriesRangeTotals = computeRangeTotalsFromPoints(points, rangeWarehouses)
+
     const all_periods = periods.map((p) => ({ period_start: p.start, period_label_display: p.displayLabel }))
 
-    return NextResponse.json({ points, data_as_of, available_customers, all_periods })
+    return NextResponse.json({ points, data_as_of, available_customers, all_periods, range_totals })
   } catch (err) {
     console.error('[snf-timeseries]', err)
     if (err instanceof AdcAuthError) {

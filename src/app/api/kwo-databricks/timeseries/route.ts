@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { runQuery, getDataAsOf, getOrgIdsWithData, PROJECT, DATASET, BRONZE_DATASET, SILVER_DATASET, AdcAuthError } from '@/lib/bigquery'
 import { getOrgIdsForContractTypes, getCustomerNameMap, getContractPeriodsForOrg } from '@/lib/customers'
 import { buildPeriods, defaultTimeSeriesRange, toDateString } from '@/lib/dates'
-import { ContractType, Granularity, TimeSeriesPoint } from '@/lib/types'
+import { ContractType, Granularity, TimeSeriesPoint, TimeSeriesRangeTotals } from '@/lib/types'
+import { computeRangeTotalsFromPoints } from '@/lib/kpi'
 import fs from 'fs'
 import path from 'path'
 
@@ -80,7 +81,11 @@ export async function GET(req: NextRequest) {
 
     if (orgIds.length === 0) {
       const data_as_of = await getDataAsOf()
-      return NextResponse.json({ points: [], data_as_of, available_customers, all_periods: [] })
+      const emptyTotals: TimeSeriesRangeTotals = {
+        savings_dbus: 0, savings_pct: 0, total_spend_dbus: 0, paused_spend_dbus: 0,
+        warehouses: 0, query_volume: 0, auto_stop_events: 0, resizing_events: 0,
+      }
+      return NextResponse.json({ points: [], data_as_of, available_customers, all_periods: [], range_totals: emptyTotals })
     }
 
     const sqlPath = path.join(process.cwd(), 'sql', 'kwo_databricks_timeseries.sql')
@@ -164,10 +169,15 @@ export async function GET(req: NextRequest) {
 
     points.sort((a, b) => b.period_start.localeCompare(a.period_start) || b.savings_dbus - a.savings_dbus)
 
+    const rangeWarehouses = new Set(
+      rows.filter((r) => r.active).map((r) => r.warehouse_id)
+    ).size
+    const range_totals: TimeSeriesRangeTotals = computeRangeTotalsFromPoints(points, rangeWarehouses)
+
     const all_periods = periods.map((p) => ({ period_start: p.start, period_label_display: p.displayLabel }))
 
     const data_as_of = await getDataAsOf()
-    return NextResponse.json({ points, data_as_of, available_customers, all_periods })
+    return NextResponse.json({ points, data_as_of, available_customers, all_periods, range_totals })
   } catch (err) {
     console.error('[timeseries]', err)
     if (err instanceof AdcAuthError) {
