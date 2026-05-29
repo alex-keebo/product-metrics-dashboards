@@ -13,10 +13,9 @@
 -- Returns one row per org_id per day. The application layer aggregates into
 -- the requested granularity buckets.
 --
--- Warehouses registered in connected_warehouse_versions with is_deleted = false
--- on a given day are included. Warehouses with no version history at all are
--- also included (e.g. newly onboarded customers whose registration events have
--- not yet propagated). Warehouses explicitly marked is_deleted = true are excluded.
+-- Only warehouses registered in connected_warehouse_versions with is_deleted = false
+-- on a given day are included. Warehouses present in savings_history_tf but never
+-- registered are excluded (matches snapshot query behaviour).
 
 WITH deduped_versions AS (
   -- One row per (warehouse_id, calendar date): keep the latest event on each date.
@@ -55,12 +54,12 @@ SELECT
   sh.saved_dbus,
   sh.active
 FROM `keebo-portal.k3o_dbx_gold_tf.savings_history_tf` sh
-LEFT JOIN version_ranges vr
+JOIN version_ranges vr
   ON  sh.warehouse_id    = vr.warehouse_id
   AND sh.org_id          = vr.org_id
   AND sh.date           >= vr.valid_from_date
   AND sh.date            < vr.valid_to_date
-WHERE (vr.is_deleted = false OR vr.warehouse_id IS NULL)
+WHERE vr.is_deleted = false
   AND sh.date BETWEEN @start_date AND @end_date
   AND sh.org_id IN UNNEST(@org_ids)
 ORDER BY sh.date, sh.org_id

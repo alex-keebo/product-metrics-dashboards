@@ -115,7 +115,10 @@ export function DateRangePicker({ startDate, endDate, onRangeChange }: DateRange
       // First click: set start, stay open
       setSelectionStart(selectedDay)
     } else if (isSameDay(selectedDay, selectionStart)) {
-      // Clicked the same day again: keep waiting for second click
+      // Same day = single-day range; commit and close
+      onRangeChange(format(selectionStart, 'yyyy-MM-dd'), format(selectedDay, 'yyyy-MM-dd'))
+      setSelectionStart(undefined)
+      setOpen(false)
     } else if (isBefore(selectedDay, selectionStart)) {
       // Clicked before start: replace start, stay open
       setSelectionStart(selectedDay)

@@ -35,11 +35,11 @@ export function Sidebar() {
 
   return (
     <aside
-      className="min-h-screen bg-sidebar border-r border-sidebar-border flex flex-col py-6 px-3 shrink-0"
+      className="h-full bg-sidebar border-r border-sidebar-border flex flex-col py-6 px-3 shrink-0"
       style={{ width: 266 }}
     >
       <div className="text-sidebar-foreground font-semibold text-sm px-3 mb-6 tracking-wide font-heading">KEEBO</div>
-      <nav className="flex flex-col gap-6 flex-1">
+      <nav className="flex flex-col gap-6 flex-1 overflow-y-auto">
         {nav.map((section) => (
           <div key={section.group}>
             <div className="text-sidebar-foreground/50 text-xs font-medium tracking-wider px-3 mb-1">

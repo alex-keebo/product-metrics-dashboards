@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${ibmPlexSans.variable} ${exo2.variable} ${ibmPlexMono.variable} h-full antialiased dark`}>
-      <body className="min-h-full flex bg-background text-foreground">
+      <body className="h-screen flex bg-background text-foreground overflow-hidden">
         <ThemeProvider>
           <Sidebar />
           <main className="flex-1 overflow-auto">{children}</main>
