@@ -199,6 +199,26 @@ describe('reconcileBigQueryDates — gap-fill', () => {
   })
 })
 
+describe('reconcileBigQueryDates — subscription with future valid_to', () => {
+  it('BQ is active and subscription valid_to is in the future → no post-subscript', () => {
+    // Mirrors Life360/DBX: sub ends 2027-05-06 (future), BQ data is recent
+    const result = reconcileBigQueryDates({
+      org_id: 'org1', module: 'kwo-databricks', name: 'Test Org',
+      bqRange: bq('2025-08-29', '2026-05-28'),  // recent → bq_end = null
+      subscriptRecords: [sub('2026-05-07', '2027-05-06', 'subscription')],
+      today: TODAY,
+    })
+    // pre-subscript trial, no post-subscript
+    expect(result).toHaveLength(1)
+    expect(result[0]).toMatchObject({
+      contract_type: 'trial',
+      source: 'bigquery:pre-subscript',
+      valid_from: '2025-08-29',
+      valid_to: '2026-05-06',
+    })
+  })
+})
+
 describe('reconcileBigQueryDates — active threshold', () => {
   it('last_date exactly 7 days before today → valid_to null (still active)', () => {
     const result = reconcileBigQueryDates({

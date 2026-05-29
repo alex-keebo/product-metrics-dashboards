@@ -1,219 +1,11 @@
 [
   {
-    "org_id": "ac934",
-    "name": "Abacus Insights",
-    "module": "kwo-databricks",
-    "valid_from": "2026-04-09",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "b5a69",
-    "name": "PDI Technologies",
-    "module": "kwo-databricks",
-    "valid_from": "2026-04-27",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "18aed",
-    "name": "PayJoy",
-    "module": "kwo-databricks",
-    "valid_from": "2026-05-15",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "9526b",
-    "name": "Acquia",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-18",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "db960",
-    "name": "Acxiom",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-11-19",
-    "valid_to": "2025-02-20",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "ac934",
-    "name": "Abacus Insights",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-03-19",
-    "valid_to": "2026-05-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "7198d",
-    "name": "AstraZeneca",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2026-05-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "d4872",
-    "name": "At-Bay",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-02",
-    "valid_to": "2024-01-19",
-    "contract_type": "lost_trial"
-  },
-  {
     "org_id": "1ae0f",
     "name": "Atheon",
     "module": "kwo-snowflake",
     "valid_from": "2000-01-01",
     "valid_to": "2025-01-21",
     "contract_type": "churn"
-  },
-  {
-    "org_id": "17e09",
-    "name": "Atmos Energy",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-08-23",
-    "valid_to": "2024-11-20",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "a46ff",
-    "name": "ATT",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-03-27",
-    "valid_to": "2026-05-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "3b250",
-    "name": "AuditBoard",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-10-07",
-    "valid_to": "2025-02-11",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "c8ac9",
-    "name": "BDSA",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-08-26",
-    "valid_to": "2025-10-03",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "699c4",
-    "name": "Blue Cross Blue Shield",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-10-23",
-    "valid_to": "2025-01-28",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "261f3",
-    "name": "CARS24",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-12-03",
-    "valid_to": "2026-02-20",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "7d80f",
-    "name": "C.H. Robinson",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-03-01",
-    "valid_to": "2024-04-22",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "75674",
-    "name": "Cambia Health",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-12-30",
-    "valid_to": "2026-04-29",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "efeea",
-    "name": "Central California Alliance for Health",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2026-04-29",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "5b0f6",
-    "name": "Central California Alliance for Health",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2026-05-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "2a5d5",
-    "name": "CHG Healthcare",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-13",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "65bdf",
-    "name": "Coalesce",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-11-12",
-    "valid_to": "2025-01-06",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "45a1d",
-    "name": "Constant Contact",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-06-27",
-    "valid_to": "2025-12-31",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "6fb46",
-    "name": "Covariance",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-16",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "9255a",
-    "name": "CrowdStrike",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-08",
-    "valid_to": "2024-03-07",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "7f355",
-    "name": "Cypress.io",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-04-21",
-    "valid_to": "2025-05-29",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "d7bf0",
-    "name": "Deloitte",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-04-13",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "242e9",
-    "name": "Digital AI",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-12",
-    "valid_to": null,
-    "contract_type": "lost_trial"
   },
   {
     "org_id": "b4e52",
@@ -224,468 +16,12 @@
     "contract_type": "churn"
   },
   {
-    "org_id": "ecba5",
-    "name": "EMCins",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-09",
-    "valid_to": "2024-02-10",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "55bb4",
-    "name": "Estee Lauder",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-16",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "cf4f1",
-    "name": "ExodusPoint",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-05-09",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "a2b14",
-    "name": "Factset",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-29",
-    "valid_to": "2024-10-31",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "72e4f",
-    "name": "FBG",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-29",
-    "valid_to": "2024-10-11",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "12230",
-    "name": "Fetch Rewards",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-15",
-    "valid_to": "2024-10-10",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "9e3fb",
-    "name": "Goat",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-03-26",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "a6b5b",
-    "name": "Greenhouse",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-19",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "4317f",
-    "name": "Greenlight",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2024-03-14",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "860fc",
-    "name": "Greenlight",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-02-25",
-    "valid_to": "2025-06-13",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "5412e",
-    "name": "IBM",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-04-29",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
     "org_id": "1e2b8",
     "name": "Ignition Group",
     "module": "kwo-snowflake",
     "valid_from": "2000-01-01",
     "valid_to": "2024-11-08",
     "contract_type": "churn"
-  },
-  {
-    "org_id": "e1475",
-    "name": "KDRP",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-26",
-    "valid_to": "2024-10-29",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "ab128",
-    "name": "Knowde",
-    "module": "kwo-snowflake",
-    "valid_from": "2023-12-05",
-    "valid_to": "2023-12-05",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "2d4c0",
-    "name": "LaunchDarkly",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-01-22",
-    "valid_to": "2025-04-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "278f0",
-    "name": "Lojas Torra",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-07-18",
-    "valid_to": "2025-12-01",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "d6072",
-    "name": "Los Pollos Hermanos",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "baaca",
-    "name": "MOD Pizza",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-03-11",
-    "valid_to": "2024-04-03",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "8b595",
-    "name": "Oasis Health",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2025-12-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "a1ace",
-    "name": "OB Media",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-29",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "b8b59",
-    "name": "OncoLens",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-04-07",
-    "valid_to": "2025-05-29",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "14691",
-    "name": "OneDigital",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-02-27",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "55dca",
-    "name": "Openphone",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-07-08",
-    "valid_to": "2025-08-08",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "65ea2",
-    "name": "PPLSI",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-09-08",
-    "valid_to": "2025-10-30",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "2e72b",
-    "name": "Patelco",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-06-30",
-    "valid_to": "2025-12-18",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "d80dd",
-    "name": "Patelco",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-01-27",
-    "valid_to": "2025-06-20",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "3a4ef",
-    "name": "Patelco Credit Union",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-24",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "20fa7",
-    "name": "PatientPoint",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-09-30",
-    "valid_to": "2025-01-29",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "a4bb6",
-    "name": "ProService Hawaii",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-09-29",
-    "valid_to": "2025-12-01",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "3a5e9",
-    "name": "Project44",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-25",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "ce231",
-    "name": "Presia",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2025-11-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "495fe",
-    "name": "Pyxis",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2026-01-23",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "c41ba",
-    "name": "Pure Storage",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-08-04",
-    "valid_to": "2026-03-24",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "33b45",
-    "name": "Purple",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-02-12",
-    "valid_to": "2024-03-04",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "796b5",
-    "name": "Rappi",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-06",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "d20f7",
-    "name": "Retail Insights",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-03-05",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "9df08",
-    "name": "Rohlik Group",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-12-29",
-    "valid_to": "2026-03-25",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "069cb",
-    "name": "RxSense",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-09-08",
-    "valid_to": "2025-12-17",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "48dbd",
-    "name": "Safe-Guard Products International",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-04-14",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "f762d",
-    "name": "Samsung",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-08-01",
-    "valid_to": "2025-01-03",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "dbcfa",
-    "name": "Samsung Ads",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-12-03",
-    "valid_to": "2025-05-08",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "35e90",
-    "name": "Skupos",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2024-01-19",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "59d15",
-    "name": "Smartsheet",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2024-03-09",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "c6fcf",
-    "name": "Soriana",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-05-12",
-    "valid_to": "2025-10-30",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "547d7",
-    "name": "Squire",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-11-05",
-    "valid_to": "2025-11-24",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "eace6",
-    "name": "Stella And Chewys",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-11-17",
-    "valid_to": "2026-01-08",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "c09f2",
-    "name": "Sunrun",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-25",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "6cedb",
-    "name": "Symbotic",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-29",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "2f9c2",
-    "name": "TCBrands",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-23",
-    "valid_to": "2025-02-05",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "f063c",
-    "name": "ThoughtSpot",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-02",
-    "valid_to": "2024-02-20",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "2455b",
-    "name": "Thoughtspot (AWS)",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-10",
-    "valid_to": "2024-02-20",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "26495",
-    "name": "Thoughtspot (AWS)",
-    "module": "kwo-snowflake",
-    "valid_from": "2023-10-19",
-    "valid_to": "2024-01-12",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "d7eb7",
-    "name": "Toyota Material Handling",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-08-11",
-    "valid_to": "2025-12-31",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "62745",
-    "name": "TracerAi",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-01-02",
-    "valid_to": "2025-04-01",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "46576",
-    "name": "Tractor Supply",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-05-09",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "eb051",
-    "name": "Transfix",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2024-03-19",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "bd8f5",
-    "name": "Trellance",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-04-24",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "7e883",
-    "name": "Tricon",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-03-27",
-    "valid_to": null,
-    "contract_type": "lost_trial"
   },
   {
     "org_id": "b9e0b",
@@ -696,28 +32,12 @@
     "contract_type": "churn"
   },
   {
-    "org_id": "1b1b5",
-    "name": "Urban Company",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-05-27",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
     "org_id": "e7bab",
     "name": "Velocity Global",
     "module": "kwo-snowflake",
     "valid_from": "2000-01-01",
     "valid_to": "2025-03-13",
     "contract_type": "churn"
-  },
-  {
-    "org_id": "376a1",
-    "name": "Veterans United",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-06-12",
-    "valid_to": "2025-10-03",
-    "contract_type": "lost_trial"
   },
   {
     "org_id": "84115",
@@ -736,444 +56,12 @@
     "contract_type": "churn"
   },
   {
-    "org_id": "3a5f5",
-    "name": "Vio",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-16",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "68a0f",
-    "name": "Virgin Pulse",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-08-01",
-    "valid_to": "2025-02-11",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "13342",
-    "name": "WBMI",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-02-12",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "85f33",
-    "name": "West Madison",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-04-21",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "3970f",
-    "name": "Yieldmo",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-05-08",
-    "valid_to": null,
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "7f088",
-    "name": "YoungLife",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-01-05",
-    "valid_to": "2026-01-21",
-    "contract_type": "trial"
-  },
-  {
     "org_id": "0e4da",
     "name": "Ziff Media",
     "module": "kwo-snowflake",
     "valid_from": "2023-11-01",
     "valid_to": "2025-02-19",
     "contract_type": "churn"
-  },
-  {
-    "org_id": "45ae9",
-    "name": "Acxiom",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-08-15",
-    "valid_to": "2025-10-30",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "14217",
-    "name": "Strategus",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-03-18",
-    "valid_to": "2025-10-28",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "8a810",
-    "name": "Lightcast",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-07-05",
-    "valid_to": "2025-12-31",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "d92f8",
-    "name": "Roofstock",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-09-04",
-    "valid_to": "2025-12-30",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "3fb60",
-    "name": "Cameo",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-27",
-    "valid_to": "2024-02-19",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "10303",
-    "name": "Betr",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-02-13",
-    "valid_to": "2025-05-15",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "e8b6a",
-    "name": "RightRev",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-08-20",
-    "valid_to": "2024-11-06",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "f9057",
-    "name": "Autodesk Inc.",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-08-01",
-    "valid_to": "2025-07-31",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "165ad",
-    "name": "Milk Moovement",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-04-02",
-    "valid_to": "2025-04-16",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "52809",
-    "name": "Bgaming",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-11-07",
-    "valid_to": "2025-12-18",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "547d7",
-    "name": "Squire",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-11-05",
-    "valid_to": "2025-11-24",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "90f2d",
-    "name": "Savers Village",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-04-15",
-    "valid_to": "2024-04-29",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "d96d8",
-    "name": "Gartner",
-    "module": "kwo-snowflake",
-    "valid_from": "2023-10-25",
-    "valid_to": "2026-01-04",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "2e4dc",
-    "name": "Raptive",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-14",
-    "valid_to": "2024-07-07",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "3c9fd",
-    "name": "Dataminr",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-09-30",
-    "valid_to": "2025-02-27",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "59f87",
-    "name": "Kinesso",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-09-03",
-    "valid_to": "2025-10-30",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "a86de",
-    "name": "WebPT",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-09-16",
-    "valid_to": "2025-11-29",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "b5a69",
-    "name": "PDI Technologies",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-07-22",
-    "valid_to": "2026-04-24",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "ef3bd",
-    "name": "Facteus",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-24",
-    "valid_to": "2024-10-31",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "fb7af",
-    "name": "Hyperscience",
-    "module": "kwo-snowflake",
-    "valid_from": "2023-10-25",
-    "valid_to": "2026-04-10",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "d7d99",
-    "name": "Honeywell",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-03-25",
-    "valid_to": "2026-03-09",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "036c3",
-    "name": "Diaceutics",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-05-15",
-    "valid_to": "2024-09-14",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "5d65a",
-    "name": "Blue Health Intelligence",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-01-19",
-    "valid_to": "2024-02-19",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "6d5bb",
-    "name": "Motorq",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-02-11",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "2fe24",
-    "name": "Lockwood Publishing",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-12-06",
-    "valid_to": "2025-01-30",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "a9eca",
-    "name": "Flipside Crypto",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-05-23",
-    "valid_to": "2025-07-17",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "a44e8",
-    "name": "Vermont Information Processing",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-05-23",
-    "valid_to": "2025-06-29",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "07a14",
-    "name": "Sightline Payments",
-    "module": "kwo-snowflake",
-    "valid_from": "2023-10-25",
-    "valid_to": "2023-10-26",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "941fe",
-    "name": "Simpplr",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-03-04",
-    "valid_to": "2025-05-08",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "a2ddb",
-    "name": "Hometown Foods",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-05-04",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "e2dce",
-    "name": "VideoAmp",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-04-04",
-    "valid_to": "2025-05-20",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "f2564",
-    "name": "Patelco",
-    "module": "kwo-snowflake",
-    "valid_from": "2026-05-04",
-    "valid_to": null,
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "7225b",
-    "name": "Checkr",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-10-19",
-    "valid_to": "2024-11-21",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "9cc01",
-    "name": "CCI (Castleton Commodities International)",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-13",
-    "valid_to": "2024-07-14",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "57f79",
-    "name": "Baxter International Inc.",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-02-20",
-    "valid_to": "2025-06-26",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "6126a",
-    "name": "ASCAP",
-    "module": "kwo-snowflake",
-    "valid_from": "2022-10-25",
-    "valid_to": "2022-11-30",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "996fb",
-    "name": "SOK",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-08-26",
-    "valid_to": "2024-10-29",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "a6b88",
-    "name": "AllianceBernstein",
-    "module": "kwo-snowflake",
-    "valid_from": "2025-02-12",
-    "valid_to": "2025-05-31",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "90ee1",
-    "name": "Rocket Lawyer",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-12-10",
-    "valid_to": "2025-01-30",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "c1740",
-    "name": "Paddle",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-12-10",
-    "valid_to": "2025-02-12",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "bdb9c",
-    "name": "Worthington Enterprises",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-09-04",
-    "valid_to": "2026-03-14",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "eadda",
-    "name": "Revelio Labs",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2026-01-30",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "e11c1",
-    "name": "Engage3",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-14",
-    "valid_to": "2026-01-30",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "072ca",
-    "name": "Freshworks Multi-account",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-05-23",
-    "valid_to": "2026-01-28",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "3571d",
-    "name": "Komodo Health",
-    "module": "kwo-snowflake",
-    "valid_from": "2000-01-01",
-    "valid_to": "2026-01-02",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "0dd43",
-    "name": "First Resonance",
-    "module": "kwo-snowflake",
-    "valid_from": "2024-06-27",
-    "valid_to": "2025-12-02",
-    "contract_type": "lost_trial"
-  },
-  {
-    "org_id": "a11bd",
-    "name": "Allbirds",
-    "module": "kwo-snowflake",
-    "valid_from": "2022-03-05",
-    "valid_to": "2022-04-05",
-    "contract_type": "trial"
-  },
-  {
-    "org_id": "bfa16",
-    "name": "Barstool Sports",
-    "module": "kwo-snowflake",
-    "valid_from": "2022-01-01",
-    "valid_to": "2022-01-31",
-    "contract_type": "trial"
   },
   {
     "org_id": "78987",
@@ -1184,12 +72,13 @@
     "contract_type": "internal"
   },
   {
-    "org_id": "2a37e",
-    "name": "Life360",
-    "module": "kwo-databricks",
-    "valid_from": "2025-11-25",
-    "valid_to": "2026-05-06",
-    "contract_type": "trial"
+    "org_id": "a2ddb",
+    "name": "Hometown Foods",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-05-29",
+    "valid_to": "2027-05-28",
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "2a37e",
@@ -1197,7 +86,8 @@
     "module": "kwo-databricks",
     "valid_from": "2026-05-07",
     "valid_to": "2027-05-06",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "2a37e",
@@ -1205,7 +95,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-09-07",
     "valid_to": "2024-09-06",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "2a37e",
@@ -1213,7 +104,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-10-31",
     "valid_to": "2026-09-06",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "2a37e",
@@ -1221,7 +113,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-09-07",
     "valid_to": "2024-10-30",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "a11bd",
@@ -1229,7 +122,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-05-07",
     "valid_to": "2026-08-06",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "a11bd",
@@ -1237,7 +131,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-05-15",
     "valid_to": "2026-05-06",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "a11bd",
@@ -1245,7 +140,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2022-04-06",
     "valid_to": "2025-05-07",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "10303",
@@ -1253,7 +149,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-05-16",
     "valid_to": "2027-05-15",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "10303",
@@ -1261,7 +158,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-05-16",
     "valid_to": "2026-05-15",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "efeea",
@@ -1269,7 +167,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-04-30",
     "valid_to": "2027-04-29",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "fb7af",
@@ -1277,7 +176,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-04-11",
     "valid_to": "2027-04-10",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "fb7af",
@@ -1285,7 +185,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2022-04-11",
     "valid_to": "2026-04-10",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "75674",
@@ -1293,7 +194,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-04-30",
     "valid_to": "2027-04-29",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "b5a69",
@@ -1301,7 +203,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-04-25",
     "valid_to": "2027-04-24",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "d7d99",
@@ -1309,7 +212,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-03-10",
     "valid_to": "2028-03-09",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "bdb9c",
@@ -1317,7 +221,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-03-15",
     "valid_to": "2027-03-14",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "bdb9c",
@@ -1325,7 +230,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-09-18",
     "valid_to": "2026-03-14",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "d7eb7",
@@ -1333,7 +239,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-01-01",
     "valid_to": "2027-03-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "7f088",
@@ -1341,7 +248,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-01-22",
     "valid_to": "2027-01-21",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "59f87",
@@ -1349,7 +257,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-10-31",
     "valid_to": "2026-10-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "d96d8",
@@ -1357,7 +266,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-01-05",
     "valid_to": "2027-01-04",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "d96d8",
@@ -1365,7 +275,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-01-05",
     "valid_to": "2026-01-04",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "547d7",
@@ -1373,7 +284,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-11-25",
     "valid_to": "2026-11-24",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "d92f8",
@@ -1381,7 +293,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-12-31",
     "valid_to": "2026-12-30",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "db4f6",
@@ -1389,7 +302,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-11-29",
     "valid_to": "2027-11-28",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "db4f6",
@@ -1397,7 +311,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-06-29",
     "valid_to": "2025-11-28",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "dc4db",
@@ -1405,7 +320,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-01-09",
     "valid_to": "2028-01-08",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "dc4db",
@@ -1413,7 +329,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-01-09",
     "valid_to": "2026-01-08",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "52809",
@@ -1421,7 +338,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-12-19",
     "valid_to": "2026-12-18",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "8a810",
@@ -1429,7 +347,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2026-01-01",
     "valid_to": "2027-12-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "8a810",
@@ -1437,7 +356,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-04-26",
     "valid_to": "2025-12-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "a86de",
@@ -1445,7 +365,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-11-30",
     "valid_to": "2026-11-29",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "14217",
@@ -1453,7 +374,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-10-29",
     "valid_to": "2027-04-17",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "14217",
@@ -1461,7 +383,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-04-18",
     "valid_to": "2025-10-28",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "45ae9",
@@ -1469,7 +392,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-10-31",
     "valid_to": "2026-10-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "07a14",
@@ -1477,7 +401,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-10-27",
     "valid_to": "2026-10-26",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "07a14",
@@ -1485,7 +410,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-10-27",
     "valid_to": "2025-10-26",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "07a14",
@@ -1493,7 +419,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-10-27",
     "valid_to": "2024-10-26",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "73a8a",
@@ -1501,7 +428,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-10-06",
     "valid_to": "2026-10-05",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "73a8a",
@@ -1509,7 +437,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-10-06",
     "valid_to": "2025-10-05",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "8b578",
@@ -1517,7 +446,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-09-01",
     "valid_to": "2026-08-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "8b578",
@@ -1525,7 +455,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-01-09",
     "valid_to": "2025-08-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "a6b88",
@@ -1533,7 +464,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-06-01",
     "valid_to": "2026-05-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "f9057",
@@ -1541,7 +473,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-08-01",
     "valid_to": "2026-07-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "18aed",
@@ -1549,7 +482,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-07-01",
     "valid_to": "2026-06-30",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "18aed",
@@ -1557,7 +491,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2021-11-22",
     "valid_to": "2025-06-30",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "a9eca",
@@ -1565,7 +500,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-07-18",
     "valid_to": "2026-07-17",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "eba1b",
@@ -1573,7 +509,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-04-27",
     "valid_to": "2026-04-26",
-    "contract_type": "churn"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "eba1b",
@@ -1581,7 +518,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-04-27",
     "valid_to": "2025-04-26",
-    "contract_type": "churn"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "e2dce",
@@ -1589,7 +527,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-05-21",
     "valid_to": "2026-05-20",
-    "contract_type": "consumption"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "86927",
@@ -1597,7 +536,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-09-01",
     "valid_to": "2025-08-31",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "a44e8",
@@ -1605,7 +545,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-06-30",
     "valid_to": "2026-06-29",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "57f79",
@@ -1613,7 +554,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-06-27",
     "valid_to": "2026-06-26",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "e11c1",
@@ -1621,7 +563,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-01-25",
     "valid_to": "2026-01-24",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "e11c1",
@@ -1629,7 +572,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-01-25",
     "valid_to": "2025-01-24",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "7225b",
@@ -1637,7 +581,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-11-22",
     "valid_to": "2027-11-21",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "5d65a",
@@ -1645,7 +590,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-11-01",
     "valid_to": "2026-12-31",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "5d65a",
@@ -1653,7 +599,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-02-20",
     "valid_to": "2025-02-19",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "db7bf",
@@ -1661,7 +608,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-01-31",
     "valid_to": "2026-01-30",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "3571d",
@@ -1669,7 +617,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-11-01",
     "valid_to": "2025-12-31",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "7914c",
@@ -1677,7 +626,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-01-01",
     "valid_to": "2026-12-31",
-    "contract_type": "subscription"
+    "contract_type": "subscription",
+    "source": "subscript"
   },
   {
     "org_id": "941fe",
@@ -1685,7 +635,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-05-09",
     "valid_to": "2027-05-08",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "165ad",
@@ -1693,7 +644,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-04-17",
     "valid_to": "2027-04-16",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "4a0f3",
@@ -1701,7 +653,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-10-04",
     "valid_to": "2026-12-03",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "3fb60",
@@ -1709,7 +662,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-02-20",
     "valid_to": "2027-02-19",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "3c9fd",
@@ -1717,7 +671,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-02-28",
     "valid_to": "2027-02-28",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "c1740",
@@ -1725,7 +680,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-02-13",
     "valid_to": "2027-02-12",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "90ee1",
@@ -1733,7 +689,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-01-31",
     "valid_to": "2027-01-30",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "2fe24",
@@ -1741,7 +698,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2025-01-31",
     "valid_to": "2027-01-30",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "e8b6a",
@@ -1749,7 +707,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-11-07",
     "valid_to": "2026-11-06",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "996fb",
@@ -1757,7 +716,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-10-30",
     "valid_to": "2026-10-29",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "eadda",
@@ -1765,7 +725,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-10-21",
     "valid_to": "2026-01-21",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "036c3",
@@ -1773,7 +734,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-09-15",
     "valid_to": "2027-05-14",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "9cc01",
@@ -1781,7 +743,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-07-15",
     "valid_to": "2026-07-14",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "0878c",
@@ -1789,7 +752,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-01-24",
     "valid_to": "2026-01-23",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "8edc2",
@@ -1797,7 +761,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-05-23",
     "valid_to": "2026-05-22",
-    "contract_type": "consumption"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "2e4dc",
@@ -1805,7 +770,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-07-08",
     "valid_to": "2026-07-07",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "90f2d",
@@ -1813,7 +779,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2024-04-30",
     "valid_to": "2026-04-29",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "c9aba",
@@ -1821,7 +788,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-11-05",
     "valid_to": "2026-11-04",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "ef3bd",
@@ -1829,7 +797,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-08-19",
     "valid_to": "2026-08-19",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "00a27",
@@ -1837,7 +806,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-08-21",
     "valid_to": "2026-08-20",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "0dd43",
@@ -1845,7 +815,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-08-28",
     "valid_to": "2025-08-27",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "072ca",
@@ -1853,7 +824,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-06-16",
     "valid_to": "2025-12-31",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "d628e",
@@ -1861,7 +833,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-07-01",
     "valid_to": "2026-05-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "3f3e2",
@@ -1869,7 +842,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-05-04",
     "valid_to": "2027-05-03",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "1c165",
@@ -1877,7 +851,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-04-05",
     "valid_to": "2026-07-04",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "c4d1d",
@@ -1885,7 +860,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-04-14",
     "valid_to": "2025-04-13",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "2e4cd",
@@ -1893,7 +869,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-03-08",
     "valid_to": "2027-03-07",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "77484",
@@ -1901,7 +878,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-01-01",
     "valid_to": "2025-12-31",
-    "contract_type": "churn"
+    "contract_type": "churn",
+    "source": "subscript"
   },
   {
     "org_id": "6126a",
@@ -1909,7 +887,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2022-12-01",
     "valid_to": "2026-11-30",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "74c04",
@@ -1917,7 +896,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2022-10-12",
     "valid_to": "2026-10-11",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "bfa16",
@@ -1925,7 +905,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2022-02-01",
     "valid_to": "2027-01-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "448d8",
@@ -1933,7 +914,8 @@
     "module": "kwo-snowflake",
     "valid_from": "2021-12-29",
     "valid_to": "2027-12-28",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
   },
   {
     "org_id": "3b2c0",
@@ -1941,6 +923,493 @@
     "module": "kwo-snowflake",
     "valid_from": "2023-02-01",
     "valid_to": "2027-01-31",
-    "contract_type": "consumption"
+    "contract_type": "consumption",
+    "source": "subscript"
+  },
+  {
+    "org_id": "18aed",
+    "name": "PayJoy",
+    "module": "kwo-databricks",
+    "valid_from": "2026-02-15",
+    "valid_to": null,
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "ac934",
+    "name": "Abacus Insights",
+    "module": "kwo-databricks",
+    "valid_from": "2026-01-10",
+    "valid_to": "2026-04-23",
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "b5a69",
+    "name": "PDI Technologies",
+    "module": "kwo-databricks",
+    "valid_from": "2026-01-28",
+    "valid_to": null,
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "2a37e",
+    "name": "Life360",
+    "module": "kwo-databricks",
+    "valid_from": "2025-08-29",
+    "valid_to": "2026-05-06",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "90f2d",
+    "name": "Savers Village",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-01-17",
+    "valid_to": "2024-04-29",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "547d7",
+    "name": "Squire",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-08-08",
+    "valid_to": "2025-11-24",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "52809",
+    "name": "Bgaming",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-08-15",
+    "valid_to": "2025-12-18",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "a11bd",
+    "name": "Allbirds",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-05-08",
+    "valid_to": "2025-05-14",
+    "contract_type": "consumption",
+    "source": "bigquery:gap-fill"
+  },
+  {
+    "org_id": "2fe24",
+    "name": "Lockwood Publishing",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-09-11",
+    "valid_to": "2025-01-30",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "48dbd",
+    "name": "Safe-Guard Products International",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-01-21",
+    "valid_to": null,
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "a9eca",
+    "name": "Flipside Crypto",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-02-22",
+    "valid_to": "2025-07-17",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "a44e8",
+    "name": "Vermont Information Processing",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-03-01",
+    "valid_to": "2025-06-29",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "d7bf0",
+    "name": "Deloitte",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-01-13",
+    "valid_to": "2026-05-19",
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "941fe",
+    "name": "Simpplr",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-12-05",
+    "valid_to": "2025-05-08",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "5412e",
+    "name": "IBM",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-01-30",
+    "valid_to": "2026-05-21",
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "07a14",
+    "name": "Sightline Payments",
+    "module": "kwo-snowflake",
+    "valid_from": "2023-10-25",
+    "valid_to": "2023-10-26",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "14691",
+    "name": "OneDigital",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-12-04",
+    "valid_to": "2026-03-29",
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "3fb60",
+    "name": "Cameo",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-01-01",
+    "valid_to": "2024-02-19",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "9cc01",
+    "name": "CCI (Castleton Commodities International)",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-03-16",
+    "valid_to": "2024-07-14",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "7225b",
+    "name": "Checkr",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-07-23",
+    "valid_to": "2024-11-21",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "e2dce",
+    "name": "VideoAmp",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-01-07",
+    "valid_to": "2025-05-20",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "eba1b",
+    "name": "Cross Screen Media",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-04-27",
+    "valid_to": "2026-05-10",
+    "contract_type": "churn",
+    "source": "bigquery:post-subscript"
+  },
+  {
+    "org_id": "a2ddb",
+    "name": "Hometown Foods",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-02-14",
+    "valid_to": "2026-05-28",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "f2564",
+    "name": "Patelco",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-02-06",
+    "valid_to": null,
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "d7d99",
+    "name": "Honeywell",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-03-25",
+    "valid_to": "2026-03-09",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "75674",
+    "name": "Cambia Health",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-10-09",
+    "valid_to": "2026-04-29",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "036c3",
+    "name": "Diaceutics",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-05-15",
+    "valid_to": "2024-09-14",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "8edc2",
+    "name": "ZoomInfo",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-03-07",
+    "valid_to": "2024-05-22",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "5d65a",
+    "name": "Blue Health Intelligence",
+    "module": "kwo-snowflake",
+    "valid_from": "2023-11-30",
+    "valid_to": "2024-02-19",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "6d5bb",
+    "name": "Motorq",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-02-11",
+    "valid_to": null,
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "45ae9",
+    "name": "Acxiom",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-08-15",
+    "valid_to": "2025-10-30",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "14217",
+    "name": "Strategus",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-12-19",
+    "valid_to": "2025-04-17",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "d92f8",
+    "name": "Roofstock",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-06-06",
+    "valid_to": "2025-12-30",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "57f79",
+    "name": "Baxter International Inc.",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-02-06",
+    "valid_to": "2025-06-26",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "996fb",
+    "name": "SOK",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-06-01",
+    "valid_to": "2024-10-29",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "90ee1",
+    "name": "Rocket Lawyer",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-09-13",
+    "valid_to": "2025-01-30",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "d20f7",
+    "name": "Retail Insights",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-12-20",
+    "valid_to": "2026-04-30",
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "a6b88",
+    "name": "AllianceBernstein",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-11-23",
+    "valid_to": "2025-05-31",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "d7eb7",
+    "name": "Toyota Material Handling",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-08-19",
+    "valid_to": "2025-12-31",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "165ad",
+    "name": "Milk Moovement",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-01-02",
+    "valid_to": "2025-04-16",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "7f088",
+    "name": "YoungLife",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-10-08",
+    "valid_to": "2026-01-21",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "10303",
+    "name": "Betr",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-11-19",
+    "valid_to": "2025-05-15",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "e8b6a",
+    "name": "RightRev",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-07-02",
+    "valid_to": "2024-11-06",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "f9057",
+    "name": "Autodesk Inc.",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-08-01",
+    "valid_to": "2025-07-31",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "85f33",
+    "name": "West Madison",
+    "module": "kwo-snowflake",
+    "valid_from": "2026-01-21",
+    "valid_to": "2026-05-06",
+    "contract_type": "trial",
+    "source": "bigquery:trial"
+  },
+  {
+    "org_id": "c1740",
+    "name": "Paddle",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-09-12",
+    "valid_to": "2025-02-12",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "bdb9c",
+    "name": "Worthington Enterprises",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-06-06",
+    "valid_to": "2024-09-17",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "2e4dc",
+    "name": "Raptive",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-03-19",
+    "valid_to": "2024-07-07",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "59f87",
+    "name": "Kinesso",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-09-03",
+    "valid_to": "2025-10-30",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "efeea",
+    "name": "Central California Alliance for Health",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-11-21",
+    "valid_to": "2026-04-29",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "b5a69",
+    "name": "PDI Technologies",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-04-23",
+    "valid_to": "2026-04-24",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "a86de",
+    "name": "WebPT",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-06-18",
+    "valid_to": "2025-11-29",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "3c9fd",
+    "name": "Dataminr",
+    "module": "kwo-snowflake",
+    "valid_from": "2024-07-10",
+    "valid_to": "2025-02-27",
+    "contract_type": "trial",
+    "source": "bigquery:pre-subscript"
+  },
+  {
+    "org_id": "78987",
+    "name": "Brian Private Link Test",
+    "module": "kwo-snowflake",
+    "valid_from": "2025-03-20",
+    "valid_to": null,
+    "contract_type": "trial",
+    "source": "bigquery:trial"
   }
 ]

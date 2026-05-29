@@ -200,12 +200,15 @@ export async function syncCustomers(): Promise<SyncLog> {
   const before = customers.length
   const kept = customers.filter(
     (c) =>
-      !subscriptOrgIdSet.has(c.org_id) ||
-      (c.contract_type !== 'subscription' &&
-        c.contract_type !== 'consumption' &&
-        c.contract_type !== 'churn' &&
-        c.contract_type !== 'trial' &&
-        c.contract_type !== 'lost_trial')
+      // trial/lost_trial are always BQ-derived — drop unconditionally so the
+      // reconciliation loop can regenerate them without creating overlaps
+      c.contract_type !== 'trial' &&
+      c.contract_type !== 'lost_trial' &&
+      // For Subscript-known orgs also drop subscription/consumption/churn
+      (!subscriptOrgIdSet.has(c.org_id) ||
+        (c.contract_type !== 'subscription' &&
+          c.contract_type !== 'consumption' &&
+          c.contract_type !== 'churn'))
   )
   customers.length = 0
   customers.push(...kept)

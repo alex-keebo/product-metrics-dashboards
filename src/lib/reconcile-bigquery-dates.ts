@@ -68,7 +68,8 @@ export function reconcileBigQueryDates(params: ReconcileParams): Customer[] {
 
   // Post-subscript portion
   if (bq_end_eff > last_sub_valid_to_eff) {
-    if (!last_sub.valid_to) return result  // last sub is open-ended — can't be post-subscript
+    if (!last_sub.valid_to) return result       // open-ended sub — can't be post-subscript
+    if (last_sub.valid_to >= today) return result  // sub hasn't expired yet — BQ activity is within it
     const post_start = addDays(last_sub.valid_to, 1)
     result.push(make(post_start, bq_end, last_sub.contract_type, 'bigquery:post-subscript'))
   }
