@@ -29,7 +29,11 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={`${ibmPlexSans.variable} ${exo2.variable} ${ibmPlexMono.variable} h-full antialiased dark`}>
+    <html lang="en" className={`${ibmPlexSans.variable} ${exo2.variable} ${ibmPlexMono.variable} h-full antialiased dark`} suppressHydrationWarning>
+      <head>
+        {/* Runs synchronously before first paint — removes 'dark' if user prefers light */}
+        <script dangerouslySetInnerHTML={{ __html: `(function(){try{if(localStorage.getItem('theme')==='light'){document.documentElement.classList.remove('dark')}}catch(e){}})()` }} />
+      </head>
       <body className="h-screen flex bg-background text-foreground overflow-hidden">
         <ThemeProvider>
           <Sidebar />
