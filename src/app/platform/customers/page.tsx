@@ -49,6 +49,14 @@ const MODULE_LABELS: Record<string, string> = {
   'kwo-snowflake': 'Snowflake',
 }
 
+const SOURCE_LABELS: Record<string, string> = {
+  'subscript': 'Subscript',
+  'bigquery:trial': 'BigQuery trial',
+  'bigquery:pre-subscript': 'BigQuery pre-subscription',
+  'bigquery:post-subscript': 'BigQuery post-subscription',
+  'bigquery:gap-fill': 'BigQuery gap fill',
+}
+
 const EMPTY_FORM: Omit<Customer, never> = {
   org_id: '',
   name: '',
@@ -489,6 +497,7 @@ export default function CustomersPage() {
                     { key: 'contract_type', label: 'Contract Type' },
                     { key: 'valid_from', label: 'Valid From' },
                     { key: 'valid_to', label: 'Valid To' },
+                    { key: 'source', label: 'Source' },
                   ] as { key: SortKey; label: string }[]).map((col) => (
                     <th
                       key={col.key}
@@ -507,14 +516,14 @@ export default function CustomersPage() {
               <tbody>
                 {loading && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       <Loader2 className="size-4 animate-spin inline-block" />
                     </td>
                   </tr>
                 )}
                 {!loading && filtered.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted-foreground">
+                    <td colSpan={7} className="px-4 py-10 text-center text-sm text-muted-foreground">
                       No rows match the current filters
                     </td>
                   </tr>
@@ -542,6 +551,9 @@ export default function CustomersPage() {
                     </td>
                     <td className="px-4 text-sm text-foreground tabular-nums">{c.valid_from}</td>
                     <td className="px-4 text-sm text-foreground tabular-nums">{c.valid_to ?? <span className="text-muted-foreground">—</span>}</td>
+                    <td className="px-4 text-sm text-foreground">
+                      {c.source && SOURCE_LABELS[c.source] ? SOURCE_LABELS[c.source] : <span className="text-muted-foreground">—</span>}
+                    </td>
                     <td className="px-4 rounded-r-[5px]">
                       <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                         <button

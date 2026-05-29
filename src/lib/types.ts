@@ -11,6 +11,7 @@ export interface Customer {
   valid_from: string   // YYYY-MM-DD
   valid_to: string | null
   contract_type: ContractType
+  source?: string
 }
 
 export interface CustomerPeriod {

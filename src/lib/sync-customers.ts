@@ -8,11 +8,12 @@ import {
   getPricingPlans,
   getPricingPlan,
   getCustomer,
-  SubscriptCustomer,
   SubscriptUsageSubscription,
   SubscriptPricingPlan,
 } from './subscript'
 import { PROJECT, DATASET, SNF_DATASET, LOCATION } from './bigquery'
+import { reconcileBigQueryDates } from './reconcile-bigquery-dates'
+import { addDays } from './date-utils'
 
 export interface SyncLog {
   steps: string[]
@@ -46,12 +47,6 @@ function toDateString(d: string | null | undefined): string | null {
   if (!d || d.trim() === '') return null
   // Subscript dates are already YYYY-MM-DD
   return d.slice(0, 10)
-}
-
-function addDays(date: string, days: number): string {
-  const d = new Date(date + 'T00:00:00Z')
-  d.setUTCDate(d.getUTCDate() + days)
-  return d.toISOString().slice(0, 10)
 }
 
 function today(): string {
@@ -149,6 +144,11 @@ export async function syncCustomers(): Promise<SyncLog> {
     orgCustomers.map((c) => [c.id, c.name])
   )
 
+  // Reverse map: org_id → Subscript canonical name (for orgs not already in customers.json)
+  const orgIdToSubscriptName = new Map<string, string>(
+    [...customerIdToOrgId.entries()].map(([custId, orgId]) => [orgId, customerIdToName.get(custId)!])
+  )
+
   // Back-fill any customers referenced by subscriptions but missing from the 1000-record page
   const missingCustomerIds = [...new Set(allSubs.map((s) => s.customer_id))].filter(
     (id) => !customerIdToOrgId.has(id)
@@ -176,6 +176,13 @@ export async function syncCustomers(): Promise<SyncLog> {
     subsByCustomerId.set(sub.customer_id, list)
   }
 
+  // Capture names before drop so manual edits survive regeneration
+  const existingNameByOrgId = new Map<string, string>(
+    customers
+      .filter((c) => c.name !== c.org_id)
+      .map((c) => [c.org_id, c.name])
+  )
+
   // Drop all existing subscription/consumption/churn rows for orgs known to
   // Subscript — we'll re-add them cleanly from the authoritative source
   const subscriptOrgIdSet = new Set(customerIdToOrgId.values())
@@ -185,8 +192,7 @@ export async function syncCustomers(): Promise<SyncLog> {
   const inSubscriptNotFile = [...subscriptOrgIdSet].filter((id) => !fileOrgIds.has(id)).sort()
   if (inSubscriptNotFile.length > 0) {
     const names = inSubscriptNotFile.map((id) => {
-      const custId = [...customerIdToOrgId.entries()].find(([, v]) => v === id)?.[0]
-      const name = custId ? customerIdToName.get(custId) : undefined
+      const name = orgIdToSubscriptName.get(id)
       return name ? `${id} (${name})` : id
     })
     log.steps.push(`In Subscript but not in customers.json (${inSubscriptNotFile.length}): ${names.join(', ')}`)
@@ -195,12 +201,16 @@ export async function syncCustomers(): Promise<SyncLog> {
   const kept = customers.filter(
     (c) =>
       !subscriptOrgIdSet.has(c.org_id) ||
-      (c.contract_type !== 'subscription' && c.contract_type !== 'consumption' && c.contract_type !== 'churn')
+      (c.contract_type !== 'subscription' &&
+        c.contract_type !== 'consumption' &&
+        c.contract_type !== 'churn' &&
+        c.contract_type !== 'trial' &&
+        c.contract_type !== 'lost_trial')
   )
   customers.length = 0
   customers.push(...kept)
   const dropped = before - customers.length
-  if (dropped > 0) log.steps.push(`Removed ${dropped} stale subscription/consumption/churn rows`)
+  if (dropped > 0) log.steps.push(`Removed ${dropped} stale rows (subscription/consumption/churn/trial/lost_trial)`)
 
   // Re-add from Subscript
   let subsAdded = 0
@@ -221,10 +231,8 @@ export async function syncCustomers(): Promise<SyncLog> {
       const validTo = toDateString(sub.end_date)
       if (!validFrom) continue
 
-      // Use existing name if already present in customers.json, otherwise use Subscript name
-      const existingName = customers.find((c) => c.org_id === orgId)?.name ?? name
-
-      customers.push({ org_id: orgId, name: existingName, module, valid_from: validFrom, valid_to: validTo, contract_type: contractType })
+      const existingName = existingNameByOrgId.get(orgId) ?? name
+      customers.push({ org_id: orgId, name: existingName, module, valid_from: validFrom, valid_to: validTo, contract_type: contractType, source: 'subscript' })
       subsAdded++
     }
   }
@@ -237,45 +245,37 @@ export async function syncCustomers(): Promise<SyncLog> {
   const dbxOrgIds = new Set(dbxDates.map((r) => r.org_id))
   log.steps.push(`Found ${dbxDates.length} Databricks orgs in BigQuery`)
 
-  applyTrialDates(customers, dbxDates, 'kwo-databricks', log)
-
-
   // ── Step 5: BigQuery — Snowflake trial dates ─────────────────────────────────
   log.steps.push('Querying BigQuery for Snowflake savings dates…')
   const snfDates = await getSnfSavingsDates()
   const snfOrgIds = new Set(snfDates.map((r) => r.org_id))
   log.steps.push(`Found ${snfDates.length} Snowflake orgs in BigQuery`)
 
-  applyTrialDates(customers, snfDates, 'kwo-snowflake', log)
-
-  // ── Step 6: close trial → subscription transitions ───────────────────────────
-  for (const c of customers) {
-    if (c.contract_type !== 'trial') continue
-    // Reset corrupted valid_to so we can re-evaluate below
-    if (c.valid_to !== null && c.valid_to < c.valid_from) c.valid_to = null
-    if (c.valid_to !== null) continue
-
-    // Find the earliest subscription/consumption row for this org+module
-    const firstSub = customers
-      .filter(
-        (r) =>
-          r.org_id === c.org_id &&
-          r.module === c.module &&
-          (r.contract_type === 'subscription' || r.contract_type === 'consumption')
-      )
-      .sort((a, b) => a.valid_from.localeCompare(b.valid_from))[0]
-
-    if (firstSub) {
-      const candidateTo = addDays(firstSub.valid_from, -1)
-      if (candidateTo >= c.valid_from) {
-        c.valid_to = candidateTo
-        log.updated++
-      }
-    }
+  // ── Step 6: reconcile BigQuery dates against Subscript ranges ─────────────────
+  const allBqDates = [
+    ...dbxDates.map((r) => ({ ...r, module: 'kwo-databricks' as const })),
+    ...snfDates.map((r) => ({ ...r, module: 'kwo-snowflake' as const })),
+  ]
+  const syncDate = today()
+  for (const { org_id, first_date, last_date, module } of allBqDates) {
+    const subscriptRecords = customers.filter(
+      (c) => c.org_id === org_id && c.module === module && c.source === 'subscript'
+    )
+    const name = existingNameByOrgId.get(org_id) ?? orgIdToSubscriptName.get(org_id) ?? org_id
+    const derived = reconcileBigQueryDates({
+      org_id,
+      module,
+      name,
+      bqRange: { first_date, last_date },
+      subscriptRecords,
+      today: syncDate,
+    })
+    customers.push(...derived)
+    log.added += derived.length
   }
+  log.steps.push(`Reconciled ${allBqDates.length} BigQuery org+module entries`)
 
   // ── Step 7: lost trial detection ─────────────────────────────────────────────
-  const syncDate = today()
   for (const c of customers) {
     if (c.contract_type !== 'trial' || c.valid_to !== null) continue
 
@@ -313,40 +313,22 @@ export async function syncCustomers(): Promise<SyncLog> {
     }
   }
 
-  // ── Step 9: persist ───────────────────────────────────────────────────────────
+  // ── Step 9: back-fill placeholder names from sibling records ─────────────────
+  const orgIdToRealName = new Map<string, string>()
+  for (const c of customers) {
+    if (c.name !== c.org_id) orgIdToRealName.set(c.org_id, c.name)
+  }
+  for (const c of customers) {
+    if (c.name === c.org_id && orgIdToRealName.has(c.org_id)) {
+      c.name = orgIdToRealName.get(c.org_id)!
+    }
+  }
+
+  // ── Step 10: persist ──────────────────────────────────────────────────────────
   saveCustomers(customers)
   log.steps.push(
     `Sync complete — ${log.added} rows added, ${log.updated} rows updated, ${customers.length} total rows`
   )
 
   return log
-}
-
-function applyTrialDates(
-  customers: Customer[],
-  dates: OrgDateRange[],
-  module: Module,
-  log: SyncLog
-): void {
-  for (const { org_id, first_date } of dates) {
-    const trialIdx = customers.findIndex(
-      (c) =>
-        c.org_id === org_id &&
-        c.module === module &&
-        (c.contract_type === 'trial' || c.contract_type === 'lost_trial')
-    )
-
-    if (trialIdx >= 0) continue // already tracked — trial valid_from is never overwritten
-
-    // New trial
-    customers.push({
-      org_id,
-      name: org_id, // placeholder — user can edit via UI
-      module,
-      valid_from: first_date,
-      valid_to: null,
-      contract_type: 'trial',
-    })
-    log.added++
-  }
 }
