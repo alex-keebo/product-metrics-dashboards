@@ -20,6 +20,8 @@ interface StackedChartData {
   actual: number
   paused: number
   saved: number
+  saved_neg: number  // negative part (≤ 0), renders below x-axis
+  spacer: number     // = -saved_neg, transparent, lifts the stack back to 0
 }
 
 interface PeriodMeta {
@@ -58,7 +60,14 @@ function buildStackedSavingsData(points: TimeSeriesPoint[], allPeriods?: PeriodM
 
   return Array.from(byPeriod.entries())
     .sort(([a], [b]) => a.localeCompare(b))
-    .map(([, v]) => ({ label: v.label, actual: v.actual, paused: v.paused, saved: v.saved }))
+    .map(([, v]) => ({
+      label: v.label,
+      actual: v.actual,
+      paused: v.paused,
+      saved: Math.max(0, v.saved),
+      saved_neg: Math.min(0, v.saved),
+      spacer: -Math.min(0, v.saved),
+    }))
 }
 
 function buildSavingsPctData(points: TimeSeriesPoint[], allPeriods?: PeriodMeta[]): ChartData[] {
@@ -122,7 +131,7 @@ function UsageTooltip({ active, payload, label, isLight }: UsageTooltipProps) {
   const byKey = Object.fromEntries(payload.map(p => [p.name, p.value]))
   const optimized   = byKey.actual      ?? 0
   const paused      = byKey.paused ?? 0
-  const savings     = byKey.saved       ?? 0
+  const savings     = (byKey.saved ?? 0) + (byKey.saved_neg ?? 0)
   const total           = optimized + paused
   const optimizedWithoutKeebo = optimized + savings
   const savingsPct      = optimizedWithoutKeebo > 0 ? (savings / optimizedWithoutKeebo) * 100 : 0
@@ -535,9 +544,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 )
               }}
             />
-            <Bar dataKey="actual"      stackId="s" fill={C_NAVY}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('actual')} />
-            <Bar dataKey="paused" stackId="s" fill={C_TEAL}  radius={[0, 0, 0, 0]} hide={hiddenBars.has('paused')} />
-            <Bar dataKey="saved"       stackId="s" fill={C_GREEN} radius={[3, 3, 0, 0]} hide={hiddenBars.has('saved')} />
+            <Bar dataKey="saved_neg" stackId="s" fill={C_GREEN}       radius={[0, 0, 3, 3]} hide={hiddenBars.has('saved')} />
+            <Bar dataKey="spacer"    stackId="s" fill="transparent"  radius={[0, 0, 0, 0]} hide={hiddenBars.has('saved')} isAnimationActive={false} />
+            <Bar dataKey="actual"    stackId="s" fill={C_NAVY}       radius={[0, 0, 0, 0]} hide={hiddenBars.has('actual')} />
+            <Bar dataKey="paused"    stackId="s" fill={C_TEAL}       radius={[0, 0, 0, 0]} hide={hiddenBars.has('paused')} />
+            <Bar dataKey="saved"     stackId="s" fill={C_GREEN}      radius={[3, 3, 0, 0]} hide={hiddenBars.has('saved')} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
