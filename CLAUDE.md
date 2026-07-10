@@ -65,7 +65,7 @@ gcloud auth application-default login
 cp .env.local.example .env.local   # values are already correct for keebo-portal
 
 # Run locally
-npm run dev        # starts at http://localhost:3000
+npm run dev        # starts at http://localhost:4000
 
 # Type check
 npx tsc --noEmit

@@ -3,9 +3,9 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "NODE_OPTIONS='--max-old-space-size=1024' next dev --webpack",
+    "dev": "NODE_OPTIONS='--max-old-space-size=1024' next dev --webpack -p 4000",
     "build": "next build",
-    "start": "next start",
+    "start": "next start -p 4000",
     "lint": "eslint",
     "test": "vitest run --passWithNoTests"
   },
