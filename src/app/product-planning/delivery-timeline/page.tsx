@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { currentFiscalQuarterLabel, nextFiscalQuarterLabel } from '@/lib/fiscal-quarter'
-import { GanttChart } from '@/components/implementation-status/GanttChart'
-import { RecentShips } from '@/components/implementation-status/RecentShips'
+import { GanttChart } from '@/components/delivery-timeline/GanttChart'
+import { RecentShips } from '@/components/delivery-timeline/RecentShips'
 import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
 
 interface FetchError {
@@ -44,7 +44,7 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 async function fetchQuarter(quarter: string): Promise<PMBoardRow[]> {
-  const res = await fetch(`/api/product-planning/implementation-status?quarter=${quarter}`)
+  const res = await fetch(`/api/product-planning/delivery-timeline?quarter=${quarter}`)
   const body = await res.json()
   if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`)
   return body.rows as PMBoardRow[]
@@ -57,7 +57,7 @@ async function fetchRecentShips(): Promise<PMBoardRow[]> {
   return body.rows as PMBoardRow[]
 }
 
-export default function ImplementationStatusPage() {
+export default function DeliveryTimelinePage() {
   const [tab, setTab] = useState<TabKey>('current')
   const [current, setCurrent] = useState<PMBoardRow[] | null>(null)
   const [next, setNext] = useState<PMBoardRow[] | null>(null)
@@ -94,7 +94,7 @@ export default function ImplementationStatusPage() {
   return (
     <div className="flex flex-col gap-4 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Implementation Status</h1>
+        <h1 className="text-xl font-semibold text-foreground">Delivery Timeline</h1>
         <button
           onClick={load}
           className="rounded-md border border-border bg-background hover:bg-muted px-3 py-1.5 text-sm font-medium text-foreground transition-colors"

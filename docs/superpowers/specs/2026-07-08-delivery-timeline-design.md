@@ -1,17 +1,17 @@
-# Implementation Status Page — Design Spec
+# Delivery Timeline Page — Design Spec
 
 ## Overview
 
-A new page, **Implementation Status**, gives Keebo's PM/leadership audience a
+A new page, **Delivery Timeline**, gives Keebo's PM/leadership audience a
 fast visual read on delivery: what's in flight this quarter, what's coming
 next quarter, and what shipped last quarter. It sits in the sidebar directly
 below "PM Board" (same "Product Planning" nav group) and reuses PM Board's
 Jira data source, but presents it as three Gantt/list views instead of a flat
 filterable table.
 
-Route: `/product-planning/implementation-status`
+Route: `/product-planning/delivery-timeline`
 Nav: `src/components/layout/Sidebar.tsx` — add
-`{ label: 'Implementation Status', href: '/product-planning/implementation-status' }`
+`{ label: 'Delivery Timeline', href: '/product-planning/delivery-timeline' }`
 to the `'Product Planning'` group's `items` array, after the PM Board entry.
 
 The page has three tabs, CSS-tab-styled to match the mockup
@@ -40,12 +40,12 @@ needed. Relevant fields:
 
 ### New API route
 
-`src/app/api/product-planning/implementation-status/route.ts` — a `GET`
+`src/app/api/product-planning/delivery-timeline/route.ts` — a `GET`
 handler that accepts a `quarter` label (e.g. `?quarter=26-Q2`) as a query
 param and returns all issues whose `roadmap` field equals that exact label:
 
 ```
-GET /api/product-planning/implementation-status?quarter=26-Q2
+GET /api/product-planning/delivery-timeline?quarter=26-Q2
 ```
 
 JQL: `project = PM AND "cf[10049]" = "<quarter>" ORDER BY "cf[10383]" DESC`
@@ -225,7 +225,7 @@ before" concept applies to this tab (it's a retrospective, not a forecast).
 
 - Editing tickets from this page (Jira remains the source of truth; PM Board
   already links out to Jira for that).
-- Filtering/searching within Implementation Status (PM Board's
+- Filtering/searching within Delivery Timeline (PM Board's
   `FilterSortTable` already covers ad-hoc filtering across quarters).
 - Any quarter other than previous/current/next — no quarter picker.
 - The `.superpowers/brainstorm/.../timeline-mockup.html`'s "PM-540" demo

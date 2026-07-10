@@ -33,7 +33,7 @@ function makeRequest(url: string) {
   return { nextUrl: new URL(url) } as unknown as Parameters<typeof import('../route').GET>[0]
 }
 
-describe('GET /api/product-planning/implementation-status', () => {
+describe('GET /api/product-planning/delivery-timeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -43,7 +43,7 @@ describe('GET /api/product-planning/implementation-status', () => {
     vi.mocked(searchIssues).mockResolvedValue([baseIssue()])
 
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status?quarter=26-Q2'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline?quarter=26-Q2'))
     const body = await res.json()
 
     expect(res.status).toBe(200)
@@ -74,13 +74,13 @@ describe('GET /api/product-planning/implementation-status', () => {
 
   it('returns 400 when the quarter param is missing', async () => {
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline'))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when the quarter param is malformed', async () => {
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status?quarter=not-a-quarter'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline?quarter=not-a-quarter'))
     expect(res.status).toBe(400)
   })
 
@@ -89,7 +89,7 @@ describe('GET /api/product-planning/implementation-status', () => {
     vi.mocked(searchIssues).mockRejectedValue(new Error('Jira API 401 at /search/jql: Unauthorized'))
 
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status?quarter=26-Q2'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline?quarter=26-Q2'))
     const body = await res.json()
 
     expect(res.status).toBe(502)

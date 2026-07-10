@@ -1,9 +1,15 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { format, parseISO } from 'date-fns'
 import { FilterSortTable, type FilterSortColumn } from '@/components/tables/FilterSortTable'
 import { textCell, numberCell, dateCell, multiCell } from '@/lib/table-filter'
 import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
+
+function formatShortDate(value: string | null | undefined): string {
+  if (!value) return '—'
+  return format(parseISO(value), 'MMM d')
+}
 
 interface FetchError {
   message: string
@@ -35,7 +41,6 @@ function SectionLoader() {
 }
 
 const COLUMNS: FilterSortColumn<PMBoardRow>[] = [
-  { key: 'issueType', label: 'Issue Type', type: 'text', getCell: (r) => textCell(r.issueType), render: (r) => r.issueType || '—' },
   {
     key: 'key',
     label: 'Key',
@@ -51,9 +56,9 @@ const COLUMNS: FilterSortColumn<PMBoardRow>[] = [
   { key: 'status', label: 'Status', type: 'text', getCell: (r) => textCell(r.status), render: (r) => r.status || '—' },
   { key: 'priorityOrder', label: 'Priority order', type: 'number', getCell: (r) => numberCell(r.priorityOrder), render: (r) => (r.priorityOrder ?? '—').toString() },
   { key: 'roadmap', label: 'Roadmap', type: 'text', getCell: (r) => textCell(r.roadmap), render: (r) => r.roadmap ?? '—' },
-  { key: 'targetStartDate', label: 'Target start date', type: 'date', getCell: (r) => dateCell(r.targetStartDate), render: (r) => r.targetStartDate ?? '—' },
-  { key: 'targetDeliveryDate', label: 'Target delivery date', type: 'date', getCell: (r) => dateCell(r.targetDeliveryDate), render: (r) => r.targetDeliveryDate ?? '—' },
-  { key: 'actualDeliveryDate', label: 'Actual delivery date', type: 'date', getCell: (r) => dateCell(r.actualDeliveryDate), render: (r) => r.actualDeliveryDate ?? '—' },
+  { key: 'targetStartDate', label: 'Target start date', type: 'date', getCell: (r) => dateCell(r.targetStartDate), render: (r) => formatShortDate(r.targetStartDate) },
+  { key: 'targetDeliveryDate', label: 'Target delivery date', type: 'date', getCell: (r) => dateCell(r.targetDeliveryDate), render: (r) => formatShortDate(r.targetDeliveryDate) },
+  { key: 'actualDeliveryDate', label: 'Actual delivery date', type: 'date', getCell: (r) => dateCell(r.actualDeliveryDate), render: (r) => formatShortDate(r.actualDeliveryDate) },
   { key: 'product', label: 'Product', type: 'multi', getCell: (r) => multiCell(r.product), render: (r) => r.product.join(', ') || '—' },
   { key: 'category', label: 'Category', type: 'multi', getCell: (r) => multiCell(r.category), render: (r) => r.category.join(', ') || '—' },
   { key: 'keyCustomers', label: 'Key customers', type: 'multi', getCell: (r) => multiCell(r.keyCustomers), render: (r) => r.keyCustomers.join(', ') || '—' },

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ImplementationStatusPage from '../page'
+import DeliveryTimelinePage from '../page'
 
 vi.mock('@/lib/fiscal-quarter', () => ({
   currentFiscalQuarterLabel: () => '26-Q2',
@@ -11,7 +11,7 @@ function jsonResponse(rows: unknown[]) {
   return { ok: true, status: 200, json: async () => ({ rows }) } as Response
 }
 
-describe('ImplementationStatusPage', () => {
+describe('DeliveryTimelinePage', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -98,20 +98,20 @@ describe('ImplementationStatusPage', () => {
   })
 
   it('fetches both quarters and recent ships, and shows the Current Projects tab by default', async () => {
-    render(<ImplementationStatusPage />)
+    render(<DeliveryTimelinePage />)
     await waitFor(() => expect(screen.getByText('Current ticket')).toBeInTheDocument())
 
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/product-planning/implementation-status?quarter=26-Q2'
+      '/api/product-planning/delivery-timeline?quarter=26-Q2'
     )
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/product-planning/implementation-status?quarter=26-Q3'
+      '/api/product-planning/delivery-timeline?quarter=26-Q3'
     )
     expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/product-planning/recent-ships')
   })
 
   it('switches to the What\'s Next tab and shows its tickets', async () => {
-    render(<ImplementationStatusPage />)
+    render(<DeliveryTimelinePage />)
     await waitFor(() => expect(screen.getByText('Current ticket')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: "What's Next" }))
@@ -120,7 +120,7 @@ describe('ImplementationStatusPage', () => {
   })
 
   it('switches to the Recent Ships tab and shows its tickets', async () => {
-    render(<ImplementationStatusPage />)
+    render(<DeliveryTimelinePage />)
     await waitFor(() => expect(screen.getByText('Current ticket')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: 'Recent Ships' }))

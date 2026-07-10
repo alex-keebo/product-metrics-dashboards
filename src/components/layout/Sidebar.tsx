@@ -25,7 +25,7 @@ const nav = [
     group: 'Product Planning',
     items: [
       { label: 'PM Board', href: '/product-planning/pm-board' },
-      { label: 'Implementation Status', href: '/product-planning/implementation-status' },
+      { label: 'Delivery Timeline', href: '/product-planning/delivery-timeline' },
     ],
   },
   {

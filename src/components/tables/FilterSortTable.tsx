@@ -29,6 +29,37 @@ export interface FilterSortTableProps<T> {
 }
 
 const PAGE_SIZES = [10, 20, 100]
+const TOOLTIP_DELAY_MS = 150
+
+function TruncatedCell({ text, children }: { text: string; children: React.ReactNode }) {
+  const [visible, setVisible] = useState(false)
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function handleEnter() {
+    if (!text) return
+    timeoutRef.current = setTimeout(() => setVisible(true), TOOLTIP_DELAY_MS)
+  }
+
+  function handleLeave() {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+    setVisible(false)
+  }
+
+  useEffect(() => () => {
+    if (timeoutRef.current) clearTimeout(timeoutRef.current)
+  }, [])
+
+  return (
+    <div className="relative" onMouseEnter={handleEnter} onMouseLeave={handleLeave}>
+      <div className="block max-w-[40ch] truncate">{children}</div>
+      {visible && (
+        <div className="absolute left-0 top-full z-50 mt-1 max-w-xs rounded-md border border-border bg-card px-2 py-1 text-xs text-foreground shadow-md whitespace-normal break-words">
+          {text}
+        </div>
+      )}
+    </div>
+  )
+}
 
 export function FilterSortTable<T>({ columns, rows, rowKey }: FilterSortTableProps<T>) {
   const [filters, setFilters] = useState<Record<string, ColumnFilter>>({})
@@ -106,11 +137,11 @@ export function FilterSortTable<T>({ columns, rows, rowKey }: FilterSortTablePro
       <div className="text-[15px] text-muted-foreground">{processed.length} rows</div>
 
       <div className="overflow-x-auto">
-        <table className="w-full border-separate border-spacing-y-0">
+        <table className="border-separate border-spacing-y-0">
           <thead>
             <tr style={{ height: 50 }}>
               {columns.map((col) => (
-                <th key={col.key} className="relative px-3 py-2 text-left align-middle text-[15px] font-medium text-foreground">
+                <th key={col.key} className="relative px-3 py-2 text-left align-middle text-[15px] font-medium text-foreground whitespace-nowrap">
                   <div className="flex items-center gap-1.5">
                     <span>{col.label}</span>
                     <button
@@ -172,12 +203,14 @@ export function FilterSortTable<T>({ columns, rows, rowKey }: FilterSortTablePro
                   <td
                     key={col.key}
                     className={cn(
-                      'px-3 text-[15px] leading-5 font-normal text-foreground',
+                      'px-3 text-[15px] leading-5 font-normal text-foreground whitespace-nowrap',
                       ci === 0 ? 'rounded-l-[5px]' : '',
                       ci === columns.length - 1 ? 'rounded-r-[5px]' : ''
                     )}
                   >
-                    {col.render(row)}
+                    <TruncatedCell text={col.getCell(row).text}>
+                      {col.render(row)}
+                    </TruncatedCell>
                   </td>
                 ))}
               </tr>

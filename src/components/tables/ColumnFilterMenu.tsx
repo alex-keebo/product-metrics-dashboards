@@ -61,7 +61,7 @@ export function ColumnFilterMenu({
 }: ColumnFilterMenuProps) {
   const [condition, setCondition] = useState<ColumnCondition>(filter.condition ?? { type: 'none' })
   const [conditionOpen, setConditionOpen] = useState(Boolean(filter.condition && filter.condition.type !== 'none'))
-  const [valuesOpen, setValuesOpen] = useState(false)
+  const [valuesOpen, setValuesOpen] = useState(true)
   const [search, setSearch] = useState('')
   const [selected, setSelected] = useState<Set<string>>(new Set(filter.values ?? uniqueValues))
 

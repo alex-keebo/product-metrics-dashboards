@@ -54,7 +54,7 @@ describe('FilterSortTable', () => {
     fireEvent.click(screen.getByTestId('fst-filter-btn-name'))
     fireEvent.click(screen.getByText('Filter by condition'))
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'contains' } })
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ar' } })
+    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'ar' } })
     fireEvent.click(screen.getByText('OK'))
 
     expect(rowNames()).toEqual(['Charlie'])
@@ -65,7 +65,7 @@ describe('FilterSortTable', () => {
     fireEvent.click(screen.getByTestId('fst-filter-btn-name'))
     fireEvent.click(screen.getByText('Filter by condition'))
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'contains' } })
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'ar' } })
+    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'ar' } })
     fireEvent.click(screen.getByText('Cancel'))
 
     expect(rowNames()).toEqual(['Bravo', 'alpha', 'Charlie'])
@@ -76,7 +76,7 @@ describe('FilterSortTable', () => {
     fireEvent.click(screen.getByTestId('fst-filter-btn-name'))
     fireEvent.click(screen.getByText('Filter by condition'))
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'contains' } })
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'zzz' } })
+    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'zzz' } })
     fireEvent.click(screen.getByText('OK'))
 
     expect(screen.getByText('No data for the current filters')).toBeInTheDocument()
@@ -100,7 +100,7 @@ describe('FilterSortTable', () => {
     fireEvent.click(screen.getByTestId('fst-filter-btn-name'))
     fireEvent.click(screen.getByText('Filter by condition'))
     fireEvent.change(screen.getByRole('combobox'), { target: { value: 'contains' } })
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'Item01' } })
+    fireEvent.change(screen.getAllByRole('textbox')[0], { target: { value: 'Item01' } })
     fireEvent.click(screen.getByText('OK'))
 
     expect(screen.queryByText('No data for the current filters')).not.toBeInTheDocument()

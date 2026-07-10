@@ -1,10 +1,10 @@
-# Implementation Status Page Implementation Plan
+# Delivery Timeline Page Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add an "Implementation Status" page below "PM Board" showing three tabs — Current Projects (Gantt), What's Next (Gantt), Recent Ships (monthly lists) — built from the existing PM Board Jira data source.
+**Goal:** Add an "Delivery Timeline" page below "PM Board" showing three tabs — Current Projects (Gantt), What's Next (Gantt), Recent Ships (monthly lists) — built from the existing PM Board Jira data source.
 
-**Architecture:** Extract the existing Jira→row mapping out of `pm-board/route.ts` into a shared `src/lib/jira-row-mapper.ts` module so both the existing PM Board route and a new single-quarter `implementation-status` route can use it without duplication. Add a `previousFiscalQuarterLabel` helper to `fiscal-quarter.ts`. Build pure, fully-tested date/layout math in two new lib-style modules (`gantt.ts`, `recent-ships.ts`) co-located with the feature's components, then thin React components (`GanttChart`, `RecentShips`) that call that math and render it. Wire it all together in a new client page that fetches all three quarters in parallel and switches between tabs with local state.
+**Architecture:** Extract the existing Jira→row mapping out of `pm-board/route.ts` into a shared `src/lib/jira-row-mapper.ts` module so both the existing PM Board route and a new single-quarter `delivery-timeline` route can use it without duplication. Add a `previousFiscalQuarterLabel` helper to `fiscal-quarter.ts`. Build pure, fully-tested date/layout math in two new lib-style modules (`gantt.ts`, `recent-ships.ts`) co-located with the feature's components, then thin React components (`GanttChart`, `RecentShips`) that call that math and render it. Wire it all together in a new client page that fetches all three quarters in parallel and switches between tabs with local state.
 
 **Tech Stack:** Next.js (App Router) route handlers, React client components, Vitest + @testing-library/react for tests, Tailwind v4 semantic tokens for styling.
 
@@ -12,7 +12,7 @@
 
 - Colors: only Tailwind semantic tokens (`bg-primary`, `text-muted-foreground`, `border-border`, `bg-success`, `bg-destructive`, etc.) — never hardcode hex values in component files. No `--warning` token exists.
 - No new Jira custom fields — reuse the fields already mapped in `pm-board/route.ts` (`customfield_10049/10062/10063/10892/10383`, `status`, `status.statusCategory.key`).
-- New API route: `GET /api/product-planning/implementation-status?quarter=<label>` with JQL `project = PM AND "cf[10049]" = "<quarter>" ORDER BY "cf[10383]" DESC`.
+- New API route: `GET /api/product-planning/delivery-timeline?quarter=<label>` with JQL `project = PM AND "cf[10049]" = "<quarter>" ORDER BY "cf[10383]" DESC`.
 - Response shape mirrors `PMBoardRow` — do not define a second row type.
 - Status pill mapping: `new` → "To Do", `indeterminate` → "In Progress", `done` → "Done" — derived from `statusCategory`, never raw `status` text.
 - Fiscal quarter → calendar months: Q1 = Feb–Apr, Q2 = May–Jul, Q3 = Aug–Oct, Q4 = Nov–Jan (fiscal year starts Feb 1).
@@ -21,7 +21,7 @@
 - Current Projects tab axis extends ("spillover") to cover any ticket's `targetDeliveryDate` past the quarter's end, rounded up to end-of-month; What's Next tab axis is always fixed to its own quarter, no spillover.
 - "Started before" = `targetStartDate` precedes the 1st of the tab's first displayed month; applies to both Gantt tabs, not to Recent Ships.
 - Recent Ships shows only previous-quarter tickets with non-null `actualDeliveryDate`, grouped by calendar month of that date, sorted within month by `priorityOrder` descending; no "started before" concept.
-- Route: `/product-planning/implementation-status`. Nav entry added to the `'Product Planning'` group in `src/components/layout/Sidebar.tsx`, after "PM Board".
+- Route: `/product-planning/delivery-timeline`. Nav entry added to the `'Product Planning'` group in `src/components/layout/Sidebar.tsx`, after "PM Board".
 - Test runner: `npm test` (`vitest run --passWithNoTests`). Vitest globals are enabled (no need to import `describe`/`it`/`expect` — but this repo's existing tests import them explicitly from `'vitest'`; follow that convention).
 
 ---
@@ -33,12 +33,12 @@
 | `src/lib/fiscal-quarter.ts` (modify) | Add `previousFiscalQuarterLabel` |
 | `src/lib/jira-row-mapper.ts` (create) | Shared `PMBoardRow` type + `toRow`/`intervalStart`, extracted out of `pm-board/route.ts` |
 | `src/app/api/product-planning/pm-board/route.ts` (modify) | Import mapper from the shared module instead of defining it locally; re-export `PMBoardRow` for backward compatibility |
-| `src/app/api/product-planning/implementation-status/route.ts` (create) | New single-quarter GET route |
-| `src/components/implementation-status/gantt.ts` (create) | Pure axis/bar-position/sort/status-pill math for both Gantt tabs |
-| `src/components/implementation-status/recent-ships.ts` (create) | Pure month-grouping math for Recent Ships |
-| `src/components/implementation-status/GanttChart.tsx` (create) | Renders one Gantt tab from `gantt.ts` output |
-| `src/components/implementation-status/RecentShips.tsx` (create) | Renders the Recent Ships card from `recent-ships.ts` output |
-| `src/app/product-planning/implementation-status/page.tsx` (create) | Fetches previous/current/next quarter rows, renders the 3-tab UI |
+| `src/app/api/product-planning/delivery-timeline/route.ts` (create) | New single-quarter GET route |
+| `src/components/delivery-timeline/gantt.ts` (create) | Pure axis/bar-position/sort/status-pill math for both Gantt tabs |
+| `src/components/delivery-timeline/recent-ships.ts` (create) | Pure month-grouping math for Recent Ships |
+| `src/components/delivery-timeline/GanttChart.tsx` (create) | Renders one Gantt tab from `gantt.ts` output |
+| `src/components/delivery-timeline/RecentShips.tsx` (create) | Renders the Recent Ships card from `recent-ships.ts` output |
+| `src/app/product-planning/delivery-timeline/page.tsx` (create) | Fetches previous/current/next quarter rows, renders the 3-tab UI |
 | `src/components/layout/Sidebar.tsx` (modify) | Add nav entry |
 
 ---
@@ -124,7 +124,7 @@ git commit -m "feat: add previousFiscalQuarterLabel to fiscal-quarter"
 
 **Interfaces:**
 - Consumes: `jiraBrowseUrl`, `type JiraIssue` from `@/lib/jira` (already exist, see `src/lib/jira.ts`)
-- Produces: `export interface PMBoardRow { key, url, issueType, summary, status, statusCategory, priorityOrder, roadmap, targetStartDate, targetDeliveryDate, actualDeliveryDate, product, category, keyCustomers, salesforceTotalArr, salesforceOpportunities }`, `export function intervalStart(raw: string | null): string | null`, `export function toRow(issue: JiraIssue): PMBoardRow` — consumed by Task 3 (`implementation-status/route.ts`) and by the refactored `pm-board/route.ts`
+- Produces: `export interface PMBoardRow { key, url, issueType, summary, status, statusCategory, priorityOrder, roadmap, targetStartDate, targetDeliveryDate, actualDeliveryDate, product, category, keyCustomers, salesforceTotalArr, salesforceOpportunities }`, `export function intervalStart(raw: string | null): string | null`, `export function toRow(issue: JiraIssue): PMBoardRow` — consumed by Task 3 (`delivery-timeline/route.ts`) and by the refactored `pm-board/route.ts`
 
 - [ ] **Step 1: Write the failing test**
 
@@ -358,19 +358,19 @@ git commit -m "refactor: extract shared Jira row mapper out of pm-board route"
 
 ---
 
-### Task 3: Implementation Status API route
+### Task 3: Delivery Timeline API route
 
 **Files:**
-- Create: `src/app/api/product-planning/implementation-status/route.ts`
-- Test: `src/app/api/product-planning/implementation-status/__tests__/route.test.ts`
+- Create: `src/app/api/product-planning/delivery-timeline/route.ts`
+- Test: `src/app/api/product-planning/delivery-timeline/__tests__/route.test.ts`
 
 **Interfaces:**
 - Consumes: `searchIssues` from `@/lib/jira`; `toRow`, `type PMBoardRow` from `@/lib/jira-row-mapper` (Task 2)
-- Produces: `GET(req: NextRequest): Promise<NextResponse>` handling `?quarter=<label>`, consumed by the page (Task 9) via `fetch('/api/product-planning/implementation-status?quarter=...')`
+- Produces: `GET(req: NextRequest): Promise<NextResponse>` handling `?quarter=<label>`, consumed by the page (Task 9) via `fetch('/api/product-planning/delivery-timeline?quarter=...')`
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/app/api/product-planning/implementation-status/__tests__/route.test.ts`:
+Create `src/app/api/product-planning/delivery-timeline/__tests__/route.test.ts`:
 
 ```ts
 import { describe, it, expect, vi, beforeEach } from 'vitest'
@@ -408,7 +408,7 @@ function makeRequest(url: string) {
   return { nextUrl: new URL(url) } as unknown as Parameters<typeof import('../route').GET>[0]
 }
 
-describe('GET /api/product-planning/implementation-status', () => {
+describe('GET /api/product-planning/delivery-timeline', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -418,7 +418,7 @@ describe('GET /api/product-planning/implementation-status', () => {
     vi.mocked(searchIssues).mockResolvedValue([baseIssue()])
 
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status?quarter=26-Q2'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline?quarter=26-Q2'))
     const body = await res.json()
 
     expect(res.status).toBe(200)
@@ -449,13 +449,13 @@ describe('GET /api/product-planning/implementation-status', () => {
 
   it('returns 400 when the quarter param is missing', async () => {
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline'))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when the quarter param is malformed', async () => {
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status?quarter=not-a-quarter'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline?quarter=not-a-quarter'))
     expect(res.status).toBe(400)
   })
 
@@ -464,7 +464,7 @@ describe('GET /api/product-planning/implementation-status', () => {
     vi.mocked(searchIssues).mockRejectedValue(new Error('Jira API 401 at /search/jql: Unauthorized'))
 
     const { GET } = await import('../route')
-    const res = await GET(makeRequest('http://localhost/api/product-planning/implementation-status?quarter=26-Q2'))
+    const res = await GET(makeRequest('http://localhost/api/product-planning/delivery-timeline?quarter=26-Q2'))
     const body = await res.json()
 
     expect(res.status).toBe(502)
@@ -475,12 +475,12 @@ describe('GET /api/product-planning/implementation-status', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npm test -- implementation-status`
+Run: `npm test -- delivery-timeline`
 Expected: FAIL — `Failed to resolve import "../route"`
 
 - [ ] **Step 3: Implement**
 
-Create `src/app/api/product-planning/implementation-status/route.ts`:
+Create `src/app/api/product-planning/delivery-timeline/route.ts`:
 
 ```ts
 import { NextRequest, NextResponse } from 'next/server'
@@ -508,14 +508,14 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npm test -- implementation-status`
+Run: `npm test -- delivery-timeline`
 Expected: PASS (4/4)
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/app/api/product-planning/implementation-status/route.ts src/app/api/product-planning/implementation-status/__tests__/route.test.ts
-git commit -m "feat: add implementation-status single-quarter API route"
+git add src/app/api/product-planning/delivery-timeline/route.ts src/app/api/product-planning/delivery-timeline/__tests__/route.test.ts
+git commit -m "feat: add delivery-timeline single-quarter API route"
 ```
 
 ---
@@ -523,8 +523,8 @@ git commit -m "feat: add implementation-status single-quarter API route"
 ### Task 4: Gantt pure logic module
 
 **Files:**
-- Create: `src/components/implementation-status/gantt.ts`
-- Test: `src/components/implementation-status/__tests__/gantt.test.ts`
+- Create: `src/components/delivery-timeline/gantt.ts`
+- Test: `src/components/delivery-timeline/__tests__/gantt.test.ts`
 
 **Interfaces:**
 - Consumes: `type PMBoardRow` from `@/app/api/product-planning/pm-board/route` (re-exported from `@/lib/jira-row-mapper` per Task 2)
@@ -566,7 +566,7 @@ git commit -m "feat: add implementation-status single-quarter API route"
 
 - [ ] **Step 1: Write the failing tests**
 
-Create `src/components/implementation-status/__tests__/gantt.test.ts`:
+Create `src/components/delivery-timeline/__tests__/gantt.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -808,7 +808,7 @@ Expected: FAIL — `Failed to resolve import "../gantt"`
 
 - [ ] **Step 3: Implement**
 
-Create `src/components/implementation-status/gantt.ts`:
+Create `src/components/delivery-timeline/gantt.ts`:
 
 ```ts
 import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
@@ -960,7 +960,7 @@ Expected: PASS (all `describe` blocks green)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/implementation-status/gantt.ts src/components/implementation-status/__tests__/gantt.test.ts
+git add src/components/delivery-timeline/gantt.ts src/components/delivery-timeline/__tests__/gantt.test.ts
 git commit -m "feat: add pure Gantt axis/bar/sort/status math module"
 ```
 
@@ -969,8 +969,8 @@ git commit -m "feat: add pure Gantt axis/bar/sort/status math module"
 ### Task 5: Recent Ships pure logic module
 
 **Files:**
-- Create: `src/components/implementation-status/recent-ships.ts`
-- Test: `src/components/implementation-status/__tests__/recent-ships.test.ts`
+- Create: `src/components/delivery-timeline/recent-ships.ts`
+- Test: `src/components/delivery-timeline/__tests__/recent-ships.test.ts`
 
 **Interfaces:**
 - Consumes: `type PMBoardRow` from `@/app/api/product-planning/pm-board/route`
@@ -978,7 +978,7 @@ git commit -m "feat: add pure Gantt axis/bar/sort/status math module"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/components/implementation-status/__tests__/recent-ships.test.ts`:
+Create `src/components/delivery-timeline/__tests__/recent-ships.test.ts`:
 
 ```ts
 import { describe, it, expect } from 'vitest'
@@ -1049,7 +1049,7 @@ Expected: FAIL — `Failed to resolve import "../recent-ships"`
 
 - [ ] **Step 3: Implement**
 
-Create `src/components/implementation-status/recent-ships.ts`:
+Create `src/components/delivery-timeline/recent-ships.ts`:
 
 ```ts
 import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
@@ -1093,7 +1093,7 @@ Expected: PASS (4/4)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/implementation-status/recent-ships.ts src/components/implementation-status/__tests__/recent-ships.test.ts
+git add src/components/delivery-timeline/recent-ships.ts src/components/delivery-timeline/__tests__/recent-ships.test.ts
 git commit -m "feat: add pure Recent Ships month-grouping module"
 ```
 
@@ -1102,8 +1102,8 @@ git commit -m "feat: add pure Recent Ships month-grouping module"
 ### Task 6: GanttChart component
 
 **Files:**
-- Create: `src/components/implementation-status/GanttChart.tsx`
-- Test: `src/components/implementation-status/__tests__/GanttChart.test.tsx`
+- Create: `src/components/delivery-timeline/GanttChart.tsx`
+- Test: `src/components/delivery-timeline/__tests__/GanttChart.test.tsx`
 
 **Interfaces:**
 - Consumes: `computeAxis`, `axisMonths`, `barPosition`, `dividerLeftPct`, `sortTickets`, `statusPillInfo`, `resolveTicketBar` from `./gantt` (Task 4); `type PMBoardRow` from `@/app/api/product-planning/pm-board/route`
@@ -1124,7 +1124,7 @@ but its delivery date is missing.
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/components/implementation-status/__tests__/GanttChart.test.tsx`:
+Create `src/components/delivery-timeline/__tests__/GanttChart.test.tsx`:
 
 ```tsx
 import { describe, it, expect } from 'vitest'
@@ -1237,7 +1237,7 @@ Expected: FAIL — `Failed to resolve import "../GanttChart"`
 
 - [ ] **Step 3: Implement**
 
-Create `src/components/implementation-status/GanttChart.tsx`:
+Create `src/components/delivery-timeline/GanttChart.tsx`:
 
 ```tsx
 'use client'
@@ -1341,7 +1341,7 @@ Expected: PASS (6/6)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/implementation-status/GanttChart.tsx src/components/implementation-status/__tests__/GanttChart.test.tsx
+git add src/components/delivery-timeline/GanttChart.tsx src/components/delivery-timeline/__tests__/GanttChart.test.tsx
 git commit -m "feat: add GanttChart component"
 ```
 
@@ -1350,8 +1350,8 @@ git commit -m "feat: add GanttChart component"
 ### Task 7: RecentShips component
 
 **Files:**
-- Create: `src/components/implementation-status/RecentShips.tsx`
-- Test: `src/components/implementation-status/__tests__/RecentShips.test.tsx`
+- Create: `src/components/delivery-timeline/RecentShips.tsx`
+- Test: `src/components/delivery-timeline/__tests__/RecentShips.test.tsx`
 
 **Interfaces:**
 - Consumes: `groupShippedByMonth` from `./recent-ships` (Task 5); `type PMBoardRow` from `@/app/api/product-planning/pm-board/route`
@@ -1359,7 +1359,7 @@ git commit -m "feat: add GanttChart component"
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/components/implementation-status/__tests__/RecentShips.test.tsx`:
+Create `src/components/delivery-timeline/__tests__/RecentShips.test.tsx`:
 
 ```tsx
 import { describe, it, expect } from 'vitest'
@@ -1425,7 +1425,7 @@ Expected: FAIL — `Failed to resolve import "../RecentShips"`
 
 - [ ] **Step 3: Implement**
 
-Create `src/components/implementation-status/RecentShips.tsx`:
+Create `src/components/delivery-timeline/RecentShips.tsx`:
 
 ```tsx
 'use client'
@@ -1468,7 +1468,7 @@ Expected: PASS (4/4)
 - [ ] **Step 5: Commit**
 
 ```bash
-git add src/components/implementation-status/RecentShips.tsx src/components/implementation-status/__tests__/RecentShips.test.tsx
+git add src/components/delivery-timeline/RecentShips.tsx src/components/delivery-timeline/__tests__/RecentShips.test.tsx
 git commit -m "feat: add RecentShips component"
 ```
 
@@ -1503,42 +1503,42 @@ Replace it with:
     group: 'Product Planning',
     items: [
       { label: 'PM Board', href: '/product-planning/pm-board' },
-      { label: 'Implementation Status', href: '/product-planning/implementation-status' },
+      { label: 'Delivery Timeline', href: '/product-planning/delivery-timeline' },
     ],
   },
 ```
 
 - [ ] **Step 2: Verify manually**
 
-Run: `npm run dev`, open `http://localhost:3000`, confirm "Implementation Status" appears under "Product Planning" below "PM Board" (it will 404 until Task 9 lands — that's expected at this point).
+Run: `npm run dev`, open `http://localhost:3000`, confirm "Delivery Timeline" appears under "Product Planning" below "PM Board" (it will 404 until Task 9 lands — that's expected at this point).
 
 - [ ] **Step 3: Commit**
 
 ```bash
 git add src/components/layout/Sidebar.tsx
-git commit -m "feat: add Implementation Status nav entry"
+git commit -m "feat: add Delivery Timeline nav entry"
 ```
 
 ---
 
-### Task 9: Implementation Status page
+### Task 9: Delivery Timeline page
 
 **Files:**
-- Create: `src/app/product-planning/implementation-status/page.tsx`
-- Test: `src/app/product-planning/implementation-status/__tests__/page.test.tsx`
+- Create: `src/app/product-planning/delivery-timeline/page.tsx`
+- Test: `src/app/product-planning/delivery-timeline/__tests__/page.test.tsx`
 
 **Interfaces:**
-- Consumes: `currentFiscalQuarterLabel`, `nextFiscalQuarterLabel`, `previousFiscalQuarterLabel` from `@/lib/fiscal-quarter` (Task 1); `GanttChart` from `@/components/implementation-status/GanttChart` (Task 6); `RecentShips` from `@/components/implementation-status/RecentShips` (Task 7); `type PMBoardRow` from `@/app/api/product-planning/pm-board/route`; fetches `GET /api/product-planning/implementation-status?quarter=<label>` (Task 3)
-- Produces: default export `ImplementationStatusPage`, routed at `/product-planning/implementation-status` by the App Router (no other file imports this directly)
+- Consumes: `currentFiscalQuarterLabel`, `nextFiscalQuarterLabel`, `previousFiscalQuarterLabel` from `@/lib/fiscal-quarter` (Task 1); `GanttChart` from `@/components/delivery-timeline/GanttChart` (Task 6); `RecentShips` from `@/components/delivery-timeline/RecentShips` (Task 7); `type PMBoardRow` from `@/app/api/product-planning/pm-board/route`; fetches `GET /api/product-planning/delivery-timeline?quarter=<label>` (Task 3)
+- Produces: default export `DeliveryTimelinePage`, routed at `/product-planning/delivery-timeline` by the App Router (no other file imports this directly)
 
 - [ ] **Step 1: Write the failing test**
 
-Create `src/app/product-planning/implementation-status/__tests__/page.test.tsx`:
+Create `src/app/product-planning/delivery-timeline/__tests__/page.test.tsx`:
 
 ```tsx
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { render, screen, fireEvent, waitFor } from '@testing-library/react'
-import ImplementationStatusPage from '../page'
+import DeliveryTimelinePage from '../page'
 
 vi.mock('@/lib/fiscal-quarter', () => ({
   currentFiscalQuarterLabel: () => '26-Q2',
@@ -1550,7 +1550,7 @@ function jsonResponse(rows: unknown[]) {
   return { ok: true, status: 200, json: async () => ({ rows }) } as Response
 }
 
-describe('ImplementationStatusPage', () => {
+describe('DeliveryTimelinePage', () => {
   beforeEach(() => {
     vi.stubGlobal(
       'fetch',
@@ -1634,22 +1634,22 @@ describe('ImplementationStatusPage', () => {
   })
 
   it('fetches all three quarters and shows the Current Projects tab by default', async () => {
-    render(<ImplementationStatusPage />)
+    render(<DeliveryTimelinePage />)
     await waitFor(() => expect(screen.getByText('Current ticket')).toBeInTheDocument())
 
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/product-planning/implementation-status?quarter=26-Q2'
+      '/api/product-planning/delivery-timeline?quarter=26-Q2'
     )
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/product-planning/implementation-status?quarter=26-Q3'
+      '/api/product-planning/delivery-timeline?quarter=26-Q3'
     )
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/product-planning/implementation-status?quarter=26-Q1'
+      '/api/product-planning/delivery-timeline?quarter=26-Q1'
     )
   })
 
   it('switches to the What\'s Next tab and shows its tickets', async () => {
-    render(<ImplementationStatusPage />)
+    render(<DeliveryTimelinePage />)
     await waitFor(() => expect(screen.getByText('Current ticket')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: "What's Next" }))
@@ -1658,7 +1658,7 @@ describe('ImplementationStatusPage', () => {
   })
 
   it('switches to the Recent Ships tab and shows its tickets', async () => {
-    render(<ImplementationStatusPage />)
+    render(<DeliveryTimelinePage />)
     await waitFor(() => expect(screen.getByText('Current ticket')).toBeInTheDocument())
 
     fireEvent.click(screen.getByRole('button', { name: 'Recent Ships' }))
@@ -1669,20 +1669,20 @@ describe('ImplementationStatusPage', () => {
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `npm test -- product-planning/implementation-status/__tests__/page`
+Run: `npm test -- product-planning/delivery-timeline/__tests__/page`
 Expected: FAIL — `Failed to resolve import "../page"`
 
 - [ ] **Step 3: Implement**
 
-Create `src/app/product-planning/implementation-status/page.tsx`:
+Create `src/app/product-planning/delivery-timeline/page.tsx`:
 
 ```tsx
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 import { currentFiscalQuarterLabel, nextFiscalQuarterLabel, previousFiscalQuarterLabel } from '@/lib/fiscal-quarter'
-import { GanttChart } from '@/components/implementation-status/GanttChart'
-import { RecentShips } from '@/components/implementation-status/RecentShips'
+import { GanttChart } from '@/components/delivery-timeline/GanttChart'
+import { RecentShips } from '@/components/delivery-timeline/RecentShips'
 import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
 
 interface FetchError {
@@ -1723,13 +1723,13 @@ const TABS: { key: TabKey; label: string }[] = [
 ]
 
 async function fetchQuarter(quarter: string): Promise<PMBoardRow[]> {
-  const res = await fetch(`/api/product-planning/implementation-status?quarter=${quarter}`)
+  const res = await fetch(`/api/product-planning/delivery-timeline?quarter=${quarter}`)
   const body = await res.json()
   if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`)
   return body.rows as PMBoardRow[]
 }
 
-export default function ImplementationStatusPage() {
+export default function DeliveryTimelinePage() {
   const [tab, setTab] = useState<TabKey>('current')
   const [current, setCurrent] = useState<PMBoardRow[] | null>(null)
   const [next, setNext] = useState<PMBoardRow[] | null>(null)
@@ -1767,7 +1767,7 @@ export default function ImplementationStatusPage() {
   return (
     <div className="flex flex-col gap-4 p-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-semibold text-foreground">Implementation Status</h1>
+        <h1 className="text-xl font-semibold text-foreground">Delivery Timeline</h1>
         <button
           onClick={load}
           className="rounded-md border border-border bg-background hover:bg-muted px-3 py-1.5 text-sm font-medium text-foreground transition-colors"
@@ -1803,7 +1803,7 @@ export default function ImplementationStatusPage() {
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `npm test -- product-planning/implementation-status/__tests__/page`
+Run: `npm test -- product-planning/delivery-timeline/__tests__/page`
 Expected: PASS (3/3)
 
 - [ ] **Step 5: Run the full test suite**
@@ -1813,13 +1813,13 @@ Expected: All test files pass, including the pre-existing `pm-board` suite (Task
 
 - [ ] **Step 6: Manual verification**
 
-Run: `npm run dev`, open `http://localhost:3000/product-planning/implementation-status`. Confirm all three tabs render (data will error/be empty without real Jira credentials in `.env.local` — that's expected in local dev without a live Jira connection; confirm the error banner + Retry button behave correctly in that case, or confirm real tickets render correctly if credentials are configured).
+Run: `npm run dev`, open `http://localhost:3000/product-planning/delivery-timeline`. Confirm all three tabs render (data will error/be empty without real Jira credentials in `.env.local` — that's expected in local dev without a live Jira connection; confirm the error banner + Retry button behave correctly in that case, or confirm real tickets render correctly if credentials are configured).
 
 - [ ] **Step 7: Commit**
 
 ```bash
-git add src/app/product-planning/implementation-status/page.tsx src/app/product-planning/implementation-status/__tests__/page.test.tsx
-git commit -m "feat: add Implementation Status page with three tabs"
+git add src/app/product-planning/delivery-timeline/page.tsx src/app/product-planning/delivery-timeline/__tests__/page.test.tsx
+git commit -m "feat: add Delivery Timeline page with three tabs"
 ```
 
 ---
@@ -1848,7 +1848,7 @@ git commit -m "feat: add Implementation Status page with three tabs"
 
 ## Execution Handoff
 
-Plan complete and saved to `docs/superpowers/plans/2026-07-09-implementation-status.md`. Two execution options:
+Plan complete and saved to `docs/superpowers/plans/2026-07-09-delivery-timeline.md`. Two execution options:
 
 **1. Subagent-Driven (recommended)** - I dispatch a fresh subagent per task, review between tasks, fast iteration
 
