@@ -22,6 +22,13 @@ const nav = [
     ],
   },
   {
+    group: 'Product Planning',
+    items: [
+      { label: 'PM Board', href: '/product-planning/pm-board' },
+      { label: 'Implementation Status', href: '/product-planning/implementation-status' },
+    ],
+  },
+  {
     group: 'Platform',
     items: [
       { label: 'Customers', href: '/platform/customers' },
