@@ -43,8 +43,9 @@ const TABS: { key: TabKey; label: string }[] = [
   { key: 'recent', label: 'Recent Ships' },
 ]
 
-async function fetchQuarter(quarter: string): Promise<PMBoardRow[]> {
-  const res = await fetch(`/api/product-planning/delivery-timeline?quarter=${quarter}`)
+async function fetchQuarter(quarter: string, mode?: 'date'): Promise<PMBoardRow[]> {
+  const modeParam = mode ? `&mode=${mode}` : ''
+  const res = await fetch(`/api/product-planning/delivery-timeline?quarter=${quarter}${modeParam}`)
   const body = await res.json()
   if (!res.ok) throw new Error(body.error ?? `Request failed (${res.status})`)
   return body.rows as PMBoardRow[]
@@ -74,7 +75,7 @@ export default function DeliveryTimelinePage() {
     try {
       const [c, n, r] = await Promise.all([
         fetchQuarter(currentLabel),
-        fetchQuarter(nextLabel),
+        fetchQuarter(nextLabel, 'date'),
         fetchRecentShips(),
       ])
       setCurrent(c)

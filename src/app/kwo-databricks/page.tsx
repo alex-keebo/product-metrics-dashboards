@@ -141,7 +141,7 @@ export default function KWODatabricksPage() {
     return params
   }, [contractTypes, selectedOrgIds])
 
-  const fetchSnapshot = useCallback(async () => {
+  const fetchSnapshot = useCallback(async (signal: AbortSignal) => {
     if (selectedOrgIds !== null && selectedOrgIds.length === 0) {
       setSnapshot(null)
       return
@@ -152,7 +152,7 @@ export default function KWODatabricksPage() {
       const params = buildParams()
       params.set('start', startDate)
       params.set('end', endDate)
-      const res = await fetch(`/api/kwo-databricks/snapshot?${params}`)
+      const res = await fetch(`/api/kwo-databricks/snapshot?${params}`, { signal })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setSnapshotError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
@@ -160,13 +160,14 @@ export default function KWODatabricksPage() {
       }
       setSnapshot(await res.json())
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
       setSnapshotError({ message: e instanceof Error ? e.message : String(e) })
     } finally {
-      setSnapshotLoading(false)
+      if (!signal.aborted) setSnapshotLoading(false)
     }
   }, [buildParams, selectedOrgIds, startDate, endDate])
 
-  const fetchTimeSeries = useCallback(async () => {
+  const fetchTimeSeries = useCallback(async (signal: AbortSignal) => {
     if (selectedOrgIds !== null && selectedOrgIds.length === 0) {
       setTimeseries(null)
       return
@@ -178,7 +179,7 @@ export default function KWODatabricksPage() {
       params.set('granularity', granularity)
       params.set('start', startDate)
       params.set('end', endDate)
-      const res = await fetch(`/api/kwo-databricks/timeseries?${params}`)
+      const res = await fetch(`/api/kwo-databricks/timeseries?${params}`, { signal })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setTsError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
@@ -186,9 +187,10 @@ export default function KWODatabricksPage() {
       }
       setTimeseries(await res.json())
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
       setTsError({ message: e instanceof Error ? e.message : String(e) })
     } finally {
-      setTsLoading(false)
+      if (!signal.aborted) setTsLoading(false)
     }
   }, [buildParams, selectedOrgIds, granularity, startDate, endDate])
 
@@ -201,9 +203,19 @@ export default function KWODatabricksPage() {
     if (timeseries?.available_customers) setAvailableCustomers(timeseries.available_customers)
   }, [timeseries?.available_customers])
 
-  // Fetch on filter change
-  useEffect(() => { fetchSnapshot() }, [fetchSnapshot])
-  useEffect(() => { if (tab === 'timeseries') fetchTimeSeries() }, [tab, fetchTimeSeries])
+  // Fetch on filter change. Abort in-flight requests so a stale response from a
+  // superseded filter selection can never overwrite the result of a newer one.
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchSnapshot(controller.signal)
+    return () => controller.abort()
+  }, [fetchSnapshot])
+  useEffect(() => {
+    if (tab !== 'timeseries') return
+    const controller = new AbortController()
+    fetchTimeSeries(controller.signal)
+    return () => controller.abort()
+  }, [tab, fetchTimeSeries])
 
   const dataAsOf = snapshot?.data_as_of ?? timeseries?.data_as_of
   const noCustomers = selectedOrgIds !== null && selectedOrgIds.length === 0

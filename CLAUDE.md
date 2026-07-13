@@ -151,3 +151,10 @@ Stored as a **JSON file** in `data/customers.json` (not in BigQuery). Schema:
 - Backend should abstract data fetching behind a thin API layer so dashboards are not tightly coupled to BigQuery query logic
 - Each dashboard should be a self-contained module/route with its own data-fetching and visualization components
 - PostHog data is fetched via the PostHog REST API — there is no BigQuery export
+
+## Self-learning
+When I correct you, or you catch yourself making a mistake: before continuing,
+add the lesson as a one-line rule under ## Lessons, so it never happens again.
+
+## Lessons
+- Jira Product Discovery "interval" fields (schema `jira.polaris:interval`, e.g. `customfield_10063`/`10062`/`10892` — target/actual delivery & start dates) silently return zero results with JQL relational operators (`>=`, `<=`, date functions); only `is EMPTY`/`is not EMPTY` work reliably. Filter date ranges in application code after fetching, not in JQL.

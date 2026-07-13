@@ -154,7 +154,7 @@ export default function KWOSnowflakePage() {
     return params
   }, [contractTypes, selectedOrgIds])
 
-  const fetchSnapshot = useCallback(async () => {
+  const fetchSnapshot = useCallback(async (signal: AbortSignal) => {
     if (selectedOrgIds !== null && selectedOrgIds.length === 0) {
       setSnapshot(null)
       return
@@ -165,7 +165,7 @@ export default function KWOSnowflakePage() {
       const params = buildParams()
       params.set('start', startDate)
       params.set('end', endDate)
-      const res = await fetch(`/api/kwo-snowflake/snapshot?${params}`)
+      const res = await fetch(`/api/kwo-snowflake/snapshot?${params}`, { signal })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setSnapshotError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
@@ -173,13 +173,14 @@ export default function KWOSnowflakePage() {
       }
       setSnapshot(await res.json())
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
       setSnapshotError({ message: e instanceof Error ? e.message : String(e) })
     } finally {
-      setSnapshotLoading(false)
+      if (!signal.aborted) setSnapshotLoading(false)
     }
   }, [buildParams, selectedOrgIds, startDate, endDate])
 
-  const fetchTimeSeries = useCallback(async () => {
+  const fetchTimeSeries = useCallback(async (signal: AbortSignal) => {
     if (selectedOrgIds !== null && selectedOrgIds.length === 0) {
       setTimeseries(null)
       return
@@ -192,7 +193,7 @@ export default function KWOSnowflakePage() {
       params.set('start', startDate)
       params.set('end', endDate)
       if (queryVolumeEnabled) params.set('include_query_volume', 'true')
-      const res = await fetch(`/api/kwo-snowflake/timeseries?${params}`)
+      const res = await fetch(`/api/kwo-snowflake/timeseries?${params}`, { signal })
       if (!res.ok) {
         const body = await res.json().catch(() => ({}))
         setTsError({ message: body?.error ?? `HTTP ${res.status}`, code: body?.code })
@@ -200,9 +201,10 @@ export default function KWOSnowflakePage() {
       }
       setTimeseries(await res.json())
     } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') return
       setTsError({ message: e instanceof Error ? e.message : String(e) })
     } finally {
-      setTsLoading(false)
+      if (!signal.aborted) setTsLoading(false)
     }
   }, [buildParams, selectedOrgIds, granularity, startDate, endDate, queryVolumeEnabled])
 
@@ -215,9 +217,19 @@ export default function KWOSnowflakePage() {
     if (timeseries?.available_customers) setAvailableCustomers(timeseries.available_customers)
   }, [timeseries?.available_customers])
 
-  // Fetch on filter change
-  useEffect(() => { fetchSnapshot() }, [fetchSnapshot])
-  useEffect(() => { if (tab === 'timeseries') fetchTimeSeries() }, [tab, fetchTimeSeries])
+  // Fetch on filter change. Abort in-flight requests so a stale response from a
+  // superseded filter selection can never overwrite the result of a newer one.
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchSnapshot(controller.signal)
+    return () => controller.abort()
+  }, [fetchSnapshot])
+  useEffect(() => {
+    if (tab !== 'timeseries') return
+    const controller = new AbortController()
+    fetchTimeSeries(controller.signal)
+    return () => controller.abort()
+  }, [tab, fetchTimeSeries])
 
   const dataAsOf = snapshot?.data_as_of ?? timeseries?.data_as_of
   const noCustomers = selectedOrgIds !== null && selectedOrgIds.length === 0

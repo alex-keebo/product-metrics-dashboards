@@ -105,7 +105,7 @@ describe('DeliveryTimelinePage', () => {
       '/api/product-planning/delivery-timeline?quarter=26-Q2'
     )
     expect(vi.mocked(fetch)).toHaveBeenCalledWith(
-      '/api/product-planning/delivery-timeline?quarter=26-Q3'
+      '/api/product-planning/delivery-timeline?quarter=26-Q3&mode=date'
     )
     expect(vi.mocked(fetch)).toHaveBeenCalledWith('/api/product-planning/recent-ships')
   })
