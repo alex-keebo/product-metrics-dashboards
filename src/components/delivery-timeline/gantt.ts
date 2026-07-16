@@ -6,6 +6,10 @@ export function parseISODate(value: string): Date {
   return new Date(`${value}T00:00:00Z`)
 }
 
+export function formatShortDate(value: string): string {
+  return parseISODate(value).toLocaleString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })
+}
+
 function endOfMonth(date: Date): Date {
   return new Date(Date.UTC(date.getUTCFullYear(), date.getUTCMonth() + 1, 0))
 }
@@ -39,8 +43,9 @@ export function computeAxis(
 
   let axisEnd = end
   for (const ticket of tickets) {
-    if (!ticket.targetDeliveryDate) continue
-    const delivery = parseISODate(ticket.targetDeliveryDate)
+    const completionDate = effectiveCompletionDate(ticket)
+    if (!completionDate) continue
+    const delivery = parseISODate(completionDate)
     if (delivery > axisEnd) {
       const extended = endOfMonth(delivery)
       if (extended > axisEnd) axisEnd = extended
@@ -115,6 +120,9 @@ export function sortTickets(tickets: PMBoardRow[], axisStart: Date): PMBoardRow[
 }
 
 export function statusPillInfo(statusCategory: string, status?: string): { label: string; className: string } {
+  if (status?.toLowerCase() === 'released (in-progress)') {
+    return { label: 'Released (In-progress)', className: 'bg-success-light text-success-light-foreground' }
+  }
   if (status?.toLowerCase() === 'paused') {
     return { label: 'Paused', className: 'border border-border text-muted-foreground' }
   }
@@ -130,13 +138,19 @@ export function statusPillInfo(statusCategory: string, status?: string): { label
   }
 }
 
+export function effectiveCompletionDate(ticket: PMBoardRow): string | null {
+  if (ticket.statusCategory === 'done' && ticket.actualCompletionDate) return ticket.actualCompletionDate
+  return ticket.targetCompletionDate
+}
+
 export function resolveTicketBar(
   ticket: PMBoardRow,
   axisStart: Date,
   axisEnd: Date
 ): { start: Date; end: Date; isTbd: boolean } {
+  const completionDate = effectiveCompletionDate(ticket)
   const start = ticket.targetStartDate ? parseISODate(ticket.targetStartDate) : axisStart
-  const end = ticket.targetDeliveryDate ? parseISODate(ticket.targetDeliveryDate) : axisEnd
-  const isTbd = ticket.targetStartDate === null || ticket.targetDeliveryDate === null
+  const end = completionDate ? parseISODate(completionDate) : axisEnd
+  const isTbd = ticket.targetStartDate === null || completionDate === null
   return { start, end, isTbd }
 }

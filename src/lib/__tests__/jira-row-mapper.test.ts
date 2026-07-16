@@ -19,6 +19,7 @@ function baseIssue(overrides: Partial<JiraIssue['fields']> = {}): JiraIssue {
       customfield_10049: { value: '26-Q2' },
       customfield_10062: '{"start":"2026-07-01","end":"2026-07-15"}',
       customfield_10063: '{"start":"2026-08-01","end":"2026-08-15"}',
+      customfield_10891: '{"start":"2026-08-20","end":"2026-08-20"}',
       customfield_10892: '{"start":"2026-08-10","end":"2026-08-10"}',
       customfield_10064: [{ value: 'KWO for Databricks' }, { value: 'KWO for Snowflake' }],
       customfield_10048: [{ value: 'Platform' }],
@@ -56,8 +57,9 @@ describe('toRow', () => {
       priorityOrder: 420,
       roadmap: '26-Q2',
       targetStartDate: '2026-07-01',
-      targetDeliveryDate: '2026-08-01',
-      actualDeliveryDate: '2026-08-10',
+      targetCompletionDate: '2026-08-01',
+      actualCompletionDate: '2026-08-10',
+      featureReleaseDate: '2026-08-20',
       product: ['KWO for Databricks', 'KWO for Snowflake'],
       category: ['Platform'],
       keyCustomers: [],
@@ -75,5 +77,10 @@ describe('toRow', () => {
       priorityOrder: null,
       roadmap: null,
     })
+  })
+
+  it('defaults featureReleaseDate to null when customfield_10891 is null', () => {
+    const row = toRow(baseIssue({ customfield_10891: null }))
+    expect(row.featureReleaseDate).toBeNull()
   })
 })

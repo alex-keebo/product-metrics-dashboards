@@ -14,8 +14,9 @@ function row(overrides: Partial<PMBoardRow> = {}): PMBoardRow {
     priorityOrder: 0,
     roadmap: '26-Q2',
     targetStartDate: '2026-05-05',
-    targetDeliveryDate: '2026-05-20',
-    actualDeliveryDate: null,
+    targetCompletionDate: '2026-05-20',
+    actualCompletionDate: null,
+    featureReleaseDate: null,
     product: [],
     category: [],
     keyCustomers: [],
@@ -34,14 +35,33 @@ describe('GanttChart', () => {
       'https://keebo.atlassian.net/browse/PM-1'
     )
     expect(screen.getByText('In Progress')).toBeInTheDocument()
-    expect(screen.getByText('2026-05-05 – 2026-05-20')).toBeInTheDocument()
+    expect(screen.getByText('May 5 – May 20')).toBeInTheDocument()
+  })
+
+  it('renders the actualCompletionDate (not targetCompletionDate) in the date range for a Done ticket', () => {
+    render(
+      <GanttChart
+        quarterLabel="26-Q2"
+        tickets={[
+          row({
+            statusCategory: 'done',
+            status: 'Done',
+            targetCompletionDate: '2026-05-20',
+            actualCompletionDate: '2026-05-28',
+          }),
+        ]}
+        allowSpillover={false}
+      />
+    )
+    expect(screen.getByText('May 5 – May 28')).toBeInTheDocument()
+    expect(screen.queryByText('May 5 – May 20')).not.toBeInTheDocument()
   })
 
   it('renders a "Dates TBD" row for a ticket missing dates', () => {
     render(
       <GanttChart
         quarterLabel="26-Q2"
-        tickets={[row({ targetStartDate: null, targetDeliveryDate: null })]}
+        tickets={[row({ targetStartDate: null, targetCompletionDate: null })]}
         allowSpillover={false}
       />
     )
@@ -63,7 +83,7 @@ describe('GanttChart', () => {
     render(
       <GanttChart
         quarterLabel="26-Q2"
-        tickets={[row({ targetDeliveryDate: '2026-08-15' })]}
+        tickets={[row({ targetCompletionDate: '2026-08-15' })]}
         allowSpillover
       />
     )
@@ -91,11 +111,24 @@ describe('GanttChart', () => {
     render(
       <GanttChart
         quarterLabel="26-Q2"
-        tickets={[row({ targetStartDate: '2026-04-01', targetDeliveryDate: null })]}
+        tickets={[row({ targetStartDate: '2026-04-01', targetCompletionDate: null })]}
         allowSpillover={false}
       />
     )
     expect(screen.getByText('Dates TBD')).toBeInTheDocument()
     expect(screen.getByText('‹')).toBeInTheDocument()
+  })
+
+  it('renders a "Released (In-progress)" ticket with the light-green pill and bar color', () => {
+    render(
+      <GanttChart
+        quarterLabel="26-Q2"
+        tickets={[row({ status: 'Released (In-progress)', statusCategory: 'indeterminate' })]}
+        allowSpillover={false}
+      />
+    )
+    expect(screen.getByText('Released (In-progress)')).toBeInTheDocument()
+    const bar = screen.getByTestId('gantt-row').querySelector('div')
+    expect(bar).toHaveClass('border-success-light', 'bg-success-light/10')
   })
 })

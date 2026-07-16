@@ -9,6 +9,8 @@ import {
   statusPillInfo,
   parseISODate,
   resolveTicketBar,
+  effectiveCompletionDate,
+  formatShortDate,
 } from '../gantt'
 import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
 
@@ -23,8 +25,9 @@ function row(overrides: Partial<PMBoardRow> = {}): PMBoardRow {
     priorityOrder: 0,
     roadmap: '26-Q2',
     targetStartDate: null,
-    targetDeliveryDate: null,
-    actualDeliveryDate: null,
+    targetCompletionDate: null,
+    actualCompletionDate: null,
+    featureReleaseDate: null,
     product: [],
     category: [],
     keyCustomers: [],
@@ -40,6 +43,16 @@ describe('parseISODate', () => {
     expect(d.getUTCFullYear()).toBe(2026)
     expect(d.getUTCMonth()).toBe(4)
     expect(d.getUTCDate()).toBe(1)
+  })
+})
+
+describe('formatShortDate', () => {
+  it('formats a single-digit day without a leading zero', () => {
+    expect(formatShortDate('2026-06-08')).toBe('Jun 8')
+  })
+
+  it('formats a double-digit day', () => {
+    expect(formatShortDate('2026-06-22')).toBe('Jun 22')
   })
 })
 
@@ -65,15 +78,15 @@ describe('quarterMonthRange', () => {
 
 describe('computeAxis', () => {
   it('with allowSpillover=false, axis is fixed to the quarter regardless of ticket dates', () => {
-    const tickets = [row({ targetDeliveryDate: '2026-09-04' })]
+    const tickets = [row({ targetCompletionDate: '2026-09-04' })]
     const { axisStart, axisEnd, quarterEnd } = computeAxis('26-Q2', tickets, false)
     expect(axisStart.toISOString().slice(0, 10)).toBe('2026-05-01')
     expect(axisEnd.toISOString().slice(0, 10)).toBe('2026-07-31')
     expect(quarterEnd.toISOString().slice(0, 10)).toBe('2026-07-31')
   })
 
-  it('with allowSpillover=true, extends axisEnd to end-of-month of the latest targetDeliveryDate past quarter end', () => {
-    const tickets = [row({ targetDeliveryDate: '2026-08-15' }), row({ targetDeliveryDate: '2026-07-20' })]
+  it('with allowSpillover=true, extends axisEnd to end-of-month of the latest targetCompletionDate past quarter end', () => {
+    const tickets = [row({ targetCompletionDate: '2026-08-15' }), row({ targetCompletionDate: '2026-07-20' })]
     const { axisStart, axisEnd, quarterEnd } = computeAxis('26-Q2', tickets, true)
     expect(axisStart.toISOString().slice(0, 10)).toBe('2026-05-01')
     expect(axisEnd.toISOString().slice(0, 10)).toBe('2026-08-31')
@@ -81,15 +94,23 @@ describe('computeAxis', () => {
   })
 
   it('with allowSpillover=true and no ticket past quarter end, axis stays at the quarter end', () => {
-    const tickets = [row({ targetDeliveryDate: '2026-07-01' })]
+    const tickets = [row({ targetCompletionDate: '2026-07-01' })]
     const { axisEnd } = computeAxis('26-Q2', tickets, true)
     expect(axisEnd.toISOString().slice(0, 10)).toBe('2026-07-31')
   })
 
-  it('ignores tickets with no targetDeliveryDate', () => {
-    const tickets = [row({ targetDeliveryDate: null })]
+  it('ignores tickets with no targetCompletionDate', () => {
+    const tickets = [row({ targetCompletionDate: null })]
     const { axisEnd } = computeAxis('26-Q2', tickets, true)
     expect(axisEnd.toISOString().slice(0, 10)).toBe('2026-07-31')
+  })
+
+  it('for a done ticket, extends axisEnd using actualCompletionDate rather than targetCompletionDate', () => {
+    const tickets = [
+      row({ statusCategory: 'done', targetCompletionDate: '2026-07-01', actualCompletionDate: '2026-08-15' }),
+    ]
+    const { axisEnd } = computeAxis('26-Q2', tickets, true)
+    expect(axisEnd.toISOString().slice(0, 10)).toBe('2026-08-31')
   })
 })
 
@@ -180,6 +201,12 @@ describe('statusPillInfo', () => {
   it('maps done -> Done', () => {
     expect(statusPillInfo('done').label).toBe('Done')
   })
+
+  it('maps status "Released (In-progress)" (case-insensitive) to a light-green pill, overriding statusCategory', () => {
+    const pill = statusPillInfo('indeterminate', 'Released (In-progress)')
+    expect(pill.label).toBe('Released (In-progress)')
+    expect(pill.className).toBe('bg-success-light text-success-light-foreground')
+  })
 })
 
 describe('resolveTicketBar', () => {
@@ -187,7 +214,7 @@ describe('resolveTicketBar', () => {
   const axisEnd = parseISODate('2026-07-31')
 
   it('both dates present: uses the real dates and isTbd is false', () => {
-    const t = row({ targetStartDate: '2026-05-10', targetDeliveryDate: '2026-06-01' })
+    const t = row({ targetStartDate: '2026-05-10', targetCompletionDate: '2026-06-01' })
     const bar = resolveTicketBar(t, axisStart, axisEnd)
     expect(bar.start.toISOString().slice(0, 10)).toBe('2026-05-10')
     expect(bar.end.toISOString().slice(0, 10)).toBe('2026-06-01')
@@ -195,15 +222,15 @@ describe('resolveTicketBar', () => {
   })
 
   it('missing targetStartDate only: bar opens at axisStart, isTbd is true', () => {
-    const t = row({ targetStartDate: null, targetDeliveryDate: '2026-06-01' })
+    const t = row({ targetStartDate: null, targetCompletionDate: '2026-06-01' })
     const bar = resolveTicketBar(t, axisStart, axisEnd)
     expect(bar.start.toISOString().slice(0, 10)).toBe('2026-05-01')
     expect(bar.end.toISOString().slice(0, 10)).toBe('2026-06-01')
     expect(bar.isTbd).toBe(true)
   })
 
-  it('missing targetDeliveryDate only: bar extends to axisEnd, isTbd is true', () => {
-    const t = row({ targetStartDate: '2026-05-10', targetDeliveryDate: null })
+  it('missing targetCompletionDate only: bar extends to axisEnd, isTbd is true', () => {
+    const t = row({ targetStartDate: '2026-05-10', targetCompletionDate: null })
     const bar = resolveTicketBar(t, axisStart, axisEnd)
     expect(bar.start.toISOString().slice(0, 10)).toBe('2026-05-10')
     expect(bar.end.toISOString().slice(0, 10)).toBe('2026-07-31')
@@ -211,19 +238,74 @@ describe('resolveTicketBar', () => {
   })
 
   it('both missing: bar spans the full axis, isTbd is true', () => {
-    const t = row({ targetStartDate: null, targetDeliveryDate: null })
+    const t = row({ targetStartDate: null, targetCompletionDate: null })
     const bar = resolveTicketBar(t, axisStart, axisEnd)
     expect(bar.start.toISOString().slice(0, 10)).toBe('2026-05-01')
     expect(bar.end.toISOString().slice(0, 10)).toBe('2026-07-31')
     expect(bar.isTbd).toBe(true)
   })
+
+  it('statusCategory done with an actualCompletionDate: bar end uses actualCompletionDate, not targetCompletionDate', () => {
+    const t = row({
+      statusCategory: 'done',
+      targetStartDate: '2026-05-10',
+      targetCompletionDate: '2026-06-01',
+      actualCompletionDate: '2026-06-15',
+    })
+    const bar = resolveTicketBar(t, axisStart, axisEnd)
+    expect(bar.end.toISOString().slice(0, 10)).toBe('2026-06-15')
+    expect(bar.isTbd).toBe(false)
+  })
+
+  it('statusCategory done with no actualCompletionDate: falls back to targetCompletionDate', () => {
+    const t = row({
+      statusCategory: 'done',
+      targetStartDate: '2026-05-10',
+      targetCompletionDate: '2026-06-01',
+      actualCompletionDate: null,
+    })
+    const bar = resolveTicketBar(t, axisStart, axisEnd)
+    expect(bar.end.toISOString().slice(0, 10)).toBe('2026-06-01')
+  })
+
+  it('not done: uses targetCompletionDate even if actualCompletionDate is set', () => {
+    const t = row({
+      statusCategory: 'indeterminate',
+      targetStartDate: '2026-05-10',
+      targetCompletionDate: '2026-06-01',
+      actualCompletionDate: '2026-06-15',
+    })
+    const bar = resolveTicketBar(t, axisStart, axisEnd)
+    expect(bar.end.toISOString().slice(0, 10)).toBe('2026-06-01')
+  })
+})
+
+describe('effectiveCompletionDate', () => {
+  it('returns actualCompletionDate when statusCategory is done and it is present', () => {
+    const t = row({ statusCategory: 'done', targetCompletionDate: '2026-06-01', actualCompletionDate: '2026-06-15' })
+    expect(effectiveCompletionDate(t)).toBe('2026-06-15')
+  })
+
+  it('returns targetCompletionDate when statusCategory is done but actualCompletionDate is null', () => {
+    const t = row({ statusCategory: 'done', targetCompletionDate: '2026-06-01', actualCompletionDate: null })
+    expect(effectiveCompletionDate(t)).toBe('2026-06-01')
+  })
+
+  it('returns targetCompletionDate when statusCategory is not done', () => {
+    const t = row({
+      statusCategory: 'indeterminate',
+      targetCompletionDate: '2026-06-01',
+      actualCompletionDate: '2026-06-15',
+    })
+    expect(effectiveCompletionDate(t)).toBe('2026-06-01')
+  })
 })
 
 describe('sortTickets with a mixed started-before + TBD delivery ticket', () => {
-  it('a ticket with a real targetStartDate before axisStart sorts as started-before even when targetDeliveryDate is missing', () => {
+  it('a ticket with a real targetStartDate before axisStart sorts as started-before even when targetCompletionDate is missing', () => {
     const axisStart = parseISODate('2026-05-01')
-    const a = row({ key: 'A', targetStartDate: '2026-04-01', targetDeliveryDate: null, priorityOrder: 1 })
-    const b = row({ key: 'B', targetStartDate: '2026-05-10', targetDeliveryDate: '2026-05-20', priorityOrder: 100 })
+    const a = row({ key: 'A', targetStartDate: '2026-04-01', targetCompletionDate: null, priorityOrder: 1 })
+    const b = row({ key: 'B', targetStartDate: '2026-05-10', targetCompletionDate: '2026-05-20', priorityOrder: 100 })
     const sorted = sortTickets([b, a], axisStart)
     expect(sorted.map((t) => t.key)).toEqual(['A', 'B'])
   })

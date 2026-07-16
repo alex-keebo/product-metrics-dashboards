@@ -6,6 +6,7 @@ export interface JiraIssueFields {
   customfield_10049: { value: string } | null
   customfield_10062: string | null
   customfield_10063: string | null
+  customfield_10891: string | null
   customfield_10892: string | null
   customfield_10064: { value: string }[] | null
   customfield_10048: { value: string }[] | null
@@ -34,6 +35,7 @@ const FIELDS = [
   'customfield_10049',
   'customfield_10062',
   'customfield_10063',
+  'customfield_10891',
   'customfield_10892',
   'customfield_10064',
   'customfield_10048',

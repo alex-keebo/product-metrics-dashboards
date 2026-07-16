@@ -14,8 +14,9 @@ function row(overrides: Partial<PMBoardRow> = {}): PMBoardRow {
     priorityOrder: 0,
     roadmap: '26-Q1',
     targetStartDate: null,
-    targetDeliveryDate: null,
-    actualDeliveryDate: '2026-02-10',
+    targetCompletionDate: null,
+    actualCompletionDate: '2026-02-10',
+    featureReleaseDate: null,
     product: [],
     category: [],
     keyCustomers: [],
@@ -41,8 +42,8 @@ describe('RecentShips', () => {
     )
   })
 
-  it('omits tickets with no actualDeliveryDate', () => {
-    render(<RecentShips tickets={[row({ actualDeliveryDate: null })]} />)
+  it('omits tickets with no actualCompletionDate', () => {
+    render(<RecentShips tickets={[row({ actualCompletionDate: null })]} />)
     expect(screen.queryByText('Shipped thing')).not.toBeInTheDocument()
     expect(screen.getByText('No ships recorded.')).toBeInTheDocument()
   })

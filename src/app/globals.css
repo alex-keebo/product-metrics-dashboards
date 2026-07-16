@@ -26,6 +26,8 @@
   --color-chart-1: var(--chart-1);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-success-light: var(--success-light);
+  --color-success-light-foreground: var(--success-light-foreground);
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -75,6 +77,8 @@
   --destructive: #e53935;
   --success: #2e7d52;
   --success-foreground: #f0fdf4;
+  --success-light: #a2e7c2;
+  --success-light-foreground: #055d35;
 
   /* Structure */
   --border: #bdd4e0;
@@ -125,6 +129,8 @@
   --destructive: #f25654;
   --success: #56bd88;
   --success-foreground: #00371e;
+  --success-light: #a2e7c2;
+  --success-light-foreground: #055d35;
 
   /* Structure */
   --border: #0d3344;

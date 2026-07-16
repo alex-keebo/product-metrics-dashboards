@@ -10,8 +10,9 @@ export interface PMBoardRow {
   priorityOrder: number | null
   roadmap: string | null
   targetStartDate: string | null
-  targetDeliveryDate: string | null
-  actualDeliveryDate: string | null
+  targetCompletionDate: string | null
+  actualCompletionDate: string | null
+  featureReleaseDate: string | null
   product: string[]
   category: string[]
   keyCustomers: string[]
@@ -29,6 +30,12 @@ export function intervalStart(raw: string | null): string | null {
   }
 }
 
+export function shippedDate(row: PMBoardRow): string | null {
+  if (row.status.toLowerCase() === 'released (in-progress)') return row.featureReleaseDate
+  if (row.statusCategory === 'done') return row.actualCompletionDate
+  return null
+}
+
 export function toRow(issue: JiraIssue): PMBoardRow {
   const f = issue.fields
   return {
@@ -41,8 +48,9 @@ export function toRow(issue: JiraIssue): PMBoardRow {
     priorityOrder: f.customfield_10383 ?? null,
     roadmap: f.customfield_10049?.value ?? null,
     targetStartDate: intervalStart(f.customfield_10062),
-    targetDeliveryDate: intervalStart(f.customfield_10063),
-    actualDeliveryDate: intervalStart(f.customfield_10892),
+    targetCompletionDate: intervalStart(f.customfield_10063),
+    actualCompletionDate: intervalStart(f.customfield_10892),
+    featureReleaseDate: intervalStart(f.customfield_10891),
     product: (f.customfield_10064 ?? []).map((v) => v.value),
     category: (f.customfield_10048 ?? []).map((v) => v.value),
     keyCustomers: (f.customfield_10059 ?? []).map((v) => v.value),

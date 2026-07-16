@@ -33,7 +33,7 @@ export async function GET(req: NextRequest): Promise<NextResponse> {
         .filter(
           (row) =>
             row.roadmap === quarter ||
-            (row.targetDeliveryDate !== null && row.targetDeliveryDate >= startStr && row.targetDeliveryDate <= endStr)
+            (row.targetCompletionDate !== null && row.targetCompletionDate >= startStr && row.targetCompletionDate <= endStr)
         )
       return NextResponse.json({ rows })
     }

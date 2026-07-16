@@ -8,6 +8,8 @@ import {
   sortTickets,
   statusPillInfo,
   resolveTicketBar,
+  effectiveCompletionDate,
+  formatShortDate,
   parseISODate,
 } from './gantt'
 import { nextFiscalQuarterLabel } from '@/lib/fiscal-quarter'
@@ -15,6 +17,7 @@ import type { PMBoardRow } from '@/app/api/product-planning/pm-board/route'
 
 function barColorClasses(statusCategory: string, isTbd: boolean, status: string): string {
   if (isTbd) return 'border-dashed border-muted-foreground bg-muted'
+  if (status.toLowerCase() === 'released (in-progress)') return 'border-success-light bg-success-light/10'
   if (status.toLowerCase() === 'paused') return 'border-muted-foreground bg-muted'
   if (statusCategory === 'done') return 'border-success bg-success/10'
   if (statusCategory === 'new') return 'border-border bg-chart-6'
@@ -112,7 +115,11 @@ export function GanttChart({
                 </div>
                 <div className="flex items-center justify-between gap-1 min-w-0 leading-none">
                   <span className="truncate text-[10px] text-muted-foreground">
-                    {bar.isTbd ? 'Dates TBD' : `${t.targetStartDate} – ${t.targetDeliveryDate}`}
+                    {bar.isTbd
+                      ? 'Dates TBD'
+                      : `${formatShortDate(t.targetStartDate as string)} – ${formatShortDate(
+                          effectiveCompletionDate(t) as string
+                        )}`}
                   </span>
                   <span className={`shrink-0 rounded px-1 text-[9px] font-semibold ${pill.className}`}>
                     {pill.label}
