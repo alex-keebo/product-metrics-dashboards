@@ -75,6 +75,11 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
 
   const errorCodes = useMemo(() => collectKeys(points, 'failed_query_count_by_error'), [points])
 
+  const usageData = useMemo(
+    () => points.map((p) => ({ period_label_display: p.period_label_display, credits_used: p.credits_used })),
+    [points]
+  )
+
   const volumeData = useMemo(
     () =>
       points.map((p) => ({
@@ -134,6 +139,19 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <ChartWrapper title="Warehouse Usage (Credits)" isLight={isLight}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={usageData} barSize={isLight ? 30 : undefined}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits Used']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={legendStyle} />
+            <Bar dataKey="credits_used" name="Credits Used" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
       <ChartWrapper title="Total Queries" isLight={isLight}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={volumeData} barSize={isLight ? 30 : undefined}>

@@ -20,12 +20,14 @@ const points: WarehouseAnalysisPoint[] = [
     bytes_spilled_local: 1024,
     bytes_spilled_remote: 0,
     failed_query_count_by_error: { '1234': 2 },
+    credits_used: 3.5,
   },
 ]
 
 describe('WarehouseAnalysisCharts', () => {
-  it('renders all six chart titles', () => {
+  it('renders all seven chart titles', () => {
     render(<WarehouseAnalysisCharts points={points} />)
+    expect(screen.getByText('Warehouse Usage (Credits)')).toBeInTheDocument()
     expect(screen.getByText('Total Queries')).toBeInTheDocument()
     expect(screen.getByText('Execution Time')).toBeInTheDocument()
     expect(screen.getByText('Queued Queries')).toBeInTheDocument()

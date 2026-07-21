@@ -115,6 +115,17 @@ errors_agg AS (
   SELECT period_start, ARRAY_AGG(STRUCT(error_code, error_count)) AS by_error
   FROM errors_agg_raw
   GROUP BY period_start
+),
+usage AS (
+  SELECT p.period_start, SUM(m.CREDITS_USED) AS credits_used
+  FROM `keebo-portal.k3o_prd_ORGID_000_tf.warehouse_metering_history_tf` m
+  JOIN periods p
+    ON m.START_TIME >= p.period_start_ms
+   AND m.START_TIME <= p.period_end_ms
+  WHERE m.WAREHOUSE_NAME = @warehouse_name
+    AND m.START_TIME >= UNIX_MILLIS(TIMESTAMP(@start_date))
+    AND m.START_TIME <= UNIX_MILLIS(TIMESTAMP(@end_date))
+  GROUP BY p.period_start
 )
 SELECT
   p.period_start,
@@ -128,11 +139,13 @@ SELECT
   q.queue_time_p99_ms,
   s.bytes_spilled_local,
   s.bytes_spilled_remote,
-  e.by_error
+  e.by_error,
+  u.credits_used
 FROM periods p
 LEFT JOIN query_volume_agg qv ON qv.period_start = p.period_start
 LEFT JOIN latency l ON l.period_start = p.period_start
 LEFT JOIN queue q ON q.period_start = p.period_start
 LEFT JOIN spillage s ON s.period_start = p.period_start
 LEFT JOIN errors_agg e ON e.period_start = p.period_start
+LEFT JOIN usage u ON u.period_start = p.period_start
 ORDER BY p.period_start

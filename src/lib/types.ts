@@ -140,6 +140,7 @@ export interface WarehouseAnalysisPoint {
   bytes_spilled_local: number
   bytes_spilled_remote: number
   failed_query_count_by_error: Record<string, number>
+  credits_used: number
 }
 
 export interface WarehouseAnalysisResponse {

@@ -76,5 +76,22 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     expect(body.points).toHaveLength(2)
     expect(body.points[0].execution_time_avg_ms).toBe(0)
     expect(body.points[0].query_volume_by_type).toEqual({})
+    expect(body.points[0].credits_used).toBe(0)
+  })
+
+  it('passes through credits_used from the metering history row', async () => {
+    mockRunQuery.mockResolvedValue([{ period_start: '2026-07-01', credits_used: 12.5 }])
+    const { GET } = await import('../route')
+    const res = await GET(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const body = await res.json()
+    expect(body.points[0].credits_used).toBe(12.5)
   })
 })

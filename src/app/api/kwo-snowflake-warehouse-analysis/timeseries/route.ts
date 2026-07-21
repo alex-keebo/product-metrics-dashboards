@@ -22,6 +22,7 @@ interface WarehouseAnalysisRow {
   bytes_spilled_local: number | null
   bytes_spilled_remote: number | null
   by_error: { error_code: string; error_count: number }[] | null
+  credits_used: number | null
 }
 
 function daysBetween(start: string, end: string): number {
@@ -117,6 +118,7 @@ export async function GET(request: NextRequest) {
         bytes_spilled_local: row?.bytes_spilled_local ?? 0,
         bytes_spilled_remote: row?.bytes_spilled_remote ?? 0,
         failed_query_count_by_error: failedQueryCountByError,
+        credits_used: row?.credits_used ?? 0,
       }
     })
 
