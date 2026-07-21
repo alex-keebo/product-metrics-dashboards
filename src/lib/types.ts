@@ -105,3 +105,15 @@ export interface SnapshotKPIWithDelta extends AggregatedKPIs {
   abs_delta_resizing_optimizations: number
   abs_delta_auto_stop_optimizations: number
 }
+
+export interface ClusterInterval {
+  cluster_number: number
+  start: string
+  end: string
+  truncated_start: boolean
+  truncated_end: boolean
+}
+
+export interface ClusterActivityResponse {
+  intervals: ClusterInterval[]
+}
