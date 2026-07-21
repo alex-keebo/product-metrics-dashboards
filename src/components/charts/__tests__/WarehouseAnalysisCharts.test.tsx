@@ -94,7 +94,7 @@ describe('WarehouseAnalysisCharts', () => {
     expect(screen.getByText('Total Credits')).toBeInTheDocument()
     expect(screen.getByText('3.50')).toBeInTheDocument()
     expect(screen.getAllByText('Avg (ms)')).toHaveLength(1)
-    expect(screen.getByText('Max (ms)')).toBeInTheDocument()
+    expect(screen.getByText('Max (s)')).toBeInTheDocument()
     expect(screen.getByText('Total Queued')).toBeInTheDocument()
     expect(screen.getAllByText('Total GB')).toHaveLength(2)
     expect(screen.getAllByText('Total Failed')).toHaveLength(2)
@@ -120,9 +120,9 @@ describe('DistributionTooltip', () => {
       />
     )
     expect(screen.getByText('10-30s')).toBeInTheDocument()
-    expect(screen.getByText('20')).toBeInTheDocument()
-    expect(screen.getByText('50')).toBeInTheDocument()
-    expect(screen.getByText('15')).toBeInTheDocument()
+    expect(screen.getByText('20 (23.5%)')).toBeInTheDocument()
+    expect(screen.getByText('50 (58.8%)')).toBeInTheDocument()
+    expect(screen.getByText('15 (17.6%)')).toBeInTheDocument()
   })
 
   it('renders nothing when inactive', () => {
@@ -135,12 +135,12 @@ describe('DistributionTooltip', () => {
   it('shows N/A for total below on the left-most bucket', () => {
     render(<DistributionTooltip active payload={[{ value: 50 }]} label="<10s" isLight buckets={buckets} />)
     expect(screen.getByText('N/A')).toBeInTheDocument()
-    expect(screen.getByText('35')).toBeInTheDocument()
+    expect(screen.getByText('35 (41.2%)')).toBeInTheDocument()
   })
 
   it('shows N/A for total above on the right-most bucket', () => {
     render(<DistributionTooltip active payload={[{ value: 5 }]} label=">60s" isLight buckets={buckets} />)
     expect(screen.getByText('N/A')).toBeInTheDocument()
-    expect(screen.getByText('80')).toBeInTheDocument()
+    expect(screen.getByText('80 (94.1%)')).toBeInTheDocument()
   })
 })

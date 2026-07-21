@@ -71,12 +71,20 @@ export async function GET(request: NextRequest) {
     )
     const sql = sqlTemplate.replace(/k3o_prd_ORGID_000_tf/g, `k3o_prd_${orgId}_000_tf`)
 
+    // end bounds carry .999 milliseconds: start_time is epoch-millisecond precision, so a
+    // second-precision bound (e.g. HH:59:59) leaves a sub-second gap before the next period's
+    // start bound, silently dropping any row timestamped in that gap from every period-joined
+    // aggregate (query_volume, latency, queue, etc.) even though it's within the overall range.
     const queryStartDate = granularityUsed === 'hour' ? periods[0].start : `${periods[0].start} 00:00:00`
     const queryEndDate =
-      granularityUsed === 'hour' ? periods[periods.length - 1].end : `${periods[periods.length - 1].end} 23:59:59`
+      granularityUsed === 'hour'
+        ? `${periods[periods.length - 1].end}.999`
+        : `${periods[periods.length - 1].end} 23:59:59.999`
 
     const periodStartBounds = periods.map((p) => (granularityUsed === 'hour' ? p.start : `${p.start} 00:00:00`))
-    const periodEndBounds = periods.map((p) => (granularityUsed === 'hour' ? p.end : `${p.end} 23:59:59`))
+    const periodEndBounds = periods.map((p) =>
+      granularityUsed === 'hour' ? `${p.end}.999` : `${p.end} 23:59:59.999`
+    )
 
     const rows = await runQuery<WarehouseAnalysisRow>(sql, {
       warehouse_name: warehouseName,

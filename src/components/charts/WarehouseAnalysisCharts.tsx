@@ -89,6 +89,8 @@ export function DistributionTooltip({ active, payload, label, isLight, buckets }
   const below: number | null = index === 0 ? null : buckets.slice(0, index).reduce((sum, b) => sum + b.query_count, 0)
   const above: number | null =
     index === buckets.length - 1 ? null : buckets.slice(index + 1).reduce((sum, b) => sum + b.query_count, 0)
+  const total = buckets.reduce((sum, b) => sum + b.query_count, 0)
+  const pct = (value: number | null) => (value === null || total === 0 ? null : (value / total) * 100)
 
   const bg = isLight ? '#ffffff' : '#04202d'
   const border = isLight ? '#cdd2da' : '#1a4459'
@@ -108,7 +110,7 @@ export function DistributionTooltip({ active, payload, label, isLight, buckets }
           fontWeight: emphasize ? 600 : 400,
         }}
       >
-        {value === null ? 'N/A' : formatMetricNumber(value)}
+        {value === null ? 'N/A' : `${formatMetricNumber(value)} (${(pct(value) ?? 0).toFixed(1)}%)`}
       </span>
     </div>
   )
@@ -223,7 +225,7 @@ export function WarehouseAnalysisCharts({
   )
 
   const queueTimeData = useMemo(
-    () => points.map((p) => ({ period_label_display: p.period_label_display, max: p.queue_time_max_ms })),
+    () => points.map((p) => ({ period_label_display: p.period_label_display, max: p.queue_time_max_ms / 1000 })),
     [points]
   )
 
@@ -269,9 +271,9 @@ export function WarehouseAnalysisCharts({
   )
 
   const totalsQueueTime = useMemo(() => {
-    if (queueTimeData.length === 0) return [{ label: 'Max (ms)', value: formatDecimalNumber(0) }]
+    if (queueTimeData.length === 0) return [{ label: 'Max (s)', value: formatDecimalNumber(0) }]
     const max = Math.max(...queueTimeData.map((d) => d.max))
-    return [{ label: 'Max (ms)', value: formatDecimalNumber(max) }]
+    return [{ label: 'Max (s)', value: formatDecimalNumber(max) }]
   }, [queueTimeData])
 
   const totalsDataScannedHistogram = useMemo(
@@ -383,9 +385,9 @@ export function WarehouseAnalysisCharts({
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
-            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Max (ms)']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Max (ms)'} wrapperStyle={legendStyle} />
-            <Bar dataKey="max" name="Max (ms)" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Max (s)']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Max (s)'} wrapperStyle={legendStyle} />
+            <Bar dataKey="max" name="Max (s)" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
