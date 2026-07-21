@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { subDays, parseISO, format } from 'date-fns'
 import { DateRangePicker } from '@/components/filters/DateRangePicker'
-import { MultiSelect } from '@/components/filters/MultiSelect'
+import { Dropdown } from '@/components/filters/Dropdown'
 import { KPITile } from '@/components/kpis/KPITile'
 import { DataTable, Column } from '@/components/tables/DataTable'
 import { cn } from '@/lib/utils'
@@ -266,7 +266,8 @@ export default function PlatformUsagePage() {
           endDate={endDate}
           onRangeChange={(s, e) => { setStartDate(s); setEndDate(e) }}
         />
-        <MultiSelect
+        <Dropdown
+          mode="multi"
           label="Module"
           options={MODULE_OPTIONS}
           selected={selectedModules}

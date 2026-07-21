@@ -1,6 +1,6 @@
 'use client'
 
-import { SingleSelect } from './SingleSelect'
+import { Dropdown } from './Dropdown'
 import { DateRangePicker } from './DateRangePicker'
 import { Badge } from '@/components/ui/badge'
 import type { Granularity, WarehouseOption } from '@/lib/types'
@@ -46,7 +46,8 @@ export function WarehouseAnalysisFilters({
 }: WarehouseAnalysisFiltersProps) {
   return (
     <div className="flex flex-wrap items-end gap-3">
-      <SingleSelect
+      <Dropdown
+        mode="single"
         label="Customer"
         options={customers.map((c) => ({ value: c.org_id, label: c.name }))}
         value={selectedCustomer ?? ''}
@@ -57,25 +58,34 @@ export function WarehouseAnalysisFilters({
         placeholder="Select customer ..."
       />
       <DateRangePicker startDate={startDate} endDate={endDate} onRangeChange={onRangeChange} />
-      <SingleSelect
+      <Dropdown
+        mode="single"
         label="Group By"
         options={GRANULARITY_OPTIONS}
         value={granularity}
         onChange={(value) => onGranularityChange(value as Granularity)}
       />
       <div className="flex flex-col gap-1">
-        <SingleSelect
+        <Dropdown
+          mode="single"
           label="Warehouse"
           options={warehouses.map((w) => ({
             value: w.warehouse_name,
             label: w.warehouse_name,
             badge: w.cost_saving_enabled ? <Badge variant="secondary">Optimized</Badge> : undefined,
+            meta: { costSavingEnabled: w.cost_saving_enabled },
           }))}
           value={selectedWarehouse ?? ''}
           onChange={(value) => onWarehouseChange(value || null)}
           disabled={warehousesDisabled}
           testId="warehouse-select-trigger"
           placeholder="Select warehouse ..."
+          showFilter={{
+            key: 'costSavingEnabled',
+            trueLabel: 'Optimized',
+            falseLabel: 'Unoptimized',
+            predicate: (opt) => opt.meta?.costSavingEnabled === true,
+          }}
         />
         {warehousesError && <span className="text-xs text-destructive">{warehousesError}</span>}
       </div>

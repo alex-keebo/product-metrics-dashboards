@@ -1,7 +1,6 @@
 'use client'
 
-import { MultiSelect } from './MultiSelect'
-import { SingleSelect } from './SingleSelect'
+import { Dropdown } from './Dropdown'
 import { DateRangePicker } from './DateRangePicker'
 import { ContractType, Granularity } from '@/lib/types'
 
@@ -60,7 +59,8 @@ export function DashboardFilters({
 
   return (
     <div className="flex flex-wrap items-end gap-4">
-      <MultiSelect
+      <Dropdown
+        mode="multi"
         label="Contract Type"
         options={CONTRACT_TYPE_OPTIONS}
         selected={contractTypes}
@@ -70,7 +70,8 @@ export function DashboardFilters({
         }}
       />
 
-      <MultiSelect
+      <Dropdown
+        mode="multi"
         label="Customer"
         options={customerOptions}
         selected={selectedOrgIds ?? customerOptions.map((o) => o.value)}
@@ -96,7 +97,8 @@ export function DashboardFilters({
       )}
 
       {showGranularity && granularity && onGranularityChange && (
-        <SingleSelect
+        <Dropdown
+          mode="single"
           label="Group By"
           options={GRANULARITY_OPTIONS}
           value={granularity}
