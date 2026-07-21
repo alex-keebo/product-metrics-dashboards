@@ -11,9 +11,13 @@ import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/date
 import type {
   ClusterActivityResponse,
   ClusterInterval,
+  DataScannedHistogramBucket,
+  DataScannedHistogramResponse,
   ExecutionTimeHistogramBucket,
   ExecutionTimeHistogramResponse,
   Granularity,
+  SpillageHistogramBucket,
+  SpillageHistogramResponse,
   WarehouseAnalysisPoint,
   WarehouseAnalysisResponse,
   WarehouseOption,
@@ -98,6 +102,14 @@ export default function WarehouseAnalysisPage() {
   const [histogramBuckets, setHistogramBuckets] = useState<ExecutionTimeHistogramBucket[]>([])
   const [histogramError, setHistogramError] = useState<FetchError | null>(null)
   const [histogramLoading, setHistogramLoading] = useState(false)
+
+  const [dataScannedHistogramBuckets, setDataScannedHistogramBuckets] = useState<DataScannedHistogramBucket[]>([])
+  const [dataScannedHistogramError, setDataScannedHistogramError] = useState<FetchError | null>(null)
+  const [dataScannedHistogramLoading, setDataScannedHistogramLoading] = useState(false)
+
+  const [spillageHistogramBuckets, setSpillageHistogramBuckets] = useState<SpillageHistogramBucket[]>([])
+  const [spillageHistogramError, setSpillageHistogramError] = useState<FetchError | null>(null)
+  const [spillageHistogramLoading, setSpillageHistogramLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/kwo-snowflake-warehouse-analysis/customers')
@@ -219,6 +231,68 @@ export default function WarehouseAnalysisPage() {
     return () => controller.abort()
   }, [selectedCustomer, selectedWarehouse, startDate, endDate])
 
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setDataScannedHistogramBuckets([])
+      return
+    }
+    const controller = new AbortController()
+    setDataScannedHistogramLoading(true)
+    setDataScannedHistogramError(null)
+
+    const params = new URLSearchParams({
+      org_id: selectedCustomer,
+      warehouse_name: selectedWarehouse,
+      start_date: startDate,
+      end_date: endDate,
+    })
+
+    fetch(`/api/kwo-snowflake-warehouse-analysis/data-scanned-histogram?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        const body = (await res.json()) as DataScannedHistogramResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setDataScannedHistogramBuckets(body.buckets)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setDataScannedHistogramError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setDataScannedHistogramLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setSpillageHistogramBuckets([])
+      return
+    }
+    const controller = new AbortController()
+    setSpillageHistogramLoading(true)
+    setSpillageHistogramError(null)
+
+    const params = new URLSearchParams({
+      org_id: selectedCustomer,
+      warehouse_name: selectedWarehouse,
+      start_date: startDate,
+      end_date: endDate,
+    })
+
+    fetch(`/api/kwo-snowflake-warehouse-analysis/spillage-histogram?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        const body = (await res.json()) as SpillageHistogramResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setSpillageHistogramBuckets(body.buckets)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setSpillageHistogramError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setSpillageHistogramLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
       key: 'period_label',
@@ -289,6 +363,14 @@ export default function WarehouseAnalysisPage() {
 
       {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
 
+      {selectedCustomer && selectedWarehouse && !dataScannedHistogramLoading && dataScannedHistogramError && (
+        <SectionError error={dataScannedHistogramError} />
+      )}
+
+      {selectedCustomer && selectedWarehouse && !spillageHistogramLoading && spillageHistogramError && (
+        <SectionError error={spillageHistogramError} />
+      )}
+
       {selectedCustomer && selectedWarehouse && !timeseriesError && !loading && points.length === 0 && (
         <div className="p-8 text-center text-muted-foreground text-sm">
           No query history for this warehouse in the selected range.
@@ -297,7 +379,12 @@ export default function WarehouseAnalysisPage() {
 
       {selectedCustomer && selectedWarehouse && !timeseriesError && points.length > 0 && (
         <>
-          <WarehouseAnalysisCharts points={points} histogramBuckets={histogramBuckets} />
+          <WarehouseAnalysisCharts
+            points={points}
+            histogramBuckets={histogramBuckets}
+            dataScannedHistogramBuckets={dataScannedHistogramBuckets}
+            spillageHistogramBuckets={spillageHistogramBuckets}
+          />
 
           <ChartWrapper
             title="Warehouse Activity"

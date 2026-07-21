@@ -32,7 +32,12 @@ import {
   DARK_TOOLTIP,
   LIGHT_TOOLTIP,
 } from './TimeSeriesCharts'
-import type { ExecutionTimeHistogramBucket, WarehouseAnalysisPoint } from '@/lib/types'
+import type {
+  DataScannedHistogramBucket,
+  ExecutionTimeHistogramBucket,
+  SpillageHistogramBucket,
+  WarehouseAnalysisPoint,
+} from '@/lib/types'
 
 export function collectKeys(points: WarehouseAnalysisPoint[], field: 'query_volume_by_type' | 'failed_query_count_by_error'): string[] {
   const keys = new Set<string>()
@@ -60,9 +65,80 @@ function aggregateFailedReasons(points: WarehouseAnalysisPoint[]): { error_code:
   return result
 }
 
+interface DistributionBucket {
+  bucket_label: string
+  query_count: number
+}
+
+interface DistributionTooltipProps {
+  active?: boolean
+  payload?: { value?: number }[]
+  label?: string
+  isLight: boolean
+  buckets: DistributionBucket[]
+}
+
+/** Distribution chart tooltip: shows the hovered bucket's count alongside cumulative totals for buckets below and above it. */
+export function DistributionTooltip({ active, payload, label, isLight, buckets }: DistributionTooltipProps) {
+  if (!active || !payload?.length || label === undefined) return null
+
+  const index = buckets.findIndex((b) => b.bucket_label === label)
+  if (index === -1) return null
+
+  const current = buckets[index].query_count
+  const below: number | null = index === 0 ? null : buckets.slice(0, index).reduce((sum, b) => sum + b.query_count, 0)
+  const above: number | null =
+    index === buckets.length - 1 ? null : buckets.slice(index + 1).reduce((sum, b) => sum + b.query_count, 0)
+
+  const bg = isLight ? '#ffffff' : '#04202d'
+  const border = isLight ? '#cdd2da' : '#1a4459'
+  const muted = isLight ? '#4d565a' : '#6b7f8a'
+  const text = isLight ? '#051c27' : '#e8f0f4'
+  const font = 'IBM Plex Sans, sans-serif'
+
+  const row = (rowLabel: string, value: number | null, emphasize = false) => (
+    <div key={rowLabel} style={{ display: 'flex', justifyContent: 'space-between', gap: 32, marginBottom: 3 }}>
+      <span style={{ color: muted }}>{rowLabel}</span>
+      <span
+        style={{
+          color: emphasize ? text : muted,
+          fontVariantNumeric: 'tabular-nums',
+          textAlign: 'right',
+          minWidth: 64,
+          fontWeight: emphasize ? 600 : 400,
+        }}
+      >
+        {value === null ? 'N/A' : formatMetricNumber(value)}
+      </span>
+    </div>
+  )
+
+  return (
+    <div
+      style={{
+        background: bg,
+        border: `1px solid ${border}`,
+        borderRadius: 8,
+        padding: '10px 14px',
+        fontFamily: font,
+        fontSize: 12,
+        minWidth: 220,
+      }}
+    >
+      <div style={{ color: muted, fontSize: 11, marginBottom: 8 }}>{label}</div>
+      {row('Queries in this bucket', current, true)}
+      <div style={{ borderTop: `1px solid ${border}`, margin: '6px 0' }} />
+      {row('Total below this bucket', below)}
+      {row('Total above this bucket', above)}
+    </div>
+  )
+}
+
 interface WarehouseAnalysisChartsProps {
   points: WarehouseAnalysisPoint[]
   histogramBuckets: ExecutionTimeHistogramBucket[]
+  dataScannedHistogramBuckets: DataScannedHistogramBucket[]
+  spillageHistogramBuckets: SpillageHistogramBucket[]
 }
 
 // Code-only toggles for the overall-metric shown top-right on each chart. Not user-facing.
@@ -74,12 +150,19 @@ const SHOW_METRIC = {
   queuedQueries: true,
   queueTime: true,
   dataScanned: true,
+  dataScannedDistribution: true,
   spillage: true,
+  spillageDistribution: true,
   failedQueries: true,
   failedQueryReasons: true,
 }
 
-export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseAnalysisChartsProps) {
+export function WarehouseAnalysisCharts({
+  points,
+  histogramBuckets,
+  dataScannedHistogramBuckets,
+  spillageHistogramBuckets,
+}: WarehouseAnalysisChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -131,13 +214,7 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
   )
 
   const queueTimeData = useMemo(
-    () =>
-      points.map((p) => ({
-        period_label_display: p.period_label_display,
-        avg: p.queue_time_avg_ms,
-        p95: p.queue_time_p95_ms,
-        p99: p.queue_time_p99_ms,
-      })),
+    () => points.map((p) => ({ period_label_display: p.period_label_display, max: p.queue_time_max_ms })),
     [points]
   )
 
@@ -183,10 +260,24 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
   )
 
   const totalsQueueTime = useMemo(() => {
-    if (queueTimeData.length === 0) return [{ label: 'Avg (ms)', value: formatDecimalNumber(0) }]
-    const avg = queueTimeData.reduce((sum, d) => sum + d.avg, 0) / queueTimeData.length
-    return [{ label: 'Avg (ms)', value: formatDecimalNumber(avg) }]
+    if (queueTimeData.length === 0) return [{ label: 'Max (ms)', value: formatDecimalNumber(0) }]
+    const max = Math.max(...queueTimeData.map((d) => d.max))
+    return [{ label: 'Max (ms)', value: formatDecimalNumber(max) }]
   }, [queueTimeData])
+
+  const totalsDataScannedHistogram = useMemo(
+    () => [
+      { label: 'Total Queries', value: formatMetricNumber(dataScannedHistogramBuckets.reduce((sum, b) => sum + b.query_count, 0)) },
+    ],
+    [dataScannedHistogramBuckets]
+  )
+
+  const totalsSpillageHistogram = useMemo(
+    () => [
+      { label: 'Total Queries', value: formatMetricNumber(spillageHistogramBuckets.reduce((sum, b) => sum + b.query_count, 0)) },
+    ],
+    [spillageHistogramBuckets]
+  )
 
   const totalsScanned = useMemo(
     () => [{ label: 'Total GB', value: `${formatBytesAsGB(scannedData.reduce((sum, d) => sum + d.bytes_scanned, 0))} GB` }],
@@ -210,12 +301,12 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Warehouse Usage (Credits)" isLight={isLight} totals={SHOW_METRIC.usage ? totalsUsage : undefined}>
+      <ChartWrapper title="Warehouse Usage" isLight={isLight} totals={SHOW_METRIC.usage ? totalsUsage : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={usageData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={usageData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits Used']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={legendStyle} />
             <Bar dataKey="credits_used" name="Credits Used" fill={C_NAVY} radius={[3, 3, 0, 0]} />
@@ -225,10 +316,10 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
 
       <ChartWrapper title="Total Queries" isLight={isLight} totals={SHOW_METRIC.totalQueries ? totalsVolume : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={volumeData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={volumeData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Total Queries']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Total Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="total_query_count" name="Total Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
@@ -241,7 +332,7 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
           <LineChart data={executionData}>
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
             <Line type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
@@ -253,11 +344,11 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
 
       <ChartWrapper title="Execution Time Distribution" isLight={isLight} totals={SHOW_METRIC.executionTimeDistribution ? totalsHistogram : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={histogramBuckets} barSize={isLight ? 30 : undefined}>
+          <BarChart data={histogramBuckets} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
-            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Queries']} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
+            <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={histogramBuckets} />} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
@@ -266,10 +357,10 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
 
       <ChartWrapper title="Queued Queries" isLight={isLight} totals={SHOW_METRIC.queuedQueries ? totalsQueued : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={queuedData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={queuedData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Queued Queries']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queued Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="queued_query_count" name="Queued Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
@@ -279,25 +370,23 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
 
       <ChartWrapper title="Queue Time" isLight={isLight} totals={SHOW_METRIC.queueTime ? totalsQueueTime : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <LineChart data={queueTimeData}>
-            <CartesianGrid stroke={GRID} vertical={false} />
+          <BarChart data={queueTimeData} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
-            <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
-            <Line type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p95" name="P95 (ms)" stroke={C_NAVY} strokeWidth={2} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p99" name="P99 (ms)" stroke={C_TEAL} strokeWidth={2} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
-          </LineChart>
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Max (ms)']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Max (ms)'} wrapperStyle={legendStyle} />
+            <Bar dataKey="max" name="Max (ms)" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Data Scanned (GB)" isLight={isLight} totals={SHOW_METRIC.dataScanned ? totalsScanned : undefined}>
+      <ChartWrapper title="Data Scanned" isLight={isLight} totals={SHOW_METRIC.dataScanned ? totalsScanned : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={scannedData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={scannedData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${formatBytesAsGB(v)} GB`} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatBytesAsGB(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => `${formatBytesAsGB(Number(v))} GB`} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Data Scanned'} wrapperStyle={legendStyle} />
             <Bar dataKey="bytes_scanned" name="Data Scanned" fill={C_NAVY} radius={[3, 3, 0, 0]} />
@@ -305,12 +394,29 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
         </ResponsiveContainer>
       </ChartWrapper>
 
+      <ChartWrapper
+        title="Data Scanned Distribution"
+        isLight={isLight}
+        totals={SHOW_METRIC.dataScannedDistribution ? totalsDataScannedHistogram : undefined}
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={dataScannedHistogramBuckets} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
+            <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={dataScannedHistogramBuckets} />} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
       <ChartWrapper title="Spillage" isLight={isLight} totals={SHOW_METRIC.spillage ? totalsSpillage : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={spillageData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={spillageData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${formatBytesAsGB(v)} GB`} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatBytesAsGB(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => `${formatBytesAsGB(Number(v))} GB`} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
             <Bar dataKey="local" name="Local" stackId="spillage" fill={C_NAVY} />
@@ -319,12 +425,29 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
         </ResponsiveContainer>
       </ChartWrapper>
 
+      <ChartWrapper
+        title="Spillage Distribution"
+        isLight={isLight}
+        totals={SHOW_METRIC.spillageDistribution ? totalsSpillageHistogram : undefined}
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={spillageHistogramBuckets} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
+            <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={spillageHistogramBuckets} />} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
       <ChartWrapper title="Failed Queries" isLight={isLight} totals={SHOW_METRIC.failedQueries ? totalsFailed : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={failedData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={failedData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="failed_query_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
@@ -334,7 +457,7 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
 
       <ChartWrapper title="Failed Query Reasons" isLight={isLight} totals={SHOW_METRIC.failedQueryReasons ? totalsFailedReasons : undefined}>
         <ResponsiveContainer width="100%" height={260}>
-          <BarChart data={failedReasonsData} barSize={isLight ? 30 : undefined} margin={{ bottom: 40 }}>
+          <BarChart data={failedReasonsData} barSize={30} margin={{ bottom: 40 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis
               dataKey="error_code"
@@ -344,7 +467,7 @@ export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseA
               interval={0}
               height={60}
             />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="error_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />

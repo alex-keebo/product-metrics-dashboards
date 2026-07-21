@@ -39,6 +39,12 @@ describe('Snowflake Warehouse Analysis page', () => {
       if (url.includes('/execution-time-histogram')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ buckets: [] }) })
       }
+      if (url.includes('/data-scanned-histogram')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ buckets: [] }) })
+      }
+      if (url.includes('/spillage-histogram')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ buckets: [] }) })
+      }
       if (url.includes('/timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -56,6 +62,7 @@ describe('Snowflake Warehouse Analysis page', () => {
                   queue_time_avg_ms: 0,
                   queue_time_p95_ms: 0,
                   queue_time_p99_ms: 0,
+                  queue_time_max_ms: 0,
                   bytes_spilled_local: 0,
                   bytes_spilled_remote: 0,
                   bytes_scanned: 0,

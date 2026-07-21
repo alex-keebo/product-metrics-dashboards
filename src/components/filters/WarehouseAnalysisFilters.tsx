@@ -6,11 +6,11 @@ import { Badge } from '@/components/ui/badge'
 import type { Granularity, WarehouseOption } from '@/lib/types'
 
 const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
+  { value: 'hour', label: 'Hour' },
   { value: 'day', label: 'Day' },
   { value: 'week', label: 'Calendar Week' },
   { value: 'month', label: 'Calendar Month' },
   { value: 'rolling7', label: '7-Day Rolling' },
-  { value: 'hour', label: 'Hour' },
 ]
 
 interface WarehouseAnalysisFiltersProps {

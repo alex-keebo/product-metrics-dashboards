@@ -137,6 +137,7 @@ export interface WarehouseAnalysisPoint {
   queue_time_avg_ms: number
   queue_time_p95_ms: number
   queue_time_p99_ms: number
+  queue_time_max_ms: number
   bytes_spilled_local: number
   bytes_spilled_remote: number
   bytes_scanned: number
@@ -156,4 +157,22 @@ export interface ExecutionTimeHistogramBucket {
 
 export interface ExecutionTimeHistogramResponse {
   buckets: ExecutionTimeHistogramBucket[]
+}
+
+export interface DataScannedHistogramBucket {
+  bucket_label: string
+  query_count: number
+}
+
+export interface DataScannedHistogramResponse {
+  buckets: DataScannedHistogramBucket[]
+}
+
+export interface SpillageHistogramBucket {
+  bucket_label: string
+  query_count: number
+}
+
+export interface SpillageHistogramResponse {
+  buckets: SpillageHistogramBucket[]
 }

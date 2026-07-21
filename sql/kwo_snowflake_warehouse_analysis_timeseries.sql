@@ -74,7 +74,8 @@ queue AS (
     COUNTIF(queue_time > 0) AS queued_query_count,
     AVG(queue_time) AS queue_time_avg_ms,
     APPROX_QUANTILES(queue_time, 100)[OFFSET(95)] AS queue_time_p95_ms,
-    APPROX_QUANTILES(queue_time, 100)[OFFSET(99)] AS queue_time_p99_ms
+    APPROX_QUANTILES(queue_time, 100)[OFFSET(99)] AS queue_time_p99_ms,
+    MAX(queue_time) AS queue_time_max_ms
   FROM base
   GROUP BY period_start
 ),
@@ -145,6 +146,7 @@ SELECT
   q.queue_time_avg_ms,
   q.queue_time_p95_ms,
   q.queue_time_p99_ms,
+  q.queue_time_max_ms,
   s.bytes_spilled_local,
   s.bytes_spilled_remote,
   sc.bytes_scanned,

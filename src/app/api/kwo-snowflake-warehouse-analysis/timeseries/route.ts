@@ -19,6 +19,7 @@ interface WarehouseAnalysisRow {
   queue_time_avg_ms: number | null
   queue_time_p95_ms: number | null
   queue_time_p99_ms: number | null
+  queue_time_max_ms: number | null
   bytes_spilled_local: number | null
   bytes_spilled_remote: number | null
   bytes_scanned: number | null
@@ -116,6 +117,7 @@ export async function GET(request: NextRequest) {
         queue_time_avg_ms: Number(row?.queue_time_avg_ms ?? 0),
         queue_time_p95_ms: Number(row?.queue_time_p95_ms ?? 0),
         queue_time_p99_ms: Number(row?.queue_time_p99_ms ?? 0),
+        queue_time_max_ms: Number(row?.queue_time_max_ms ?? 0),
         bytes_spilled_local: Number(row?.bytes_spilled_local ?? 0),
         bytes_spilled_remote: Number(row?.bytes_spilled_remote ?? 0),
         bytes_scanned: Number(row?.bytes_scanned ?? 0),
