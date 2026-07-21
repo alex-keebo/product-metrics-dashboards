@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import { WarehouseAnalysisFilters } from '@/components/filters/WarehouseAnalysisFilters'
-import { WarehouseAnalysisCharts, collectKeys } from '@/components/charts/WarehouseAnalysisCharts'
+import { WarehouseAnalysisCharts } from '@/components/charts/WarehouseAnalysisCharts'
 import { formatMetricNumber, formatBytesAsGB, ChartWrapper } from '@/components/charts/TimeSeriesCharts'
 import { WarehouseActivityTimeline } from '@/components/charts/WarehouseActivityTimeline'
 import { DataTable, type Column } from '@/components/tables/DataTable'
@@ -11,6 +11,8 @@ import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/date
 import type {
   ClusterActivityResponse,
   ClusterInterval,
+  ExecutionTimeHistogramBucket,
+  ExecutionTimeHistogramResponse,
   Granularity,
   WarehouseAnalysisPoint,
   WarehouseAnalysisResponse,
@@ -18,6 +20,9 @@ import type {
 } from '@/lib/types'
 
 const MAX_HOUR_RANGE_DAYS = 14
+
+// Code-only toggle for the overall-metric shown top-right on the Warehouse Activity chart. Not user-facing.
+const SHOW_WAREHOUSE_ACTIVITY_METRIC = true
 
 interface FetchError {
   message: string
@@ -58,6 +63,7 @@ const BASE_TABLE_COLUMNS: Column<Record<string, unknown>>[] = [
   numberColumn('queue_time_avg_ms', 'Avg Queue Time (ms)'),
   numberColumn('queue_time_p95_ms', 'P95 Queue Time (ms)'),
   numberColumn('queue_time_p99_ms', 'P99 Queue Time (ms)'),
+  gbColumn('bytes_scanned', 'Data Scanned (GB)'),
   gbColumn('bytes_spilled_local', 'Local Spillage (GB)'),
   gbColumn('bytes_spilled_remote', 'Remote Spillage (GB)'),
   numberColumn('failed_query_count', 'Failed Queries'),
@@ -88,6 +94,10 @@ export default function WarehouseAnalysisPage() {
   const [clusterIntervals, setClusterIntervals] = useState<ClusterInterval[]>([])
   const [clusterActivityError, setClusterActivityError] = useState<FetchError | null>(null)
   const [clusterActivityLoading, setClusterActivityLoading] = useState(false)
+
+  const [histogramBuckets, setHistogramBuckets] = useState<ExecutionTimeHistogramBucket[]>([])
+  const [histogramError, setHistogramError] = useState<FetchError | null>(null)
+  const [histogramLoading, setHistogramLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/kwo-snowflake-warehouse-analysis/customers')
@@ -178,7 +188,36 @@ export default function WarehouseAnalysisPage() {
     return () => controller.abort()
   }, [selectedCustomer, selectedWarehouse, startDate, endDate])
 
-  const errorCodes = useMemo(() => collectKeys(points, 'failed_query_count_by_error'), [points])
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setHistogramBuckets([])
+      return
+    }
+    const controller = new AbortController()
+    setHistogramLoading(true)
+    setHistogramError(null)
+
+    const params = new URLSearchParams({
+      org_id: selectedCustomer,
+      warehouse_name: selectedWarehouse,
+      start_date: startDate,
+      end_date: endDate,
+    })
+
+    fetch(`/api/kwo-snowflake-warehouse-analysis/execution-time-histogram?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        const body = (await res.json()) as ExecutionTimeHistogramResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setHistogramBuckets(body.buckets)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setHistogramError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setHistogramLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
 
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
@@ -190,13 +229,11 @@ export default function WarehouseAnalysisPage() {
     [granularityUsed]
   )
 
-  const tableColumns = useMemo(
-    () => [
-      periodColumn,
-      ...BASE_TABLE_COLUMNS,
-      ...errorCodes.map((code) => numberColumn(code, `Failed: ${code}`)),
-    ],
-    [periodColumn, errorCodes]
+  const tableColumns = useMemo(() => [periodColumn, ...BASE_TABLE_COLUMNS], [periodColumn])
+
+  const totalsClusterActivity = useMemo(
+    () => [{ label: 'Total Clusters', value: formatMetricNumber(new Set(clusterIntervals.map((i) => i.cluster_number)).size) }],
+    [clusterIntervals]
   )
 
   const tableRows = useMemo(
@@ -205,9 +242,8 @@ export default function WarehouseAnalysisPage() {
         ...p,
         total_query_count: Object.values(p.query_volume_by_type).reduce((sum, v) => sum + v, 0),
         failed_query_count: Object.values(p.failed_query_count_by_error).reduce((sum, v) => sum + v, 0),
-        ...Object.fromEntries(errorCodes.map((code) => [code, p.failed_query_count_by_error[code] ?? 0])),
       })),
-    [points, errorCodes]
+    [points]
   )
 
   return (
@@ -251,6 +287,8 @@ export default function WarehouseAnalysisPage() {
 
       {selectedCustomer && selectedWarehouse && timeseriesError && <SectionError error={timeseriesError} />}
 
+      {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
+
       {selectedCustomer && selectedWarehouse && !timeseriesError && !loading && points.length === 0 && (
         <div className="p-8 text-center text-muted-foreground text-sm">
           No query history for this warehouse in the selected range.
@@ -259,9 +297,13 @@ export default function WarehouseAnalysisPage() {
 
       {selectedCustomer && selectedWarehouse && !timeseriesError && points.length > 0 && (
         <>
-          <WarehouseAnalysisCharts points={points} />
+          <WarehouseAnalysisCharts points={points} histogramBuckets={histogramBuckets} />
 
-          <ChartWrapper title="Warehouse Activity" isLight={isLight}>
+          <ChartWrapper
+            title="Warehouse Activity"
+            isLight={isLight}
+            totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? (clusterActivityLoading ? null : totalsClusterActivity) : undefined}
+          >
             {clusterActivityError ? (
               <SectionError error={clusterActivityError} />
             ) : !clusterActivityLoading && clusterIntervals.length === 0 ? (

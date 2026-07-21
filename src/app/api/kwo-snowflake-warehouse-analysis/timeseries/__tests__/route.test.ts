@@ -94,4 +94,45 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const body = await res.json()
     expect(body.points[0].credits_used).toBe(12.5)
   })
+
+  it('passes through bytes_scanned from the query history row', async () => {
+    mockRunQuery.mockResolvedValue([{ period_start: '2026-07-01', bytes_scanned: 104857600 }])
+    const { GET } = await import('../route')
+    const res = await GET(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const body = await res.json()
+    expect(body.points[0].bytes_scanned).toBe(104857600)
+  })
+
+  it('coerces BigQuery NUMERIC-wrapped credits_used to a plain number', async () => {
+    // The @google-cloud/bigquery client returns NUMERIC/BIGNUMERIC columns as
+    // wrapper objects (not plain JS numbers) with toString()/toJSON() returning
+    // the decimal string. Without Number(...) coercion these serialize as
+    // strings, which silently break downstream arithmetic (e.g. NaN totals).
+    const numericWrapper = {
+      toString: () => '12.50000',
+      toJSON: () => '12.50000',
+    }
+    mockRunQuery.mockResolvedValue([{ period_start: '2026-07-01', credits_used: numericWrapper }])
+    const { GET } = await import('../route')
+    const res = await GET(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const body = await res.json()
+    expect(body.points[0].credits_used).toBe(12.5)
+    expect(typeof body.points[0].credits_used).toBe('number')
+  })
 })

@@ -1,11 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import {
   BarChart,
   Bar,
-  AreaChart,
-  Area,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -16,7 +16,6 @@ import {
 import { useTheme } from '@/components/layout/ThemeProvider'
 import {
   ChartWrapper,
-  SeriesLegend,
   SeriesTooltip,
   getChartLegendStyle,
   getAreaDotProps,
@@ -25,9 +24,7 @@ import {
   formatBytesAsGB,
   C_NAVY,
   C_TEAL,
-  C_SLATE,
   C_DEEP,
-  C_ICE,
   DARK_GRID,
   LIGHT_GRID,
   DARK_AXIS,
@@ -35,9 +32,7 @@ import {
   DARK_TOOLTIP,
   LIGHT_TOOLTIP,
 } from './TimeSeriesCharts'
-import type { WarehouseAnalysisPoint } from '@/lib/types'
-
-const SERIES_COLORS = [C_DEEP, C_NAVY, C_SLATE, C_TEAL, C_ICE]
+import type { ExecutionTimeHistogramBucket, WarehouseAnalysisPoint } from '@/lib/types'
 
 export function collectKeys(points: WarehouseAnalysisPoint[], field: 'query_volume_by_type' | 'failed_query_count_by_error'): string[] {
   const keys = new Set<string>()
@@ -47,23 +42,44 @@ export function collectKeys(points: WarehouseAnalysisPoint[], field: 'query_volu
   return [...keys]
 }
 
-function useHiddenSeries() {
-  const [hidden, setHidden] = useState<Set<string>>(new Set())
-  const toggle = (key: string) =>
-    setHidden((prev) => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
-  return { hidden, toggle }
+function aggregateFailedReasons(points: WarehouseAnalysisPoint[]): { error_code: string; error_count: number }[] {
+  const totals = new Map<string, number>()
+  for (const p of points) {
+    for (const [errorCode, count] of Object.entries(p.failed_query_count_by_error)) {
+      totals.set(errorCode, (totals.get(errorCode) ?? 0) + count)
+    }
+  }
+
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1])
+  const top = sorted.slice(0, 10)
+  const rest = sorted.slice(10)
+  const result = top.map(([error_code, error_count]) => ({ error_code, error_count }))
+  const otherCount = rest.reduce((sum, [, count]) => sum + count, 0)
+  if (otherCount > 0) result.push({ error_code: 'Other', error_count: otherCount })
+
+  return result
 }
 
 interface WarehouseAnalysisChartsProps {
   points: WarehouseAnalysisPoint[]
+  histogramBuckets: ExecutionTimeHistogramBucket[]
 }
 
-export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps) {
+// Code-only toggles for the overall-metric shown top-right on each chart. Not user-facing.
+const SHOW_METRIC = {
+  usage: true,
+  totalQueries: true,
+  executionTime: true,
+  executionTimeDistribution: true,
+  queuedQueries: true,
+  queueTime: true,
+  dataScanned: true,
+  spillage: true,
+  failedQueries: true,
+  failedQueryReasons: true,
+}
+
+export function WarehouseAnalysisCharts({ points, histogramBuckets }: WarehouseAnalysisChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
 
@@ -73,7 +89,16 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
   const legendStyle = getChartLegendStyle(isLight)
   const cursorFill = isLight ? '#F1F3F5' : '#0d3344'
 
-  const errorCodes = useMemo(() => collectKeys(points, 'failed_query_count_by_error'), [points])
+  const failedData = useMemo(
+    () =>
+      points.map((p) => ({
+        period_label_display: p.period_label_display,
+        failed_query_count: Object.values(p.failed_query_count_by_error).reduce((sum, v) => sum + v, 0),
+      })),
+    [points]
+  )
+
+  const failedReasonsData = useMemo(() => aggregateFailedReasons(points), [points])
 
   const usageData = useMemo(
     () => points.map((p) => ({ period_label_display: p.period_label_display, credits_used: p.credits_used })),
@@ -116,6 +141,11 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
     [points]
   )
 
+  const scannedData = useMemo(
+    () => points.map((p) => ({ period_label_display: p.period_label_display, bytes_scanned: p.bytes_scanned })),
+    [points]
+  )
+
   const spillageData = useMemo(
     () =>
       points.map((p) => ({
@@ -126,20 +156,61 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
     [points]
   )
 
-  const errorData = useMemo(
-    () =>
-      points.map((p) => ({
-        period_label_display: p.period_label_display,
-        ...Object.fromEntries(errorCodes.map((e) => [e, p.failed_query_count_by_error[e] ?? 0])),
-      })),
-    [points, errorCodes]
+  const totalsUsage = useMemo(
+    () => [{ label: 'Total Credits', value: formatDecimalNumber(usageData.reduce((sum, d) => sum + d.credits_used, 0)) }],
+    [usageData]
   )
 
-  const errorLegend = useHiddenSeries()
+  const totalsVolume = useMemo(
+    () => [{ label: 'Total Queries', value: formatMetricNumber(volumeData.reduce((sum, d) => sum + d.total_query_count, 0)) }],
+    [volumeData]
+  )
+
+  const totalsExecution = useMemo(() => {
+    if (executionData.length === 0) return [{ label: 'Avg (ms)', value: formatDecimalNumber(0) }]
+    const avg = executionData.reduce((sum, d) => sum + d.avg, 0) / executionData.length
+    return [{ label: 'Avg (ms)', value: formatDecimalNumber(avg) }]
+  }, [executionData])
+
+  const totalsHistogram = useMemo(
+    () => [{ label: 'Total Queries', value: formatMetricNumber(histogramBuckets.reduce((sum, b) => sum + b.query_count, 0)) }],
+    [histogramBuckets]
+  )
+
+  const totalsQueued = useMemo(
+    () => [{ label: 'Total Queued', value: formatMetricNumber(queuedData.reduce((sum, d) => sum + d.queued_query_count, 0)) }],
+    [queuedData]
+  )
+
+  const totalsQueueTime = useMemo(() => {
+    if (queueTimeData.length === 0) return [{ label: 'Avg (ms)', value: formatDecimalNumber(0) }]
+    const avg = queueTimeData.reduce((sum, d) => sum + d.avg, 0) / queueTimeData.length
+    return [{ label: 'Avg (ms)', value: formatDecimalNumber(avg) }]
+  }, [queueTimeData])
+
+  const totalsScanned = useMemo(
+    () => [{ label: 'Total GB', value: `${formatBytesAsGB(scannedData.reduce((sum, d) => sum + d.bytes_scanned, 0))} GB` }],
+    [scannedData]
+  )
+
+  const totalsSpillage = useMemo(
+    () => [{ label: 'Total GB', value: `${formatBytesAsGB(spillageData.reduce((sum, d) => sum + d.local + d.remote, 0))} GB` }],
+    [spillageData]
+  )
+
+  const totalsFailed = useMemo(
+    () => [{ label: 'Total Failed', value: formatMetricNumber(failedData.reduce((sum, d) => sum + d.failed_query_count, 0)) }],
+    [failedData]
+  )
+
+  const totalsFailedReasons = useMemo(
+    () => [{ label: 'Total Failed', value: formatMetricNumber(failedReasonsData.reduce((sum, d) => sum + d.error_count, 0)) }],
+    [failedReasonsData]
+  )
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Warehouse Usage (Credits)" isLight={isLight}>
+      <ChartWrapper title="Warehouse Usage (Credits)" isLight={isLight} totals={SHOW_METRIC.usage ? totalsUsage : undefined}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={usageData} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -152,7 +223,7 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Total Queries" isLight={isLight}>
+      <ChartWrapper title="Total Queries" isLight={isLight} totals={SHOW_METRIC.totalQueries ? totalsVolume : undefined}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={volumeData} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -165,28 +236,35 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Execution Time" isLight={isLight}>
+      <ChartWrapper title="Execution Time" isLight={isLight} totals={SHOW_METRIC.executionTime ? totalsExecution : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={executionData}>
-            <defs>
-              <linearGradient id="execAvg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C_DEEP} stopOpacity={isLight ? 1 : 0.35} />
-                <stop offset="100%" stopColor={C_DEEP} stopOpacity={isLight ? 0.4 : 0.03} />
-              </linearGradient>
-            </defs>
+          <LineChart data={executionData}>
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} />
             <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
-            <Area type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} fill="url(#execAvg)" {...getAreaDotProps(C_DEEP, isLight)} connectNulls={false} />
-            <Area type="monotone" dataKey="p95" name="P95 (ms)" stroke={C_NAVY} strokeWidth={2} fillOpacity={0} {...getAreaDotProps(C_NAVY, isLight)} connectNulls={false} />
-            <Area type="monotone" dataKey="p99" name="P99 (ms)" stroke={C_TEAL} strokeWidth={2} fillOpacity={0} {...getAreaDotProps(C_TEAL, isLight)} connectNulls={false} />
-          </AreaChart>
+            <Line type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p95" name="P95 (ms)" stroke={C_NAVY} strokeWidth={2} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p99" name="P99 (ms)" stroke={C_TEAL} strokeWidth={2} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
+          </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Queued Queries" isLight={isLight}>
+      <ChartWrapper title="Execution Time Distribution" isLight={isLight} totals={SHOW_METRIC.executionTimeDistribution ? totalsHistogram : undefined}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={histogramBuckets} barSize={isLight ? 30 : undefined}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Queries']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Queued Queries" isLight={isLight} totals={SHOW_METRIC.queuedQueries ? totalsQueued : undefined}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={queuedData} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -199,28 +277,35 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Queue Time" isLight={isLight}>
+      <ChartWrapper title="Queue Time" isLight={isLight} totals={SHOW_METRIC.queueTime ? totalsQueueTime : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <AreaChart data={queueTimeData}>
-            <defs>
-              <linearGradient id="queueAvg" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor={C_DEEP} stopOpacity={isLight ? 1 : 0.35} />
-                <stop offset="100%" stopColor={C_DEEP} stopOpacity={isLight ? 0.4 : 0.03} />
-              </linearGradient>
-            </defs>
+          <LineChart data={queueTimeData}>
             <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} />
             <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
-            <Area type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} fill="url(#queueAvg)" {...getAreaDotProps(C_DEEP, isLight)} connectNulls={false} />
-            <Area type="monotone" dataKey="p95" name="P95 (ms)" stroke={C_NAVY} strokeWidth={2} fillOpacity={0} {...getAreaDotProps(C_NAVY, isLight)} connectNulls={false} />
-            <Area type="monotone" dataKey="p99" name="P99 (ms)" stroke={C_TEAL} strokeWidth={2} fillOpacity={0} {...getAreaDotProps(C_TEAL, isLight)} connectNulls={false} />
-          </AreaChart>
+            <Line type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p95" name="P95 (ms)" stroke={C_NAVY} strokeWidth={2} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p99" name="P99 (ms)" stroke={C_TEAL} strokeWidth={2} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
+          </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Spillage" isLight={isLight}>
+      <ChartWrapper title="Data Scanned (GB)" isLight={isLight} totals={SHOW_METRIC.dataScanned ? totalsScanned : undefined}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={scannedData} barSize={isLight ? 30 : undefined}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => `${formatBytesAsGB(v)} GB`} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => `${formatBytesAsGB(Number(v))} GB`} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Data Scanned'} wrapperStyle={legendStyle} />
+            <Bar dataKey="bytes_scanned" name="Data Scanned" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Spillage" isLight={isLight} totals={SHOW_METRIC.spillage ? totalsSpillage : undefined}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={spillageData} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -234,34 +319,35 @@ export function WarehouseAnalysisCharts({ points }: WarehouseAnalysisChartsProps
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Failed Queries" isLight={isLight}>
+      <ChartWrapper title="Failed Queries" isLight={isLight} totals={SHOW_METRIC.failedQueries ? totalsFailed : undefined}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={errorData} barSize={isLight ? 30 : undefined}>
+          <BarChart data={failedData} barSize={isLight ? 30 : undefined}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} />
-            <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatMetricNumber} />} cursor={{ fill: cursorFill }} />
-            <Legend
-              verticalAlign="bottom"
-              content={() => (
-                <SeriesLegend
-                  isLight={isLight}
-                  hidden={errorLegend.hidden}
-                  toggle={errorLegend.toggle}
-                  items={errorCodes.map((code, i) => ({ key: code, label: code, color: SERIES_COLORS[i % SERIES_COLORS.length] }))}
-                />
-              )}
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="failed_query_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Failed Query Reasons" isLight={isLight} totals={SHOW_METRIC.failedQueryReasons ? totalsFailedReasons : undefined}>
+        <ResponsiveContainer width="100%" height={260}>
+          <BarChart data={failedReasonsData} barSize={isLight ? 30 : undefined} margin={{ bottom: 40 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis
+              dataKey="error_code"
+              tick={{ ...AXIS, angle: -35, textAnchor: 'end' }}
+              axisLine={false}
+              tickLine={false}
+              interval={0}
+              height={60}
             />
-            {errorCodes.map((code, i) => (
-              <Bar
-                key={code}
-                dataKey={code}
-                stackId="errors"
-                fill={SERIES_COLORS[i % SERIES_COLORS.length]}
-                hide={errorLegend.hidden.has(code)}
-                radius={[0, 0, 0, 0]}
-              />
-            ))}
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="error_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>

@@ -36,6 +36,9 @@ describe('Snowflake Warehouse Analysis page', () => {
       if (url.includes('/cluster-activity')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve({ intervals: [] }) })
       }
+      if (url.includes('/execution-time-histogram')) {
+        return Promise.resolve({ ok: true, json: () => Promise.resolve({ buckets: [] }) })
+      }
       if (url.includes('/timeseries')) {
         return Promise.resolve({
           ok: true,
@@ -55,6 +58,7 @@ describe('Snowflake Warehouse Analysis page', () => {
                   queue_time_p99_ms: 0,
                   bytes_spilled_local: 0,
                   bytes_spilled_remote: 0,
+                  bytes_scanned: 0,
                 },
               ],
               granularity_used: 'day',

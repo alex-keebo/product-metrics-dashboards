@@ -37,6 +37,7 @@ base AS (
     (IFNULL(q.queued_provisioning_time, 0) + IFNULL(q.queued_repair_time, 0) + IFNULL(q.queued_overload_time, 0)) AS queue_time,
     q.bytes_spilled_to_local_storage,
     q.bytes_spilled_to_remote_storage,
+    q.bytes_scanned,
     q.execution_status,
     q.error_code,
     p.period_start
@@ -82,6 +83,13 @@ spillage AS (
     period_start,
     SUM(IFNULL(bytes_spilled_to_local_storage, 0)) AS bytes_spilled_local,
     SUM(IFNULL(bytes_spilled_to_remote_storage, 0)) AS bytes_spilled_remote
+  FROM base
+  GROUP BY period_start
+),
+scanned AS (
+  SELECT
+    period_start,
+    SUM(IFNULL(bytes_scanned, 0)) AS bytes_scanned
   FROM base
   GROUP BY period_start
 ),
@@ -139,6 +147,7 @@ SELECT
   q.queue_time_p99_ms,
   s.bytes_spilled_local,
   s.bytes_spilled_remote,
+  sc.bytes_scanned,
   e.by_error,
   u.credits_used
 FROM periods p
@@ -146,6 +155,7 @@ LEFT JOIN query_volume_agg qv ON qv.period_start = p.period_start
 LEFT JOIN latency l ON l.period_start = p.period_start
 LEFT JOIN queue q ON q.period_start = p.period_start
 LEFT JOIN spillage s ON s.period_start = p.period_start
+LEFT JOIN scanned sc ON sc.period_start = p.period_start
 LEFT JOIN errors_agg e ON e.period_start = p.period_start
 LEFT JOIN usage u ON u.period_start = p.period_start
 ORDER BY p.period_start

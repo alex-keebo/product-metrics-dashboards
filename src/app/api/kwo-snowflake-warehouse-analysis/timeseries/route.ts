@@ -21,6 +21,7 @@ interface WarehouseAnalysisRow {
   queue_time_p99_ms: number | null
   bytes_spilled_local: number | null
   bytes_spilled_remote: number | null
+  bytes_scanned: number | null
   by_error: { error_code: string; error_count: number }[] | null
   credits_used: number | null
 }
@@ -92,11 +93,11 @@ export async function GET(request: NextRequest) {
 
       const queryVolumeByType: Record<string, number> = {}
       for (const entry of row?.by_type ?? []) {
-        queryVolumeByType[entry.query_type] = entry.query_count
+        queryVolumeByType[entry.query_type] = Number(entry.query_count)
       }
       const failedQueryCountByError: Record<string, number> = {}
       for (const entry of row?.by_error ?? []) {
-        failedQueryCountByError[entry.error_code] = entry.error_count
+        failedQueryCountByError[entry.error_code] = Number(entry.error_count)
       }
 
       const startForLabel = parseISO(period.start)
@@ -108,17 +109,18 @@ export async function GET(request: NextRequest) {
         period_start: period.start,
         period_end: period.end,
         query_volume_by_type: queryVolumeByType,
-        execution_time_avg_ms: row?.execution_time_avg_ms ?? 0,
-        execution_time_p95_ms: row?.execution_time_p95_ms ?? 0,
-        execution_time_p99_ms: row?.execution_time_p99_ms ?? 0,
-        queued_query_count: row?.queued_query_count ?? 0,
-        queue_time_avg_ms: row?.queue_time_avg_ms ?? 0,
-        queue_time_p95_ms: row?.queue_time_p95_ms ?? 0,
-        queue_time_p99_ms: row?.queue_time_p99_ms ?? 0,
-        bytes_spilled_local: row?.bytes_spilled_local ?? 0,
-        bytes_spilled_remote: row?.bytes_spilled_remote ?? 0,
+        execution_time_avg_ms: Number(row?.execution_time_avg_ms ?? 0),
+        execution_time_p95_ms: Number(row?.execution_time_p95_ms ?? 0),
+        execution_time_p99_ms: Number(row?.execution_time_p99_ms ?? 0),
+        queued_query_count: Number(row?.queued_query_count ?? 0),
+        queue_time_avg_ms: Number(row?.queue_time_avg_ms ?? 0),
+        queue_time_p95_ms: Number(row?.queue_time_p95_ms ?? 0),
+        queue_time_p99_ms: Number(row?.queue_time_p99_ms ?? 0),
+        bytes_spilled_local: Number(row?.bytes_spilled_local ?? 0),
+        bytes_spilled_remote: Number(row?.bytes_spilled_remote ?? 0),
+        bytes_scanned: Number(row?.bytes_scanned ?? 0),
         failed_query_count_by_error: failedQueryCountByError,
-        credits_used: row?.credits_used ?? 0,
+        credits_used: Number(row?.credits_used ?? 0),
       }
     })
 

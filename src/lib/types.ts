@@ -139,6 +139,7 @@ export interface WarehouseAnalysisPoint {
   queue_time_p99_ms: number
   bytes_spilled_local: number
   bytes_spilled_remote: number
+  bytes_scanned: number
   failed_query_count_by_error: Record<string, number>
   credits_used: number
 }
@@ -146,4 +147,13 @@ export interface WarehouseAnalysisPoint {
 export interface WarehouseAnalysisResponse {
   granularity_used: Granularity
   points: WarehouseAnalysisPoint[]
+}
+
+export interface ExecutionTimeHistogramBucket {
+  bucket_label: string
+  query_count: number
+}
+
+export interface ExecutionTimeHistogramResponse {
+  buckets: ExecutionTimeHistogramBucket[]
 }

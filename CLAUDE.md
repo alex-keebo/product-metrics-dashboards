@@ -113,4 +113,5 @@ When I correct you, or you catch yourself making a mistake: before continuing,
 add the lesson as a one-line rule under ## Lessons, so it never happens again.
 
 ## Lessons
+- BigQuery `NUMERIC`/`BIGNUMERIC` columns (e.g. `CREDITS_USED` on `warehouse_metering_history_tf`) come back from `@google-cloud/bigquery` as non-plain-number wrapper objects (only `.toString()`/`.toJSON()`, no safe `.valueOf()`) — always wrap with `Number(...)` in API routes before returning, or they serialize as strings and silently break downstream arithmetic (NaN totals). Confirm column type via `bq show --format=prettyjson` rather than assuming — `INTEGER`/`INT64` columns return plain numbers and don't need this.
 - Jira Product Discovery "interval" fields (schema `jira.polaris:interval`, e.g. `customfield_10063`/`10062`/`10892` — target/actual delivery & start dates) silently return zero results with JQL relational operators (`>=`, `<=`, date functions); only `is EMPTY`/`is not EMPTY` work reliably. Filter date ranges in application code after fetching, not in JQL.
