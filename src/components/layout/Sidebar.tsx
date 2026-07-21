@@ -12,6 +12,7 @@ const nav = [
     items: [
       { label: 'KWO for Databricks', href: '/kwo-databricks' },
       { label: 'KWO for Snowflake', href: '/kwo-snowflake' },
+      { label: 'Snowflake Warehouse Analysis', href: '/kwo-snowflake-warehouse-analysis' },
     ],
   },
   {

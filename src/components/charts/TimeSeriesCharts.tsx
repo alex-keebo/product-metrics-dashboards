@@ -90,13 +90,30 @@ function buildSavingsPctData(points: TimeSeriesPoint[], allPeriods?: PeriodMeta[
     })
 }
 
-const fmtDbu = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+const fmtDbu = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const fmtInt = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 })
+const fmtDecimal = new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+const fmtGB = new Intl.NumberFormat('en-US', { minimumFractionDigits: 1, maximumFractionDigits: 1 })
+
+/** Tooltip/table number format: integers get thousand separators only, decimals get 2 fraction digits + separators. */
+export function formatMetricNumber(v: number): string {
+  return Number.isInteger(v) ? fmtInt.format(v) : fmtDecimal.format(v)
+}
+
+/** Always-2-decimal number format (+ thousand separators) — for metrics that are inherently continuous (e.g. ms latencies), even when a value happens to be a whole number. */
+export function formatDecimalNumber(v: number): string {
+  return fmtDecimal.format(v)
+}
+
+/** Converts a byte count to GB (1024-based) formatted with 1 decimal + thousand separators. */
+export function formatBytesAsGB(bytes: number): string {
+  return fmtGB.format(bytes / 1024 ** 3)
+}
 
 // Dark theme constants
-const DARK_GRID = '#0d3344'
-const DARK_AXIS = { fill: '#6b7f8a', fontSize: 11, fontFamily: 'IBM Plex Sans', fontWeight: 400 }
-const DARK_TOOLTIP = {
+export const DARK_GRID = '#0d3344'
+export const DARK_AXIS = { fill: '#6b7f8a', fontSize: 11, fontFamily: 'IBM Plex Sans', fontWeight: 400 }
+export const DARK_TOOLTIP = {
   contentStyle: { background: '#04202d', border: '1px solid #1a4459', borderRadius: 8 },
   labelStyle: { color: '#6b7f8a', fontSize: 11, fontFamily: 'IBM Plex Sans' },
   itemStyle: { color: '#e8f0f4', fontSize: 12, fontFamily: 'IBM Plex Sans' },
@@ -104,19 +121,91 @@ const DARK_TOOLTIP = {
 }
 
 // Light theme constants (Figma spec)
-const LIGHT_GRID = '#cdd2da'
-const LIGHT_AXIS = { fill: '#4d565a', fontSize: 12, fontFamily: 'IBM Plex Sans', fontWeight: 400 }
-const LIGHT_TOOLTIP = {
+export const LIGHT_GRID = '#cdd2da'
+export const LIGHT_AXIS = { fill: '#4d565a', fontSize: 12, fontFamily: 'IBM Plex Sans', fontWeight: 400 }
+export const LIGHT_TOOLTIP = {
   contentStyle: { background: '#ffffff', border: '1px solid #cdd2da', borderRadius: 8 },
   labelStyle: { color: '#4d565a', fontSize: 11, fontFamily: 'IBM Plex Sans' },
   itemStyle: { color: '#051c27', fontSize: 12, fontFamily: 'IBM Plex Sans' },
 }
 
+export function getAreaDotProps(color: string, isLight: boolean) {
+  return {
+    dot: isLight
+      ? { fill: color, stroke: color, strokeWidth: 2, r: 2 }
+      : { fill: color, stroke: color, strokeWidth: 0, r: 2 },
+    activeDot: isLight
+      ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 4 }
+      : { fill: color, stroke: color, strokeWidth: 0, r: 4 },
+  }
+}
+
+export function getChartLegendStyle(isLight: boolean) {
+  return {
+    fontFamily: 'IBM Plex Sans',
+    fontSize: 14,
+    color: isLight ? '#4E575B' : '#6b7f8a',
+    paddingTop: 12,
+    cursor: 'pointer',
+  }
+}
+
+export interface SeriesLegendItem {
+  key: string
+  label: string
+  color: string
+}
+
+interface SeriesLegendProps {
+  items: SeriesLegendItem[]
+  hidden: Set<string>
+  toggle: (key: string) => void
+  isLight: boolean
+}
+
+export function SeriesLegend({ items, hidden, toggle, isLight }: SeriesLegendProps) {
+  const legendStyle = getChartLegendStyle(isLight)
+  return (
+    <ul style={{
+      ...legendStyle,
+      display: 'flex',
+      flexWrap: 'wrap',
+      justifyContent: 'center',
+      gap: 24,
+      listStyle: 'none',
+      margin: 0,
+      padding: 0,
+    }}>
+      {items.map(({ key, label, color }) => {
+        const inactive = hidden.has(key)
+        return (
+          <li
+            key={key}
+            onClick={() => toggle(key)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 8,
+              cursor: 'pointer',
+              color: inactive ? (isLight ? '#9aa1a6' : '#3e5562') : legendStyle.color,
+            }}
+          >
+            <span style={{ width: 20, height: 20, background: color, display: 'inline-block', opacity: inactive ? 0.4 : 1 }} />
+            {label}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
 // Chart colors
-const C_GREEN = '#56bd88'
-const C_NAVY  = '#2a6985'
-const C_TEAL  = '#9ac6da'
-const C_SLATE = '#6c9db3'
+export const C_GREEN = '#56bd88'
+export const C_NAVY  = '#2a6985'
+export const C_TEAL  = '#9ac6da'
+export const C_SLATE = '#6c9db3'
+export const C_DEEP  = '#08394f'
+export const C_ICE   = '#c4e2f4'
 
 interface UsageTooltipProps {
   active?: boolean
@@ -163,6 +252,45 @@ function UsageTooltip({ active, payload, label, isLight }: UsageTooltipProps) {
       <div style={{ borderTop: `1px solid ${border}`, margin: '6px 0' }} />
       {row('Optimized spend without Keebo', fmtDbu.format(optimizedWithoutKeebo))}
       {row('Savings %', `${savingsPct.toFixed(1)}%`, false, C_GREEN)}
+    </div>
+  )
+}
+
+interface SeriesTooltipProps {
+  active?: boolean
+  payload?: { name?: string; value?: number; color?: string; dataKey?: string }[]
+  label?: string
+  isLight: boolean
+  formatter?: (v: number) => string
+  /** Render series bottom-to-top instead of the payload's default top-to-bottom order. */
+  reverse?: boolean
+}
+
+/** Generic multi-series tooltip: name/value rows with values right-aligned and vertically stacked in a fixed-width column. */
+export function SeriesTooltip({ active, payload, label, isLight, formatter = formatMetricNumber, reverse = false }: SeriesTooltipProps) {
+  if (!active || !payload?.length) return null
+
+  const bg     = isLight ? '#ffffff' : '#04202d'
+  const border = isLight ? '#cdd2da' : '#1a4459'
+  const muted  = isLight ? '#4d565a' : '#6b7f8a'
+  const text   = isLight ? '#051c27' : '#e8f0f4'
+  const font   = 'IBM Plex Sans, sans-serif'
+  const items  = reverse ? [...payload].reverse() : payload
+
+  return (
+    <div style={{
+      background: bg, border: `1px solid ${border}`, borderRadius: 8,
+      padding: '10px 14px', fontFamily: font, fontSize: 12, minWidth: 160,
+    }}>
+      <div style={{ color: muted, fontSize: 11, marginBottom: 8 }}>{label}</div>
+      {items.map((p, i) => (
+        <div key={p.dataKey ?? p.name ?? i} style={{ display: 'flex', justifyContent: 'space-between', gap: 32, marginBottom: 3 }}>
+          <span style={{ color: muted }}>{p.name}</span>
+          <span style={{ color: p.color ?? text, fontVariantNumeric: 'tabular-nums', textAlign: 'right', minWidth: 64 }}>
+            {formatter(Number(p.value))}
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
@@ -270,7 +398,7 @@ export function SimpleBarChart({
   data,
   isLight,
   direction = 'vertical',
-  formatter = (v) => String(Math.round(v)),
+  formatter = formatMetricNumber,
   barColor = C_NAVY,
   valueName,
   yAxisWidth = 160,
@@ -436,13 +564,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
   const AXIS   = isLight ? LIGHT_AXIS   : DARK_AXIS
   const TT     = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
 
-  const legendStyle = {
-    fontFamily: 'IBM Plex Sans',
-    fontSize: 14,
-    color: isLight ? '#4E575B' : '#6b7f8a',
-    paddingTop: 12,
-    cursor: 'pointer',
-  }
+  const legendStyle = getChartLegendStyle(isLight)
 
   const toggleBar = (data: LegendPayload) => {
     const key = String(data.dataKey)
@@ -485,11 +607,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               strokeWidth={2}
               fill="url(#fillSavingsPct)"
               dot={isLight
-                ? { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 2, r: 4 }
-                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 4 }}
+                ? { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 2, r: 2 }
+                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 2 }}
               activeDot={isLight
-                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
-                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 6 }}
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 4 }
+                : { fill: C_GREEN, stroke: C_GREEN, strokeWidth: 0, r: 4 }}
               connectNulls={false}
             />
           </AreaChart>
@@ -505,44 +627,18 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
             <Tooltip content={<UsageTooltip isLight={isLight} />} cursor={{ fill: isLight ? '#F1F3F5' : '#0d3344' }} />
             <Legend
               verticalAlign="bottom"
-              content={() => {
-                const items: { key: string; label: string; color: string }[] = [
-                  { key: 'actual',      label: 'Optimized spend',   color: C_NAVY  },
-                  { key: 'paused', label: 'Optimization paused spend', color: C_TEAL  },
-                  { key: 'saved',       label: 'Savings',           color: C_GREEN },
-                ]
-                return (
-                  <ul style={{
-                    ...legendStyle,
-                    display: 'flex',
-                    justifyContent: 'center',
-                    gap: 24,
-                    listStyle: 'none',
-                    margin: 0,
-                    padding: 0,
-                  }}>
-                    {items.map(({ key, label, color }) => {
-                      const inactive = hiddenBars.has(key)
-                      return (
-                        <li
-                          key={key}
-                          onClick={() => toggleBar({ dataKey: key } as LegendPayload)}
-                          style={{
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: 8,
-                            cursor: 'pointer',
-                            color: inactive ? (isLight ? '#9aa1a6' : '#3e5562') : legendStyle.color,
-                          }}
-                        >
-                          <span style={{ width: 20, height: 20, background: color, display: 'inline-block', opacity: inactive ? 0.4 : 1 }} />
-                          {label}
-                        </li>
-                      )
-                    })}
-                  </ul>
-                )
-              }}
+              content={() => (
+                <SeriesLegend
+                  isLight={isLight}
+                  hidden={hiddenBars}
+                  toggle={(key) => toggleBar({ dataKey: key } as LegendPayload)}
+                  items={[
+                    { key: 'actual', label: 'Optimized spend', color: C_NAVY },
+                    { key: 'paused', label: 'Optimization paused spend', color: C_TEAL },
+                    { key: 'saved', label: 'Savings', color: C_GREEN },
+                  ]}
+                />
+              )}
             />
             <Bar dataKey="saved_neg" stackId="s" fill={C_GREEN}       radius={[0, 0, 3, 3]} hide={hiddenBars.has('saved')} />
             <Bar dataKey="spacer"    stackId="s" fill="transparent"  radius={[0, 0, 0, 0]} hide={hiddenBars.has('saved')} isAnimationActive={false} />
@@ -583,11 +679,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               strokeWidth={2}
               fill="url(#fillWarehouses)"
               dot={isLight
-                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
+                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 2 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 2 }}
               activeDot={isLight
-                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 4 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               connectNulls={false}
             />
           </AreaChart>
@@ -624,11 +720,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 strokeWidth={2}
                 fill="url(#fillQueryVolume)"
                 dot={isLight
-                  ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                  : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
+                  ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 2 }
+                  : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 2 }}
                 activeDot={isLight
-                  ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
-                  : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+                  ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 4 }
+                  : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
                 connectNulls={false}
               />
             </AreaChart>
@@ -677,11 +773,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               strokeWidth={2}
               fill="url(#fillAutoStop)"
               dot={isLight
-                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
+                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 2 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 2 }}
               activeDot={isLight
-                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 4 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               connectNulls={false}
             />
           </AreaChart>
@@ -717,11 +813,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               strokeWidth={2}
               fill="url(#fillResizing)"
               dot={isLight
-                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 4 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
+                ? { fill: C_TEAL, stroke: '#051c27', strokeWidth: 2, r: 2 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 2 }}
               activeDot={isLight
-                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 6 }
-                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 6 }}
+                ? { fill: '#9AC6DA', stroke: '#2A6985', strokeWidth: 2, r: 4 }
+                : { fill: C_TEAL, stroke: C_TEAL, strokeWidth: 0, r: 4 }}
               connectNulls={false}
             />
           </AreaChart>
