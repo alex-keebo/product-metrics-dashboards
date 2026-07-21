@@ -9,6 +9,7 @@ export interface Column<T> {
   label: string
   format?: (v: unknown) => string
   align?: 'left' | 'right'
+  nowrap?: boolean
 }
 
 interface DataTableProps<T extends Record<string, unknown>> {
@@ -145,6 +146,7 @@ export function DataTable<T extends Record<string, unknown>>({
                     className={cn(
                       'px-3 text-[15px] leading-5 font-normal text-[#4E575B] dark:text-foreground tabular-nums',
                       col.align === 'right' ? 'text-right' : 'text-left',
+                      col.nowrap ? 'whitespace-nowrap' : '',
                       ci === 0 ? 'rounded-l-[5px]' : '',
                       ci === columns.length - 1 ? 'rounded-r-[5px]' : ''
                     )}

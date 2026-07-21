@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useId } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
@@ -15,11 +15,14 @@ interface SingleSelectProps {
   value: string
   onChange: (value: string) => void
   disabled?: boolean
+  testId?: string
+  placeholder?: string
 }
 
-export function SingleSelect({ label, options, value, onChange, disabled }: SingleSelectProps) {
+export function SingleSelect({ label, options, value, onChange, disabled, testId, placeholder }: SingleSelectProps) {
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
+  const triggerId = useId()
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -29,15 +32,17 @@ export function SingleSelect({ label, options, value, onChange, disabled }: Sing
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
 
-  const displayLabel = options.find((o) => o.value === value)?.label ?? value
+  const displayLabel = options.find((o) => o.value === value)?.label ?? (value ? value : placeholder ?? '')
 
   return (
     <div className="inline-flex flex-col gap-1" ref={ref}>
-      <label className="text-xs text-muted-foreground font-medium">{label}</label>
+      <label htmlFor={triggerId} className="text-xs text-muted-foreground font-medium">{label}</label>
       <div className="relative">
         <button
+          id={triggerId}
           type="button"
           disabled={disabled}
+          data-testid={testId}
           onClick={() => setOpen((v) => !v)}
           className={cn(
             'flex items-center justify-between w-full min-w-[120px] px-3 py-1.5 rounded border text-sm',
@@ -46,7 +51,7 @@ export function SingleSelect({ label, options, value, onChange, disabled }: Sing
             disabled && 'opacity-40 cursor-not-allowed'
           )}
         >
-          <span className="truncate whitespace-nowrap">{displayLabel}</span>
+          <span className={cn('truncate whitespace-nowrap', !value && placeholder && 'text-muted-foreground')}>{displayLabel}</span>
           <ChevronDown className="w-3.5 h-3.5 ml-2 shrink-0 text-muted-foreground" />
         </button>
 

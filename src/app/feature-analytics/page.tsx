@@ -339,11 +339,11 @@ function PageDauCard({ series, start, end }: { series: DauSeries; start: string;
   const TT   = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
 
   const dot = isLight
-    ? { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 2, r: 4 }
-    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 4 }
+    ? { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 2, r: 2 }
+    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 2 }
   const activeDot = isLight
-    ? { fill: '#daeaf4', stroke: C_NAVY, strokeWidth: 2, r: 6 }
-    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 6 }
+    ? { fill: '#daeaf4', stroke: C_NAVY, strokeWidth: 2, r: 4 }
+    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 4 }
 
   return (
     <ChartWrapper title={title} isLight={isLight} totals={dauTotals}>
@@ -410,11 +410,11 @@ function ActionTrendCard({ series, start, end }: { series: ActionSeries; start: 
   const TT   = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
 
   const dot = isLight
-    ? { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 2, r: 4 }
-    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 4 }
+    ? { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 2, r: 2 }
+    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 2 }
   const activeDot = isLight
-    ? { fill: '#daeaf4', stroke: C_NAVY, strokeWidth: 2, r: 6 }
-    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 6 }
+    ? { fill: '#daeaf4', stroke: C_NAVY, strokeWidth: 2, r: 4 }
+    : { fill: C_NAVY, stroke: C_NAVY, strokeWidth: 0, r: 4 }
 
   return (
     <ChartWrapper title={series.label} isLight={isLight} totals={actionTotals}>

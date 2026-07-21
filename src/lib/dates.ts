@@ -6,8 +6,9 @@ import {
   endOfMonth,
   subWeeks,
   addDays,
+  addHours,
   parseISO,
-  isBefore,
+  parse,
   isAfter,
   isSameMonth,
 } from 'date-fns'
@@ -33,6 +34,13 @@ export function last7DaysRange(): { start: Date; end: Date } {
   return { start, end }
 }
 
+export function lastNDaysRange(n: number): { start: Date; end: Date } {
+  const today = new Date()
+  const end = addDays(today, -1)
+  const start = addDays(today, -n)
+  return { start, end }
+}
+
 export function defaultTimeSeriesRange(): { start: Date; end: Date } {
   const { end } = lastCompleteWeek()
   // Go back ~13 complete weeks (91 days) from end of last complete week
@@ -54,6 +62,25 @@ export function formatPeriodLabel(start: Date, end: Date, granularity: Granulari
       return `${format(start, 'yyyy-MM-dd')} – ${format(end, 'yyyy-MM-dd')}`
     case 'month':
       return format(start, 'yyyy-MM')
+    case 'hour':
+      return format(start, "yyyy-MM-dd'T'HH:00")
+  }
+}
+
+// Display-only reformat of a raw period_label (ISO, used as the sort value) for the data table.
+export function formatTablePeriodLabel(label: string, granularity: Granularity): string {
+  switch (granularity) {
+    case 'hour':
+      return format(parseISO(label), 'MMM d HH:mm')
+    case 'day':
+      return format(parseISO(label), 'MMM d')
+    case 'week':
+    case 'rolling7': {
+      const [startStr, endStr] = label.split(' – ')
+      return `${format(parseISO(startStr), 'MMM d')} – ${format(parseISO(endStr), 'MMM d')}`
+    }
+    case 'month':
+      return format(parse(label, 'yyyy-MM', new Date()), 'MMM yyyy')
   }
 }
 
@@ -69,6 +96,8 @@ export function formatCompactPeriodLabel(start: Date, end: Date, granularity: Gr
         : `${format(start, 'MMM d')} – ${format(end, 'MMM d')}`
     case 'month':
       return format(start, 'MMM yyyy')
+    case 'hour':
+      return format(start, 'MMM d, HH:00')
   }
 }
 
@@ -90,6 +119,22 @@ export interface Period {
 }
 
 export function buildPeriods(startDate: string, endDate: string, granularity: Granularity): Period[] {
+  if (granularity === 'hour') {
+    const periods: Period[] = []
+    let cursor = parseISO(`${startDate}T00:00:00`)
+    const rangeEnd = parseISO(`${endDate}T23:00:00`)
+    while (!isAfter(cursor, rangeEnd)) {
+      periods.push({
+        label: formatPeriodLabel(cursor, cursor, 'hour'),
+        displayLabel: formatCompactPeriodLabel(cursor, cursor, 'hour'),
+        start: format(cursor, "yyyy-MM-dd'T'HH:00:00"),
+        end: format(cursor, "yyyy-MM-dd'T'HH:59:59"),
+      })
+      cursor = addHours(cursor, 1)
+    }
+    return periods
+  }
+
   const periods: Period[] = []
   let cursor = parseISO(startDate)
   const rangeEnd = parseISO(endDate)
@@ -140,8 +185,8 @@ export function snapToGranularityBoundaries(
 
   switch (granularity) {
     case 'day':
-      return { start: startDate, end: endDate }
     case 'rolling7':
+    case 'hour':
       return { start: startDate, end: endDate }
     case 'week': {
       const snappedStart = startOfWeek(start, { weekStartsOn: 0 })

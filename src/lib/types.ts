@@ -2,7 +2,7 @@ export type ContractType = 'trial' | 'lost_trial' | 'subscription' | 'consumptio
 
 export type Module = 'kwo-databricks' | 'kwo-snowflake' | 'kwi-snowflake'
 
-export type Granularity = 'day' | 'week' | 'month' | 'rolling7'
+export type Granularity = 'day' | 'week' | 'month' | 'rolling7' | 'hour'
 
 export interface Customer {
   org_id: string
@@ -116,4 +116,32 @@ export interface ClusterInterval {
 
 export interface ClusterActivityResponse {
   intervals: ClusterInterval[]
+}
+
+export interface WarehouseOption {
+  warehouse_id: string
+  warehouse_name: string
+}
+
+export interface WarehouseAnalysisPoint {
+  period_label: string
+  period_label_display: string
+  period_start: string
+  period_end: string
+  query_volume_by_type: Record<string, number>
+  execution_time_avg_ms: number
+  execution_time_p95_ms: number
+  execution_time_p99_ms: number
+  queued_query_count: number
+  queue_time_avg_ms: number
+  queue_time_p95_ms: number
+  queue_time_p99_ms: number
+  bytes_spilled_local: number
+  bytes_spilled_remote: number
+  failed_query_count_by_error: Record<string, number>
+}
+
+export interface WarehouseAnalysisResponse {
+  granularity_used: Granularity
+  points: WarehouseAnalysisPoint[]
 }

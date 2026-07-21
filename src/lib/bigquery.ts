@@ -160,6 +160,16 @@ export async function getSnfQueryHistoryDatasets(orgIds: string[]): Promise<stri
   return [..._snfQueryHistoryDatasetsCache].filter((d) => wanted.has(d))
 }
 
+export async function getWarehousesForOrg(orgId: string): Promise<{ warehouse_id: string; warehouse_name: string }[]> {
+  const query = `
+    SELECT DISTINCT warehouse_id, warehouse_name
+    FROM \`${PROJECT}.${SNF_DATASET}.database_warehouses\`
+    WHERE org_id = @org_id
+    ORDER BY warehouse_name
+  `
+  return runQuery<{ warehouse_id: string; warehouse_name: string }>(query, { org_id: orgId })
+}
+
 export type AdcStatus =
   | { state: 'valid'; type: 'authorized_user' | 'service_account'; expires_at?: string }
   | { state: 'expired'; type: 'authorized_user' | 'service_account'; reason: string }
