@@ -12,6 +12,8 @@ import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/date
 import type {
   ClusterActivityResponse,
   ClusterInterval,
+  CompileTimeHistogramBucket,
+  CompileTimeHistogramResponse,
   DataScannedHistogramBucket,
   DataScannedHistogramResponse,
   ExecutionTimeHistogramBucket,
@@ -111,6 +113,10 @@ export default function WarehouseAnalysisPage() {
   const [spillageHistogramBuckets, setSpillageHistogramBuckets] = useState<SpillageHistogramBucket[]>([])
   const [spillageHistogramError, setSpillageHistogramError] = useState<FetchError | null>(null)
   const [spillageHistogramLoading, setSpillageHistogramLoading] = useState(false)
+
+  const [compileTimeHistogramBuckets, setCompileTimeHistogramBuckets] = useState<CompileTimeHistogramBucket[]>([])
+  const [compileTimeHistogramError, setCompileTimeHistogramError] = useState<FetchError | null>(null)
+  const [compileTimeHistogramLoading, setCompileTimeHistogramLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/kwo-snowflake-warehouse-analysis/customers')
@@ -294,6 +300,37 @@ export default function WarehouseAnalysisPage() {
     return () => controller.abort()
   }, [selectedCustomer, selectedWarehouse, startDate, endDate])
 
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setCompileTimeHistogramBuckets([])
+      return
+    }
+    const controller = new AbortController()
+    setCompileTimeHistogramLoading(true)
+    setCompileTimeHistogramError(null)
+
+    const params = new URLSearchParams({
+      org_id: selectedCustomer,
+      warehouse_name: selectedWarehouse,
+      start_date: startDate,
+      end_date: endDate,
+    })
+
+    fetch(`/api/kwo-snowflake-warehouse-analysis/compile-time-histogram?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        const body = (await res.json()) as CompileTimeHistogramResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setCompileTimeHistogramBuckets(body.buckets)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setCompileTimeHistogramError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setCompileTimeHistogramLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
       key: 'period_label',
@@ -306,14 +343,21 @@ export default function WarehouseAnalysisPage() {
 
   const tableColumns = useMemo(() => [periodColumn, ...BASE_TABLE_COLUMNS], [periodColumn])
 
-  const sectionLoading = loading || clusterActivityLoading || histogramLoading || dataScannedHistogramLoading || spillageHistogramLoading
+  const sectionLoading =
+    loading ||
+    clusterActivityLoading ||
+    histogramLoading ||
+    dataScannedHistogramLoading ||
+    spillageHistogramLoading ||
+    compileTimeHistogramLoading
 
   const sectionHasData =
     points.length > 0 ||
     clusterIntervals.length > 0 ||
     histogramBuckets.length > 0 ||
     dataScannedHistogramBuckets.length > 0 ||
-    spillageHistogramBuckets.length > 0
+    spillageHistogramBuckets.length > 0 ||
+    compileTimeHistogramBuckets.length > 0
 
   const totalsClusterActivity = useMemo(() => {
     const realClusters = clusterIntervals.filter((i) => i.cluster_number !== WAREHOUSE_ROW_CLUSTER_NUMBER)
@@ -387,6 +431,10 @@ export default function WarehouseAnalysisPage() {
         <SectionError error={spillageHistogramError} />
       )}
 
+      {selectedCustomer && selectedWarehouse && !compileTimeHistogramLoading && compileTimeHistogramError && (
+        <SectionError error={compileTimeHistogramError} />
+      )}
+
       {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
         <div className="p-8 text-center text-muted-foreground text-sm">
           No query history for this warehouse in the selected range.
@@ -400,10 +448,12 @@ export default function WarehouseAnalysisPage() {
             histogramBuckets={histogramBuckets}
             dataScannedHistogramBuckets={dataScannedHistogramBuckets}
             spillageHistogramBuckets={spillageHistogramBuckets}
+            compileTimeHistogramBuckets={compileTimeHistogramBuckets}
             loading={loading}
             histogramLoading={histogramLoading}
             dataScannedHistogramLoading={dataScannedHistogramLoading}
             spillageHistogramLoading={spillageHistogramLoading}
+            compileTimeHistogramLoading={compileTimeHistogramLoading}
           />
 
           <ChartWrapper

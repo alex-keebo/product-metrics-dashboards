@@ -176,3 +176,12 @@ export interface SpillageHistogramBucket {
 export interface SpillageHistogramResponse {
   buckets: SpillageHistogramBucket[]
 }
+
+export interface CompileTimeHistogramBucket {
+  bucket_label: string
+  query_count: number
+}
+
+export interface CompileTimeHistogramResponse {
+  buckets: CompileTimeHistogramBucket[]
+}

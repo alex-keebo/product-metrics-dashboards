@@ -33,6 +33,7 @@ import {
   LIGHT_TOOLTIP,
 } from './TimeSeriesCharts'
 import type {
+  CompileTimeHistogramBucket,
   DataScannedHistogramBucket,
   ExecutionTimeHistogramBucket,
   SpillageHistogramBucket,
@@ -61,6 +62,24 @@ function aggregateFailedReasons(points: WarehouseAnalysisPoint[]): { error_code:
   const result = top.map(([error_code, error_count]) => ({ error_code, error_count }))
   const otherCount = rest.reduce((sum, [, count]) => sum + count, 0)
   if (otherCount > 0) result.push({ error_code: 'Other', error_count: otherCount })
+
+  return result
+}
+
+function aggregateQueryTypes(points: WarehouseAnalysisPoint[]): { query_type: string; query_count: number }[] {
+  const totals = new Map<string, number>()
+  for (const p of points) {
+    for (const [queryType, count] of Object.entries(p.query_volume_by_type)) {
+      totals.set(queryType, (totals.get(queryType) ?? 0) + count)
+    }
+  }
+
+  const sorted = [...totals.entries()].sort((a, b) => b[1] - a[1])
+  const top = sorted.slice(0, 10)
+  const rest = sorted.slice(10)
+  const result = top.map(([query_type, query_count]) => ({ query_type, query_count }))
+  const otherCount = rest.reduce((sum, [, count]) => sum + count, 0)
+  if (otherCount > 0) result.push({ query_type: 'Other', query_count: otherCount })
 
   return result
 }
@@ -141,11 +160,13 @@ interface WarehouseAnalysisChartsProps {
   histogramBuckets: ExecutionTimeHistogramBucket[]
   dataScannedHistogramBuckets: DataScannedHistogramBucket[]
   spillageHistogramBuckets: SpillageHistogramBucket[]
+  compileTimeHistogramBuckets?: CompileTimeHistogramBucket[]
   /** Timeseries-driven charts (usage, volume, execution/queue time, scanned/spillage totals, failed queries). */
   loading?: boolean
   histogramLoading?: boolean
   dataScannedHistogramLoading?: boolean
   spillageHistogramLoading?: boolean
+  compileTimeHistogramLoading?: boolean
 }
 
 // Code-only toggles for the overall-metric shown top-right on each chart. Not user-facing.
@@ -162,6 +183,8 @@ const SHOW_METRIC = {
   spillageDistribution: true,
   failedQueries: true,
   failedQueryReasons: true,
+  queryTypes: true,
+  compileTimeDistribution: true,
 }
 
 export function WarehouseAnalysisCharts({
@@ -169,10 +192,12 @@ export function WarehouseAnalysisCharts({
   histogramBuckets,
   dataScannedHistogramBuckets,
   spillageHistogramBuckets,
+  compileTimeHistogramBuckets = [],
   loading,
   histogramLoading,
   dataScannedHistogramLoading,
   spillageHistogramLoading,
+  compileTimeHistogramLoading,
 }: WarehouseAnalysisChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
@@ -193,6 +218,8 @@ export function WarehouseAnalysisCharts({
   )
 
   const failedReasonsData = useMemo(() => aggregateFailedReasons(points), [points])
+
+  const queryTypesData = useMemo(() => aggregateQueryTypes(points), [points])
 
   const usageData = useMemo(
     () => points.map((p) => ({ period_label_display: p.period_label_display, credits_used: p.credits_used })),
@@ -308,6 +335,18 @@ export function WarehouseAnalysisCharts({
   const totalsFailedReasons = useMemo(
     () => [{ label: 'Total Failed', value: formatMetricNumber(failedReasonsData.reduce((sum, d) => sum + d.error_count, 0)) }],
     [failedReasonsData]
+  )
+
+  const totalsQueryTypes = useMemo(
+    () => [{ label: 'Total Queries', value: formatMetricNumber(queryTypesData.reduce((sum, d) => sum + d.query_count, 0)) }],
+    [queryTypesData]
+  )
+
+  const totalsCompileTimeHistogram = useMemo(
+    () => [
+      { label: 'Total Queries', value: formatMetricNumber(compileTimeHistogramBuckets.reduce((sum, b) => sum + b.query_count, 0)) },
+    ],
+    [compileTimeHistogramBuckets]
   )
 
   return (
@@ -482,6 +521,37 @@ export function WarehouseAnalysisCharts({
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="error_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Query Types" isLight={isLight} totals={SHOW_METRIC.queryTypes ? totalsQueryTypes : undefined} loading={loading}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={queryTypesData} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="query_type" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Queries']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper
+        title="Query Compile Time Distribution"
+        isLight={isLight}
+        totals={SHOW_METRIC.compileTimeDistribution ? totalsCompileTimeHistogram : undefined}
+        loading={compileTimeHistogramLoading}
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={compileTimeHistogramBuckets} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
+            <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={compileTimeHistogramBuckets} />} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
