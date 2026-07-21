@@ -1,5 +1,10 @@
 import type { ClusterInterval } from './types'
 
+// Sentinel cluster_number used for warehouse-level RESUME_WAREHOUSE/SUSPEND_WAREHOUSE
+// events (see sql/kwo_snowflake_warehouse_cluster_events.sql) so they reuse the same
+// interval-building logic as real clusters and surface as a distinct "Warehouse" row.
+export const WAREHOUSE_ROW_CLUSTER_NUMBER = -1
+
 export interface ClusterEventRow {
   event_type: 'state_as_of_start' | 'in_range'
   cluster_number: number

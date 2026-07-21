@@ -23,6 +23,11 @@
 -- event_state = 'STARTED' is the canonical logged row for these event names
 -- in this table (COMPLETED is effectively absent for cluster events).
 -- The spindown event name is SPINDOWN_CLUSTER, not MULTICLUSTER_SPINDOWN.
+--
+-- Warehouse-level resume/suspend events (RESUME_WAREHOUSE / SUSPEND_WAREHOUSE)
+-- are tagged with the sentinel cluster_number = -1 (WAREHOUSE_ROW_CLUSTER_NUMBER
+-- in src/lib/clusterIntervals.ts) so they flow through the same interval-building
+-- logic as cluster events and surface as a distinct "Warehouse" swimlane row.
 
 WITH events AS (
   SELECT
@@ -36,6 +41,20 @@ WITH events AS (
   WHERE warehouse_name = @warehouse_name
     AND event_state = 'STARTED'
     AND event_name IN ('SPINUP_CLUSTER', 'RESUME_CLUSTER', 'SPINDOWN_CLUSTER', 'SUSPEND_CLUSTER')
+
+  UNION ALL
+
+  SELECT
+    -1 AS cluster_number,
+    TIMESTAMP_MILLIS(timestamp) AS timestamp,
+    CASE
+      WHEN event_name = 'RESUME_WAREHOUSE' THEN TRUE
+      WHEN event_name = 'SUSPEND_WAREHOUSE' THEN FALSE
+    END AS is_start
+  FROM `keebo-portal.k3o_prd_ORGID_000_tf.warehouse_events_history_tf`
+  WHERE warehouse_name = @warehouse_name
+    AND event_state = 'STARTED'
+    AND event_name IN ('RESUME_WAREHOUSE', 'SUSPEND_WAREHOUSE')
 ),
 state_as_of_start_ranked AS (
   SELECT

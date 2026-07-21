@@ -4,13 +4,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import {
-  C_NAVY, LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID,
+  C_NAVY, C_DEEP, LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID,
   TOOLTIP_BG_LIGHT, TOOLTIP_BG_DARK,
   TOOLTIP_BORDER_LIGHT, TOOLTIP_BORDER_DARK,
   TOOLTIP_MUTED_LIGHT, TOOLTIP_MUTED_DARK,
   TOOLTIP_TEXT_LIGHT, TOOLTIP_TEXT_DARK,
 } from './TimeSeriesCharts'
 import type { ClusterInterval } from '@/lib/types'
+import { WAREHOUSE_ROW_CLUSTER_NUMBER } from '@/lib/clusterIntervals'
 
 const LABEL_WIDTH = 96
 const ROW_HEIGHT = 40
@@ -115,8 +116,16 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
 
   const pct = (iso: string) => (rangeMs > 0 ? ((toMs(iso) - rangeStartMs) / rangeMs) * 100 : 0)
 
+  const warehouseIntervals = useMemo(
+    () => intervals.filter((i) => i.cluster_number === WAREHOUSE_ROW_CLUSTER_NUMBER),
+    [intervals]
+  )
+
   const clusterNumbers = useMemo(
-    () => [...new Set(intervals.map((i) => i.cluster_number))].sort((a, b) => a - b),
+    () =>
+      [...new Set(intervals.map((i) => i.cluster_number))]
+        .filter((n) => n !== WAREHOUSE_ROW_CLUSTER_NUMBER)
+        .sort((a, b) => a - b),
     [intervals]
   )
 
@@ -135,13 +144,68 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
   const text = isLight ? TOOLTIP_TEXT_LIGHT : TOOLTIP_TEXT_DARK
   const font = 'IBM Plex Sans, sans-serif'
 
-  if (clusterNumbers.length === 0) {
+  if (clusterNumbers.length === 0 && warehouseIntervals.length === 0) {
     return (
       <div style={{ padding: '24px 0', textAlign: 'center', color: muted, fontFamily: font, fontSize: 13 }}>
         No cluster activity for this warehouse in the selected range.
       </div>
     )
   }
+
+  const renderRow = (rowKey: string | number, label: string, rowIntervals: ClusterInterval[], fill: string) => (
+    <div key={rowKey} style={{ display: 'flex', alignItems: 'center', height: ROW_HEIGHT }}>
+      <div
+        style={{
+          width: LABEL_WIDTH,
+          flexShrink: 0,
+          fontFamily: AXIS.fontFamily,
+          fontSize: AXIS.fontSize,
+          fontWeight: AXIS.fontWeight,
+          color: AXIS.fill,
+        }}
+      >
+        {label}
+      </div>
+      <div style={{ flex: 1, position: 'relative', height: BAR_HEIGHT, borderRadius: 4, background: GRID }}>
+        <svg width="100%" height={BAR_HEIGHT} style={{ display: 'block', overflow: 'visible' }}>
+          <defs>
+            {rowIntervals.map((interval, idx) => {
+              if (!interval.truncated_start && !interval.truncated_end) return null
+              const gradientId = `row-fade-${rowKey}-${idx}`
+              const stops: { offset: string; opacity: number }[] = [
+                { offset: '0%', opacity: interval.truncated_start ? 0 : 1 },
+              ]
+              if (interval.truncated_start) stops.push({ offset: `${FADE_FRACTION * 100}%`, opacity: 1 })
+              if (interval.truncated_end) stops.push({ offset: `${(1 - FADE_FRACTION) * 100}%`, opacity: 1 })
+              stops.push({ offset: '100%', opacity: interval.truncated_end ? 0 : 1 })
+              return (
+                <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="1" y2="0">
+                  {stops.map((stop, stopIdx) => (
+                    <stop key={stopIdx} offset={stop.offset} stopColor={fill} stopOpacity={stop.opacity} />
+                  ))}
+                </linearGradient>
+              )
+            })}
+          </defs>
+          {rowIntervals.map((interval, idx) => {
+            const x = pct(interval.start)
+            const width = Math.max(pct(interval.end) - x, 0.5)
+            const needsGradient = interval.truncated_start || interval.truncated_end
+            return (
+              <IntervalRect
+                key={idx}
+                interval={interval}
+                x={x}
+                width={width}
+                fill={needsGradient ? `url(#row-fade-${rowKey}-${idx})` : fill}
+                onHover={setHover}
+              />
+            )
+          })}
+        </svg>
+      </div>
+    </div>
+  )
 
   return (
     <div style={{ position: 'relative' }}>
@@ -168,63 +232,21 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
         </div>
       </div>
 
-      {clusterNumbers.map((clusterNumber) => {
-        const rowIntervals = intervals.filter((i) => i.cluster_number === clusterNumber)
-        return (
-          <div key={clusterNumber} style={{ display: 'flex', alignItems: 'center', height: ROW_HEIGHT }}>
-            <div
-              style={{
-                width: LABEL_WIDTH,
-                flexShrink: 0,
-                fontFamily: AXIS.fontFamily,
-                fontSize: AXIS.fontSize,
-                fontWeight: AXIS.fontWeight,
-                color: AXIS.fill,
-              }}
-            >
-              {`Cluster ${clusterNumber}`}
-            </div>
-            <div style={{ flex: 1, position: 'relative', height: BAR_HEIGHT, borderRadius: 4, background: GRID }}>
-              <svg width="100%" height={BAR_HEIGHT} style={{ display: 'block', overflow: 'visible' }}>
-                <defs>
-                  {rowIntervals.map((interval, idx) => {
-                    if (!interval.truncated_start && !interval.truncated_end) return null
-                    const gradientId = `cluster-fade-${clusterNumber}-${idx}`
-                    const stops: { offset: string; opacity: number }[] = [
-                      { offset: '0%', opacity: interval.truncated_start ? 0 : 1 },
-                    ]
-                    if (interval.truncated_start) stops.push({ offset: `${FADE_FRACTION * 100}%`, opacity: 1 })
-                    if (interval.truncated_end) stops.push({ offset: `${(1 - FADE_FRACTION) * 100}%`, opacity: 1 })
-                    stops.push({ offset: '100%', opacity: interval.truncated_end ? 0 : 1 })
-                    return (
-                      <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="1" y2="0">
-                        {stops.map((stop, stopIdx) => (
-                          <stop key={stopIdx} offset={stop.offset} stopColor={C_NAVY} stopOpacity={stop.opacity} />
-                        ))}
-                      </linearGradient>
-                    )
-                  })}
-                </defs>
-                {rowIntervals.map((interval, idx) => {
-                  const x = pct(interval.start)
-                  const width = Math.max(pct(interval.end) - x, 0.5)
-                  const needsGradient = interval.truncated_start || interval.truncated_end
-                  return (
-                    <IntervalRect
-                      key={idx}
-                      interval={interval}
-                      x={x}
-                      width={width}
-                      fill={needsGradient ? `url(#cluster-fade-${clusterNumber}-${idx})` : C_NAVY}
-                      onHover={setHover}
-                    />
-                  )
-                })}
-              </svg>
-            </div>
-          </div>
+      {warehouseIntervals.length > 0 && (
+        <>
+          {renderRow('warehouse', 'Warehouse', warehouseIntervals, C_DEEP)}
+          <div style={{ height: 1, background: GRID, margin: '4px 0' }} />
+        </>
+      )}
+
+      {clusterNumbers.map((clusterNumber) =>
+        renderRow(
+          clusterNumber,
+          `Cluster ${clusterNumber}`,
+          intervals.filter((i) => i.cluster_number === clusterNumber),
+          C_NAVY
         )
-      })}
+      )}
 
       {hover && (
         <div
@@ -243,7 +265,11 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
             zIndex: 10,
           }}
         >
-          <div style={{ color: text, fontWeight: 600, marginBottom: 6 }}>{`Cluster ${hover.interval.cluster_number}`}</div>
+          <div style={{ color: text, fontWeight: 600, marginBottom: 6 }}>
+            {hover.interval.cluster_number === WAREHOUSE_ROW_CLUSTER_NUMBER
+              ? 'Warehouse'
+              : `Cluster ${hover.interval.cluster_number}`}
+          </div>
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 3 }}>
             <span style={{ color: muted }}>Start</span>
             <span style={{ color: text }}>

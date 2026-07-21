@@ -6,6 +6,7 @@ import { WarehouseAnalysisFilters } from '@/components/filters/WarehouseAnalysis
 import { WarehouseAnalysisCharts } from '@/components/charts/WarehouseAnalysisCharts'
 import { formatMetricNumber, formatBytesAsGB, ChartWrapper } from '@/components/charts/TimeSeriesCharts'
 import { WarehouseActivityTimeline } from '@/components/charts/WarehouseActivityTimeline'
+import { WAREHOUSE_ROW_CLUSTER_NUMBER } from '@/lib/clusterIntervals'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/dates'
 import type {
@@ -305,10 +306,16 @@ export default function WarehouseAnalysisPage() {
 
   const tableColumns = useMemo(() => [periodColumn, ...BASE_TABLE_COLUMNS], [periodColumn])
 
-  const totalsClusterActivity = useMemo(
-    () => [{ label: 'Total Clusters', value: formatMetricNumber(new Set(clusterIntervals.map((i) => i.cluster_number)).size) }],
-    [clusterIntervals]
-  )
+  const totalsClusterActivity = useMemo(() => {
+    const realClusters = clusterIntervals.filter((i) => i.cluster_number !== WAREHOUSE_ROW_CLUSTER_NUMBER)
+    const warehouseCycleCount = clusterIntervals.filter(
+      (i) => i.cluster_number === WAREHOUSE_ROW_CLUSTER_NUMBER && !i.truncated_end
+    ).length
+    return [
+      { label: 'Total Clusters', value: formatMetricNumber(new Set(realClusters.map((i) => i.cluster_number)).size) },
+      { label: 'Warehouse Cycle Count', value: formatMetricNumber(warehouseCycleCount) },
+    ]
+  }, [clusterIntervals])
 
   const tableRows = useMemo(
     () =>
