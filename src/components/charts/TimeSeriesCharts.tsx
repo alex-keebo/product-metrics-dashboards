@@ -120,6 +120,10 @@ export const DARK_TOOLTIP = {
   cursor: { stroke: '#1a4459', strokeWidth: 1 },
 }
 
+// Bar-chart hover/selection cursor fill (also used for the Cluster Activity swimlane background)
+export const DARK_CURSOR_FILL = '#0d3344'
+export const LIGHT_CURSOR_FILL = '#F1F3F5'
+
 // Light theme constants (Figma spec)
 export const LIGHT_GRID = '#cdd2da'
 export const LIGHT_AXIS = { fill: '#4d565a', fontSize: 12, fontFamily: 'IBM Plex Sans', fontWeight: 400 }
@@ -433,7 +437,7 @@ export function SimpleBarChart({
   const GRID = isLight ? LIGHT_GRID : DARK_GRID
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
   const TT   = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
-  const cursorFill = isLight ? '#F1F3F5' : '#0d3344'
+  const cursorFill = isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL
 
   if (direction === 'horizontal') {
     return (
@@ -648,7 +652,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="label" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v) => fmtDbu.format(v)} />
-            <Tooltip content={<UsageTooltip isLight={isLight} />} cursor={{ fill: isLight ? '#F1F3F5' : '#0d3344' }} />
+            <Tooltip content={<UsageTooltip isLight={isLight} />} cursor={{ fill: isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL }} />
             <Legend
               verticalAlign="bottom"
               content={() => (

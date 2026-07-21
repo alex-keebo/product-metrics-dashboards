@@ -25,7 +25,7 @@ describe('Snowflake Warehouse Analysis page', () => {
     await waitFor(() => expect(screen.getByText(/select a customer/i)).toBeInTheDocument())
   })
 
-  it('renders the Warehouse Activity chart section once a warehouse is selected', async () => {
+  it('renders the Cluster Activity chart section once a warehouse is selected', async () => {
     global.fetch = vi.fn().mockImplementation((url: string) => {
       if (url.includes('/customers')) {
         return Promise.resolve({ ok: true, json: () => Promise.resolve([{ org_id: '90402', name: 'Acme Corp' }]) })
@@ -79,7 +79,7 @@ describe('Snowflake Warehouse Analysis page', () => {
 
     await selectCustomerAndWarehouse()
 
-    expect(await screen.findByText('Warehouse Activity')).toBeInTheDocument()
+    expect(await screen.findByText('Cluster Activity')).toBeInTheDocument()
   })
 })
 

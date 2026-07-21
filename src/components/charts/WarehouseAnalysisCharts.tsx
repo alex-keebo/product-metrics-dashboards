@@ -31,6 +31,8 @@ import {
   LIGHT_AXIS,
   DARK_TOOLTIP,
   LIGHT_TOOLTIP,
+  LIGHT_CURSOR_FILL,
+  DARK_CURSOR_FILL,
 } from './TimeSeriesCharts'
 import type {
   CompileTimeHistogramBucket,
@@ -206,7 +208,7 @@ export function WarehouseAnalysisCharts({
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
   const TT = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
   const legendStyle = getChartLegendStyle(isLight)
-  const cursorFill = isLight ? '#F1F3F5' : '#0d3344'
+  const cursorFill = isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL
 
   const failedData = useMemo(
     () =>

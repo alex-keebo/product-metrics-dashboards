@@ -5,6 +5,7 @@ import { flushSync } from 'react-dom'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import {
   C_NAVY, C_DEEP, LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID,
+  LIGHT_CURSOR_FILL, DARK_CURSOR_FILL,
   TOOLTIP_BG_LIGHT, TOOLTIP_BG_DARK,
   TOOLTIP_BORDER_LIGHT, TOOLTIP_BORDER_DARK,
   TOOLTIP_MUTED_LIGHT, TOOLTIP_MUTED_DARK,
@@ -109,6 +110,7 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
   const isLight = theme === 'light'
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
   const GRID = isLight ? LIGHT_GRID : DARK_GRID
+  const CURSOR_FILL = isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL
   const [hover, setHover] = useState<HoverState | null>(null)
 
   const rangeStartMs = toMs(rangeStart)
@@ -167,7 +169,7 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
       >
         {label}
       </div>
-      <div style={{ flex: 1, position: 'relative', height: BAR_HEIGHT, borderRadius: 4, background: GRID }}>
+      <div style={{ flex: 1, position: 'relative', height: BAR_HEIGHT, borderRadius: 4, background: CURSOR_FILL }}>
         <svg width="100%" height={BAR_HEIGHT} style={{ display: 'block', overflow: 'visible' }}>
           <defs>
             {rowIntervals.map((interval, idx) => {

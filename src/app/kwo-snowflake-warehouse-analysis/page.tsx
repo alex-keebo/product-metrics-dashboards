@@ -28,7 +28,7 @@ import type {
 
 const MAX_HOUR_RANGE_DAYS = 14
 
-// Code-only toggle for the overall-metric shown top-right on the Warehouse Activity chart. Not user-facing.
+// Code-only toggle for the overall-metric shown top-right on the Cluster Activity chart. Not user-facing.
 const SHOW_WAREHOUSE_ACTIVITY_METRIC = true
 
 interface FetchError {
@@ -457,7 +457,7 @@ export default function WarehouseAnalysisPage() {
           />
 
           <ChartWrapper
-            title="Warehouse Activity"
+            title="Cluster Activity"
             isLight={isLight}
             totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? totalsClusterActivity : undefined}
             loading={clusterActivityLoading}
