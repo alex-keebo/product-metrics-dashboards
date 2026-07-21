@@ -18,6 +18,7 @@ const ROW_HEIGHT = 40
 const BAR_HEIGHT = 22
 const FADE_FRACTION = 0.2
 const TICK_COUNT = 5
+const MIN_GAP_PCT = 0.15
 
 interface WarehouseActivityTimelineProps {
   intervals: ClusterInterval[]
@@ -189,7 +190,15 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
           </defs>
           {rowIntervals.map((interval, idx) => {
             const x = pct(interval.start)
-            const width = Math.max(pct(interval.end) - x, 0.5)
+            let width = Math.max(pct(interval.end) - x, 0.5)
+            const next = rowIntervals[idx + 1]
+            if (next) {
+              const rawEndPct = pct(interval.end)
+              const nextX = pct(next.start)
+              if (rawEndPct < nextX) {
+                width = Math.min(width, Math.max(nextX - x - MIN_GAP_PCT, 0.5))
+              }
+            }
             const needsGradient = interval.truncated_start || interval.truncated_end
             return (
               <IntervalRect

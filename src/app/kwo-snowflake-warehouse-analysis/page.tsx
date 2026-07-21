@@ -306,6 +306,15 @@ export default function WarehouseAnalysisPage() {
 
   const tableColumns = useMemo(() => [periodColumn, ...BASE_TABLE_COLUMNS], [periodColumn])
 
+  const sectionLoading = loading || clusterActivityLoading || histogramLoading || dataScannedHistogramLoading || spillageHistogramLoading
+
+  const sectionHasData =
+    points.length > 0 ||
+    clusterIntervals.length > 0 ||
+    histogramBuckets.length > 0 ||
+    dataScannedHistogramBuckets.length > 0 ||
+    spillageHistogramBuckets.length > 0
+
   const totalsClusterActivity = useMemo(() => {
     const realClusters = clusterIntervals.filter((i) => i.cluster_number !== WAREHOUSE_ROW_CLUSTER_NUMBER)
     const warehouseCycleCount = clusterIntervals.filter(
@@ -378,29 +387,34 @@ export default function WarehouseAnalysisPage() {
         <SectionError error={spillageHistogramError} />
       )}
 
-      {selectedCustomer && selectedWarehouse && !timeseriesError && !loading && points.length === 0 && (
+      {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
         <div className="p-8 text-center text-muted-foreground text-sm">
           No query history for this warehouse in the selected range.
         </div>
       )}
 
-      {selectedCustomer && selectedWarehouse && !timeseriesError && points.length > 0 && (
+      {selectedCustomer && selectedWarehouse && !timeseriesError && (sectionLoading || sectionHasData) && (
         <>
           <WarehouseAnalysisCharts
             points={points}
             histogramBuckets={histogramBuckets}
             dataScannedHistogramBuckets={dataScannedHistogramBuckets}
             spillageHistogramBuckets={spillageHistogramBuckets}
+            loading={loading}
+            histogramLoading={histogramLoading}
+            dataScannedHistogramLoading={dataScannedHistogramLoading}
+            spillageHistogramLoading={spillageHistogramLoading}
           />
 
           <ChartWrapper
             title="Warehouse Activity"
             isLight={isLight}
-            totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? (clusterActivityLoading ? null : totalsClusterActivity) : undefined}
+            totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? totalsClusterActivity : undefined}
+            loading={clusterActivityLoading}
           >
             {clusterActivityError ? (
               <SectionError error={clusterActivityError} />
-            ) : !clusterActivityLoading && clusterIntervals.length === 0 ? (
+            ) : clusterIntervals.length === 0 ? (
               <div className="p-8 text-center text-muted-foreground text-sm">
                 No cluster activity for this warehouse in the selected range.
               </div>
@@ -413,13 +427,17 @@ export default function WarehouseAnalysisPage() {
             )}
           </ChartWrapper>
 
-          <DataTable
-            columns={tableColumns}
-            rows={tableRows as unknown as Record<string, unknown>[]}
-            defaultSortKey="period_label"
-            defaultSortDir="asc"
-            csvFilename="warehouse_analysis.csv"
-          />
+          {loading ? (
+            <div className="animate-pulse rounded-lg h-40 bg-muted" />
+          ) : (
+            <DataTable
+              columns={tableColumns}
+              rows={tableRows as unknown as Record<string, unknown>[]}
+              defaultSortKey="period_label"
+              defaultSortDir="asc"
+              csvFilename="warehouse_analysis.csv"
+            />
+          )}
         </>
       )}
     </div>

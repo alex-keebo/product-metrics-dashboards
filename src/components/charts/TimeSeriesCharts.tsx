@@ -311,9 +311,23 @@ interface ChartWrapperProps {
   isLight: boolean
   height?: number
   totals?: { label: string; value: string }[] | null
+  /** When true, replaces the chart body with a skeleton and forces the totals into their loading state. */
+  loading?: boolean
+  /** Height of the body skeleton shown while loading. Defaults to 220 to match the standard chart height. */
+  skeletonHeight?: number
 }
 
-export function ChartWrapper({ title, children, isLight, height, totals }: ChartWrapperProps) {
+function ChartBodySkeleton({ isLight, height = 220 }: { isLight: boolean; height?: number }) {
+  return (
+    <div
+      className="animate-pulse"
+      style={{ height, borderRadius: 8, background: isLight ? '#e4f0f7' : '#0d3344' }}
+    />
+  )
+}
+
+export function ChartWrapper({ title, children, isLight, height, totals, loading, skeletonHeight }: ChartWrapperProps) {
+  const effectiveTotals = loading ? null : totals
   if (isLight) {
     return (
       <div style={{
@@ -332,12 +346,12 @@ export function ChartWrapper({ title, children, isLight, height, totals }: Chart
             lineHeight: '24px',
             color: '#051c27',
           }}>{title}</div>
-          {totals !== undefined && (
+          {effectiveTotals !== undefined && (
             <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
-              {totals === null ? (
+              {effectiveTotals === null ? (
                 <div className="animate-pulse" style={{ width: 56, height: 36, background: '#e4f0f7', borderRadius: 4 }} />
               ) : (
-                totals.map(({ label, value }) => (
+                effectiveTotals.map(({ label, value }) => (
                   <div key={label} style={{ textAlign: 'right' }}>
                     <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 15, fontWeight: 600, color: '#051c27' }}>{value}</div>
                     <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 10, fontWeight: 400, color: '#4a6373', marginTop: 1 }}>{label}</div>
@@ -347,7 +361,7 @@ export function ChartWrapper({ title, children, isLight, height, totals }: Chart
             </div>
           )}
         </div>
-        {children}
+        {loading ? <ChartBodySkeleton isLight={isLight} height={skeletonHeight} /> : children}
       </div>
     )
   }
@@ -368,12 +382,12 @@ export function ChartWrapper({ title, children, isLight, height, totals }: Chart
           lineHeight: '22px',
           color: '#e8f0f4',
         }}>{title}</div>
-        {totals !== undefined && (
+        {effectiveTotals !== undefined && (
           <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
-            {totals === null ? (
+            {effectiveTotals === null ? (
               <div className="animate-pulse" style={{ width: 56, height: 36, background: '#0d3344', borderRadius: 4 }} />
             ) : (
-              totals.map(({ label, value }) => (
+              effectiveTotals.map(({ label, value }) => (
                 <div key={label} style={{ textAlign: 'right' }}>
                   <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 15, fontWeight: 600, color: '#e8f0f4' }}>{value}</div>
                   <div style={{ fontFamily: 'IBM Plex Sans, sans-serif', fontSize: 10, fontWeight: 400, color: '#6b7f8a', marginTop: 1 }}>{label}</div>
@@ -383,7 +397,7 @@ export function ChartWrapper({ title, children, isLight, height, totals }: Chart
           </div>
         )}
       </div>
-      {children}
+      {loading ? <ChartBodySkeleton isLight={isLight} height={skeletonHeight} /> : children}
     </div>
   )
 }
