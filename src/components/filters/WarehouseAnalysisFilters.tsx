@@ -2,6 +2,7 @@
 
 import { SingleSelect } from './SingleSelect'
 import { DateRangePicker } from './DateRangePicker'
+import { Badge } from '@/components/ui/badge'
 import type { Granularity, WarehouseOption } from '@/lib/types'
 
 const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
@@ -65,7 +66,11 @@ export function WarehouseAnalysisFilters({
       <div className="flex flex-col gap-1">
         <SingleSelect
           label="Warehouse"
-          options={warehouses.map((w) => ({ value: w.warehouse_name, label: w.warehouse_name }))}
+          options={warehouses.map((w) => ({
+            value: w.warehouse_name,
+            label: w.warehouse_name,
+            badge: w.cost_saving_enabled ? <Badge variant="secondary">Optimized</Badge> : undefined,
+          }))}
           value={selectedWarehouse ?? ''}
           onChange={(value) => onWarehouseChange(value || null)}
           disabled={warehousesDisabled}

@@ -1,12 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { useTheme } from '@/components/layout/ThemeProvider'
 import { WarehouseAnalysisFilters } from '@/components/filters/WarehouseAnalysisFilters'
 import { WarehouseAnalysisCharts, collectKeys } from '@/components/charts/WarehouseAnalysisCharts'
-import { formatMetricNumber, formatBytesAsGB } from '@/components/charts/TimeSeriesCharts'
+import { formatMetricNumber, formatBytesAsGB, ChartWrapper } from '@/components/charts/TimeSeriesCharts'
+import { WarehouseActivityTimeline } from '@/components/charts/WarehouseActivityTimeline'
 import { DataTable, type Column } from '@/components/tables/DataTable'
 import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/dates'
-import type { Granularity, WarehouseAnalysisPoint, WarehouseAnalysisResponse, WarehouseOption } from '@/lib/types'
+import type {
+  ClusterActivityResponse,
+  ClusterInterval,
+  Granularity,
+  WarehouseAnalysisPoint,
+  WarehouseAnalysisResponse,
+  WarehouseOption,
+} from '@/lib/types'
 
 const MAX_HOUR_RANGE_DAYS = 14
 
@@ -55,6 +64,8 @@ const BASE_TABLE_COLUMNS: Column<Record<string, unknown>>[] = [
 ]
 
 export default function WarehouseAnalysisPage() {
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
   const defaultRange = lastNDaysRange(3)
 
   const [customers, setCustomers] = useState<{ org_id: string; name: string }[]>([])
@@ -73,6 +84,10 @@ export default function WarehouseAnalysisPage() {
   const [granularityUsed, setGranularityUsed] = useState<Granularity>('day')
   const [timeseriesError, setTimeseriesError] = useState<FetchError | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const [clusterIntervals, setClusterIntervals] = useState<ClusterInterval[]>([])
+  const [clusterActivityError, setClusterActivityError] = useState<FetchError | null>(null)
+  const [clusterActivityLoading, setClusterActivityLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/kwo-snowflake-warehouse-analysis/customers')
@@ -131,6 +146,37 @@ export default function WarehouseAnalysisPage() {
 
     return () => controller.abort()
   }, [selectedCustomer, selectedWarehouse, startDate, endDate, granularity])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setClusterIntervals([])
+      return
+    }
+    const controller = new AbortController()
+    setClusterActivityLoading(true)
+    setClusterActivityError(null)
+
+    const params = new URLSearchParams({
+      org_id: selectedCustomer,
+      warehouse_name: selectedWarehouse,
+      start_date: startDate,
+      end_date: endDate,
+    })
+
+    fetch(`/api/kwo-snowflake-warehouse-analysis/cluster-activity?${params}`, { signal: controller.signal })
+      .then(async (res) => {
+        const body = (await res.json()) as ClusterActivityResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setClusterIntervals(body.intervals)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setClusterActivityError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setClusterActivityLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
 
   const errorCodes = useMemo(() => collectKeys(points, 'failed_query_count_by_error'), [points])
 
@@ -214,6 +260,23 @@ export default function WarehouseAnalysisPage() {
       {selectedCustomer && selectedWarehouse && !timeseriesError && points.length > 0 && (
         <>
           <WarehouseAnalysisCharts points={points} />
+
+          <ChartWrapper title="Warehouse Activity" isLight={isLight}>
+            {clusterActivityError ? (
+              <SectionError error={clusterActivityError} />
+            ) : !clusterActivityLoading && clusterIntervals.length === 0 ? (
+              <div className="p-8 text-center text-muted-foreground text-sm">
+                No cluster activity for this warehouse in the selected range.
+              </div>
+            ) : (
+              <WarehouseActivityTimeline
+                intervals={clusterIntervals}
+                rangeStart={`${startDate}T00:00:00.000`}
+                rangeEnd={`${endDate}T23:59:59.000`}
+              />
+            )}
+          </ChartWrapper>
+
           <DataTable
             columns={tableColumns}
             rows={tableRows as unknown as Record<string, unknown>[]}

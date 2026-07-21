@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useRef, useEffect, useId } from 'react'
+import { useState, useRef, useEffect, useId, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
 import { ChevronDown } from 'lucide-react'
 
 interface Option {
   value: string
   label: string
+  badge?: ReactNode
 }
 
 interface SingleSelectProps {
@@ -70,6 +71,7 @@ export function SingleSelect({ label, options, value, onChange, disabled, testId
                   )}
                 >
                   <span className="truncate">{opt.label}</span>
+                  {opt.badge && <span className="ml-2 shrink-0">{opt.badge}</span>}
                 </button>
               )
             })}

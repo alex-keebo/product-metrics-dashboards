@@ -121,6 +121,7 @@ export interface ClusterActivityResponse {
 export interface WarehouseOption {
   warehouse_id: string
   warehouse_name: string
+  cost_saving_enabled: boolean
 }
 
 export interface WarehouseAnalysisPoint {

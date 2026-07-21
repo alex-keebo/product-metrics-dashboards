@@ -2,6 +2,9 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Communication Style
+- Use the `caveman` skill by default for all responses in this repo (ultra-compressed, token-efficient communication).
+
 ## Workflow Orchestration
 
 ### 1. Plan Mode Default

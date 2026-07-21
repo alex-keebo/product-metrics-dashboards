@@ -16,21 +16,26 @@
 --   'in_range'           — every matching event between @start_date and @end_date.
 --
 -- cluster_number IS NULL (single-cluster warehouse) is coalesced to 1.
+-- Source `timestamp` column is INT64 epoch-milliseconds, not native TIMESTAMP;
+-- converted once via TIMESTAMP_MILLIS() in the `events` CTE.
 -- event_ts is formatted as a fixed-width ISO string so plain lexical string
 -- comparison in TypeScript sorts chronologically without re-parsing dates.
+-- event_state = 'STARTED' is the canonical logged row for these event names
+-- in this table (COMPLETED is effectively absent for cluster events).
+-- The spindown event name is SPINDOWN_CLUSTER, not MULTICLUSTER_SPINDOWN.
 
 WITH events AS (
   SELECT
     IFNULL(cluster_number, 1) AS cluster_number,
-    timestamp,
+    TIMESTAMP_MILLIS(timestamp) AS timestamp,
     CASE
       WHEN event_name IN ('SPINUP_CLUSTER', 'RESUME_CLUSTER') THEN TRUE
-      WHEN event_name IN ('MULTICLUSTER_SPINDOWN', 'SUSPEND_CLUSTER') THEN FALSE
+      WHEN event_name IN ('SPINDOWN_CLUSTER', 'SUSPEND_CLUSTER') THEN FALSE
     END AS is_start
   FROM `keebo-portal.k3o_prd_ORGID_000_tf.warehouse_events_history_tf`
   WHERE warehouse_name = @warehouse_name
-    AND event_state = 'COMPLETED'
-    AND event_name IN ('SPINUP_CLUSTER', 'RESUME_CLUSTER', 'MULTICLUSTER_SPINDOWN', 'SUSPEND_CLUSTER')
+    AND event_state = 'STARTED'
+    AND event_name IN ('SPINUP_CLUSTER', 'RESUME_CLUSTER', 'SPINDOWN_CLUSTER', 'SUSPEND_CLUSTER')
 ),
 state_as_of_start_ranked AS (
   SELECT

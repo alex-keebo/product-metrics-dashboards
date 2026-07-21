@@ -207,6 +207,16 @@ export const C_SLATE = '#6c9db3'
 export const C_DEEP  = '#08394f'
 export const C_ICE   = '#c4e2f4'
 
+// Tooltip colors (light/dark pairs)
+export const TOOLTIP_BG_LIGHT     = '#ffffff'
+export const TOOLTIP_BG_DARK      = '#04202d'
+export const TOOLTIP_BORDER_LIGHT = '#cdd2da'
+export const TOOLTIP_BORDER_DARK  = '#1a4459'
+export const TOOLTIP_MUTED_LIGHT  = '#4d565a'
+export const TOOLTIP_MUTED_DARK   = '#6b7f8a'
+export const TOOLTIP_TEXT_LIGHT   = '#051c27'
+export const TOOLTIP_TEXT_DARK    = '#e8f0f4'
+
 interface UsageTooltipProps {
   active?: boolean
   payload?: { name: string; value: number }[]

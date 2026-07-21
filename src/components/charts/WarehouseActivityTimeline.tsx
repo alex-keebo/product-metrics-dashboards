@@ -3,7 +3,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useTheme } from '@/components/layout/ThemeProvider'
-import { C_NAVY, LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID } from './TimeSeriesCharts'
+import {
+  C_NAVY, LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID,
+  TOOLTIP_BG_LIGHT, TOOLTIP_BG_DARK,
+  TOOLTIP_BORDER_LIGHT, TOOLTIP_BORDER_DARK,
+  TOOLTIP_MUTED_LIGHT, TOOLTIP_MUTED_DARK,
+  TOOLTIP_TEXT_LIGHT, TOOLTIP_TEXT_DARK,
+} from './TimeSeriesCharts'
 import type { ClusterInterval } from '@/lib/types'
 
 const LABEL_WIDTH = 96
@@ -33,11 +39,12 @@ function formatTickLabel(iso: string): string {
 }
 
 function formatDuration(startIso: string, endIso: string): string {
-  const totalMinutes = Math.round((toMs(endIso) - toMs(startIso)) / 60000)
-  const hours = Math.floor(totalMinutes / 60)
-  const minutes = totalMinutes % 60
-  if (hours === 0) return `${minutes}m`
-  return `${hours}h ${minutes}m`
+  const totalSeconds = Math.round((toMs(endIso) - toMs(startIso)) / 1000)
+  const hours = Math.floor(totalSeconds / 3600)
+  const minutes = Math.floor((totalSeconds % 3600) / 60)
+  const seconds = totalSeconds % 60
+  if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`
+  return `${minutes}m ${seconds}s`
 }
 
 interface IntervalRectProps {
@@ -122,10 +129,10 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
     [rangeStartMs, rangeMs]
   )
 
-  const bg = isLight ? '#ffffff' : '#04202d'
-  const border = isLight ? '#cdd2da' : '#1a4459'
-  const muted = isLight ? '#4d565a' : '#6b7f8a'
-  const text = isLight ? '#051c27' : '#e8f0f4'
+  const bg = isLight ? TOOLTIP_BG_LIGHT : TOOLTIP_BG_DARK
+  const border = isLight ? TOOLTIP_BORDER_LIGHT : TOOLTIP_BORDER_DARK
+  const muted = isLight ? TOOLTIP_MUTED_LIGHT : TOOLTIP_MUTED_DARK
+  const text = isLight ? TOOLTIP_TEXT_LIGHT : TOOLTIP_TEXT_DARK
   const font = 'IBM Plex Sans, sans-serif'
 
   if (clusterNumbers.length === 0) {

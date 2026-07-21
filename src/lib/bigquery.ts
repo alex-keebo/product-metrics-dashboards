@@ -160,14 +160,45 @@ export async function getSnfQueryHistoryDatasets(orgIds: string[]): Promise<stri
   return [..._snfQueryHistoryDatasetsCache].filter((d) => wanted.has(d))
 }
 
-export async function getWarehousesForOrg(orgId: string): Promise<{ warehouse_id: string; warehouse_name: string }[]> {
+// orgId must be validated by the caller (ORG_ID_PATTERN) before this runs — it's
+// interpolated into the per-org dataset name, which BigQuery can't parameterize.
+export async function getWarehousesForOrg(
+  orgId: string
+): Promise<{ warehouse_id: string; warehouse_name: string; cost_saving_enabled: boolean }[]> {
+  const datasets = await getSnfQueryHistoryDatasets([orgId])
+  if (datasets.length === 0) return []
+
+  // Full warehouse universe comes from the per-org query-history export, which
+  // logs every warehouse regardless of KWO optimization status. `database_warehouses`
+  // only holds warehouses registered/optimized under KWO for Snowflake, so it's used
+  // here purely to flag which of the full set are optimized — joined by warehouse_name,
+  // since Keebo's warehouse_id (UUID) and Snowflake's native WAREHOUSE_ID live in
+  // different id spaces and can't be joined directly.
   const query = `
-    SELECT DISTINCT warehouse_id, warehouse_name
-    FROM \`${PROJECT}.${SNF_DATASET}.database_warehouses\`
-    WHERE org_id = @org_id
-    ORDER BY warehouse_name
+    WITH all_warehouses AS (
+      SELECT warehouse_name, ANY_VALUE(warehouse_id) AS warehouse_id
+      FROM \`${PROJECT}.k3o_prd_${orgId}_000_tf.warehouse_events_history_tf\`
+      GROUP BY warehouse_name
+    ),
+    registered AS (
+      SELECT
+        warehouse_name,
+        cost_saving_enabled,
+        ROW_NUMBER() OVER (PARTITION BY warehouse_name ORDER BY begin DESC) AS rn
+      FROM \`${PROJECT}.${SNF_DATASET}.database_warehouses\`
+      WHERE org_id = @org_id
+    )
+    SELECT
+      w.warehouse_id,
+      w.warehouse_name,
+      COALESCE(r.cost_saving_enabled, FALSE) AS cost_saving_enabled
+    FROM all_warehouses w
+    LEFT JOIN registered r ON r.warehouse_name = w.warehouse_name AND r.rn = 1
+    ORDER BY w.warehouse_name
   `
-  return runQuery<{ warehouse_id: string; warehouse_name: string }>(query, { org_id: orgId })
+  return runQuery<{ warehouse_id: string; warehouse_name: string; cost_saving_enabled: boolean }>(query, {
+    org_id: orgId,
+  })
 }
 
 export type AdcStatus =
