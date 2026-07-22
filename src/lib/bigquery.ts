@@ -44,7 +44,11 @@ export function isAdcAuthError(err: unknown): boolean {
   return false
 }
 
-export async function runQuery<T>(query: string, params: Record<string, unknown>): Promise<T[]> {
+export async function runQuery<T>(
+  query: string,
+  params: Record<string, unknown>,
+  extraTypes: Record<string, string | string[]> = {}
+): Promise<T[]> {
   try {
     const [rows] = await bigquery.query({
       query,
@@ -52,6 +56,7 @@ export async function runQuery<T>(query: string, params: Record<string, unknown>
       location: LOCATION,
       types: {
         org_ids: ['STRING'],
+        ...extraTypes,
       },
     })
     return rows as T[]

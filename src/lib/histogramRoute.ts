@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runQuery, AdcAuthError, ORG_ID_PATTERN, loadOrgScopedSql } from '@/lib/bigquery'
-import type { HistogramBucket, HistogramResponse } from '@/lib/types'
+import { buildFilterWhereClause } from '@/lib/filterCompiler'
+import type { HistogramBucket, HistogramResponse, FilterGroup } from '@/lib/types'
 
 interface HistogramRow {
   bucket_label: string
@@ -8,13 +9,18 @@ interface HistogramRow {
   query_count: number
 }
 
+interface HistogramRequestBody {
+  org_id: string
+  warehouse_name: string
+  start_date: string
+  end_date: string
+  filter_conditions?: FilterGroup
+}
+
 export function createHistogramRouteHandler(sqlFile: string, logTag: string) {
-  return async function GET(request: NextRequest) {
-    const searchParams = request.nextUrl.searchParams
-    const orgId = searchParams.get('org_id')
-    const warehouseName = searchParams.get('warehouse_name')
-    const startDate = searchParams.get('start_date')
-    const endDate = searchParams.get('end_date')
+  return async function POST(request: NextRequest) {
+    const body = (await request.json()) as Partial<HistogramRequestBody>
+    const { org_id: orgId, warehouse_name: warehouseName, start_date: startDate, end_date: endDate, filter_conditions: filterConditions } = body
 
     if (!orgId || !warehouseName || !startDate || !endDate) {
       return NextResponse.json(
@@ -27,13 +33,29 @@ export function createHistogramRouteHandler(sqlFile: string, logTag: string) {
     }
 
     try {
-      const sql = loadOrgScopedSql(sqlFile, orgId)
+      let sql = loadOrgScopedSql(sqlFile, orgId)
+      let filterParams: Record<string, unknown> = {}
+      let filterTypes: Record<string, string | string[]> = {}
 
-      const rows = await runQuery<HistogramRow>(sql, {
-        warehouse_name: warehouseName,
-        start_date: `${startDate} 00:00:00`,
-        end_date: `${endDate} 23:59:59`,
-      })
+      if (filterConditions) {
+        const compiled = buildFilterWhereClause(filterConditions)
+        filterParams = compiled.params
+        filterTypes = compiled.types
+        sql = sql.replace('{{FILTER_CLAUSE}}', compiled.sql ? `AND (${compiled.sql})` : '')
+      } else {
+        sql = sql.replace('{{FILTER_CLAUSE}}', '')
+      }
+
+      const rows = await runQuery<HistogramRow>(
+        sql,
+        {
+          warehouse_name: warehouseName,
+          start_date: `${startDate} 00:00:00`,
+          end_date: `${endDate} 23:59:59`,
+          ...filterParams,
+        },
+        filterTypes
+      )
 
       const buckets: HistogramBucket[] = rows
         .sort((a, b) => a.bucket_order - b.bucket_order)
