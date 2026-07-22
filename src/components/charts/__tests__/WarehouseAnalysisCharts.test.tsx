@@ -99,6 +99,37 @@ describe('WarehouseAnalysisCharts', () => {
     expect(screen.getAllByText('Total GB')).toHaveLength(2)
     expect(screen.getAllByText('Total Failed')).toHaveLength(2)
   })
+
+  it('renders the Cost per 1000 Queries chart with a derived total', () => {
+    render(
+      <WarehouseAnalysisCharts
+        points={points}
+        histogramBuckets={histogramBuckets}
+        dataScannedHistogramBuckets={dataScannedHistogramBuckets}
+        spillageHistogramBuckets={spillageHistogramBuckets}
+      />
+    )
+    expect(screen.getByText('Cost per 1000 Queries')).toBeInTheDocument()
+    // points fixture: credits_used 3.5, query_volume_by_type SELECT 120 + INSERT 30 = 150 queries
+    // 3.5 / 150 * 1000 = 23.33
+    expect(screen.getByText('23.33')).toBeInTheDocument()
+  })
+
+  it('shows 0 for Cost per 1000 Queries when there are no queries in the period', () => {
+    const zeroQueryPoints: WarehouseAnalysisPoint[] = [
+      { ...points[0], query_volume_by_type: {}, credits_used: 5 },
+    ]
+    render(
+      <WarehouseAnalysisCharts
+        points={zeroQueryPoints}
+        histogramBuckets={histogramBuckets}
+        dataScannedHistogramBuckets={dataScannedHistogramBuckets}
+        spillageHistogramBuckets={spillageHistogramBuckets}
+      />
+    )
+    expect(screen.getByText('Cost per 1000 Queries')).toBeInTheDocument()
+    expect(screen.getByText('0.00')).toBeInTheDocument()
+  })
 })
 
 describe('DistributionTooltip', () => {

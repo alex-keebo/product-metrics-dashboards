@@ -174,6 +174,7 @@ interface WarehouseAnalysisChartsProps {
 // Code-only toggles for the overall-metric shown top-right on each chart. Not user-facing.
 const SHOW_METRIC = {
   usage: true,
+  costPer1000Queries: true,
   totalQueries: true,
   executionTime: true,
   executionTimeDistribution: true,
@@ -237,6 +238,18 @@ export function WarehouseAnalysisCharts({
     [points]
   )
 
+  const costPer1000Data = useMemo(
+    () =>
+      points.map((p) => {
+        const totalQueries = Object.values(p.query_volume_by_type).reduce((sum, v) => sum + v, 0)
+        return {
+          period_label_display: p.period_label_display,
+          cost_per_1000_queries: totalQueries > 0 ? (p.credits_used / totalQueries) * 1000 : 0,
+        }
+      }),
+    [points]
+  )
+
   const executionData = useMemo(
     () =>
       points.map((p) => ({
@@ -282,6 +295,17 @@ export function WarehouseAnalysisCharts({
     () => [{ label: 'Total Queries', value: formatMetricNumber(volumeData.reduce((sum, d) => sum + d.total_query_count, 0)) }],
     [volumeData]
   )
+
+  const totalsCostPer1000 = useMemo(() => {
+    const totalCredits = points.reduce((sum, p) => sum + p.credits_used, 0)
+    const totalQueries = points.reduce(
+      (sum, p) => sum + Object.values(p.query_volume_by_type).reduce((s, v) => s + v, 0),
+      0
+    )
+    return [
+      { label: 'Credits / 1000 Queries', value: formatDecimalNumber(totalQueries > 0 ? (totalCredits / totalQueries) * 1000 : 0) },
+    ]
+  }, [points])
 
   const totalsExecution = useMemo(() => {
     if (executionData.length === 0) return [{ label: 'Avg (ms)', value: formatDecimalNumber(0) }]
@@ -362,6 +386,24 @@ export function WarehouseAnalysisCharts({
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits Used']} />
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={legendStyle} />
             <Bar dataKey="credits_used" name="Credits Used" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper
+        title="Cost per 1000 Queries"
+        isLight={isLight}
+        totals={SHOW_METRIC.costPer1000Queries ? totalsCostPer1000 : undefined}
+        loading={loading}
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={costPer1000Data} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits / 1000 Queries']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits / 1000 Queries'} wrapperStyle={legendStyle} />
+            <Bar dataKey="cost_per_1000_queries" name="Credits / 1000 Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
