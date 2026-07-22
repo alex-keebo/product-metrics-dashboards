@@ -221,6 +221,22 @@ export async function getWarehousesForOrg(
   })
 }
 
+// orgId must be validated by the caller (ORG_ID_PATTERN) before this runs — it's
+// interpolated into the per-org dataset name, which BigQuery can't parameterize.
+// column must be resolved from a registry lookup (FILTER_FIELDS) keyed by a validated
+// field key by the caller — never taken from raw user input — so no SQL injection
+// surface exists despite the interpolation.
+export async function getDistinctFieldValues(orgId: string, column: string): Promise<string[]> {
+  const query = `
+    SELECT DISTINCT ${column} AS value
+    FROM \`${PROJECT}.k3o_prd_${orgId}_000_tf.query_history_view_tf\`
+    WHERE ${column} IS NOT NULL
+    LIMIT 200
+  `
+  const rows = await runQuery<{ value: string }>(query, {})
+  return rows.map((r) => String(r.value))
+}
+
 export type AdcStatus =
   | { state: 'valid'; type: 'authorized_user' | 'service_account'; expires_at?: string }
   | { state: 'expired'; type: 'authorized_user' | 'service_account'; reason: string }
