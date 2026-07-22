@@ -41,6 +41,7 @@ export function Dropdown(props: DropdownProps) {
   const [showTrue, setShowTrue] = useState(true)
   const [showFalse, setShowFalse] = useState(true)
   const ref = useRef<HTMLDivElement>(null)
+  const listRef = useRef<HTMLDivElement>(null)
   const triggerId = useId()
 
   useEffect(() => {
@@ -53,6 +54,14 @@ export function Dropdown(props: DropdownProps) {
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const frame = requestAnimationFrame(() => {
+      listRef.current?.querySelector('[data-selected="true"]')?.scrollIntoView({ block: 'nearest' })
+    })
+    return () => cancelAnimationFrame(frame)
+  }, [open])
 
   function toggleOpen() {
     setOpen((v) => {
@@ -159,7 +168,7 @@ export function Dropdown(props: DropdownProps) {
               </div>
             )}
 
-            <div className="max-h-64 overflow-y-auto">
+            <div className="max-h-64 overflow-y-auto" ref={listRef}>
               {props.mode === 'multi' && filtered.length > 0 && (
                 <button
                   type="button"
@@ -182,14 +191,16 @@ export function Dropdown(props: DropdownProps) {
                     <button
                       key={opt.value}
                       type="button"
+                      data-selected={selected ? 'true' : undefined}
                       onClick={() => { props.onChange(opt.value); setOpen(false); setSearch('') }}
                       className={cn(
-                        'flex items-center w-full px-3 py-2 text-sm text-left text-popover-foreground hover:bg-secondary whitespace-nowrap overflow-hidden',
-                        selected && 'font-medium text-primary'
+                        'flex items-center gap-2 w-full px-3 py-2 text-sm text-left text-popover-foreground hover:bg-secondary whitespace-nowrap overflow-hidden',
+                        selected && 'font-medium text-primary bg-secondary/60'
                       )}
                     >
+                      <Check className={cn('w-3.5 h-3.5 shrink-0', selected ? 'text-primary' : 'invisible')} />
                       <span className="truncate">{opt.label}</span>
-                      {opt.badge && <span className="ml-2 shrink-0">{opt.badge}</span>}
+                      {opt.badge && <span className="ml-auto shrink-0">{opt.badge}</span>}
                     </button>
                   )
                 }
