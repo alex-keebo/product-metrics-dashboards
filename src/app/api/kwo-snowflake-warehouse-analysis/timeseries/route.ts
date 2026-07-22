@@ -13,6 +13,7 @@ interface WarehouseAnalysisRow {
   execution_time_avg_ms: number | null
   execution_time_p95_ms: number | null
   execution_time_p99_ms: number | null
+  execution_time_max_ms: number | null
   queued_query_count: number | null
   queue_time_avg_ms: number | null
   queue_time_p95_ms: number | null
@@ -36,22 +37,22 @@ function daysBetween(start: string, end: string): number {
 export async function POST(request: NextRequest) {
   const body = (await request.json()) as {
     org_id?: string
-    warehouse_name?: string
+    warehouse_names?: string[]
     start_date?: string
     end_date?: string
     granularity?: Granularity
     filter_conditions?: FilterGroup
   }
   const orgId = body.org_id ?? null
-  const warehouseName = body.warehouse_name ?? null
+  const warehouseNames = body.warehouse_names ?? null
   const startDate = body.start_date ?? null
   const endDate = body.end_date ?? null
   const granularityParam = body.granularity || 'day'
   const filterConditions = body.filter_conditions
 
-  if (!orgId || !warehouseName || !startDate || !endDate) {
+  if (!orgId || !warehouseNames?.length || !startDate || !endDate) {
     return NextResponse.json(
-      { error: 'org_id, warehouse_name, start_date, and end_date are required' },
+      { error: 'org_id, warehouse_names, start_date, and end_date are required' },
       { status: 400 }
     )
   }
@@ -108,7 +109,7 @@ export async function POST(request: NextRequest) {
     const rows = await runQuery<WarehouseAnalysisRow>(
       filteredSql,
       {
-        warehouse_name: warehouseName,
+        warehouse_names: warehouseNames,
         start_date: queryStartDate,
         end_date: queryEndDate,
         period_starts: periods.map((p) => p.start),
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
         period_end_bounds: periodEndBounds,
         ...filterParams,
       },
-      filterTypes
+      { warehouse_names: ['STRING'], ...filterTypes }
     )
 
     const rowsByPeriod = new Map(rows.map((r) => [r.period_start, r]))
@@ -145,6 +146,7 @@ export async function POST(request: NextRequest) {
         execution_time_avg_ms: Number(row?.execution_time_avg_ms ?? 0),
         execution_time_p95_ms: Number(row?.execution_time_p95_ms ?? 0),
         execution_time_p99_ms: Number(row?.execution_time_p99_ms ?? 0),
+        execution_time_max_ms: Number(row?.execution_time_max_ms ?? 0),
         queued_query_count: Number(row?.queued_query_count ?? 0),
         queue_time_avg_ms: Number(row?.queue_time_avg_ms ?? 0),
         queue_time_p95_ms: Number(row?.queue_time_p95_ms ?? 0),

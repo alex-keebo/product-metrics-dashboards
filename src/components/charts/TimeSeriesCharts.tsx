@@ -610,11 +610,6 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
     : rangeTotals === null ? null : undefined
 
   const [hiddenBars, setHiddenBars] = useState<Set<string>>(new Set())
-  const [savingsPctHidden, setSavingsPctHidden] = useState(false)
-  const [warehousesHidden, setWarehousesHidden] = useState(false)
-  const [queryVolumeHidden, setQueryVolumeHidden] = useState(false)
-  const [autoStopHidden, setAutoStopHidden] = useState(false)
-  const [resizingHidden, setResizingHidden] = useState(false)
 
   const savingsPct    = buildSavingsPctData(points, allPeriods)
   const stackedSavings = buildStackedSavingsData(points, allPeriods)
@@ -631,6 +626,7 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
   const TT     = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
 
   const legendStyle = getChartLegendStyle(isLight)
+  const staticLegendStyle = { ...legendStyle, cursor: 'default' }
 
   const toggleBar = (data: LegendPayload) => {
     const key = String(data.dataKey)
@@ -662,13 +658,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               iconType="square"
               iconSize={20}
               formatter={() => 'Savings (%)'}
-              wrapperStyle={legendStyle}
-              onClick={() => setSavingsPctHidden(h => !h)}
+              wrapperStyle={staticLegendStyle}
             />
             <Area
               type="monotone"
               dataKey="value"
-              hide={savingsPctHidden}
               stroke={C_GREEN}
               strokeWidth={2}
               fill="url(#fillSavingsPct)"
@@ -734,13 +728,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               iconType="square"
               iconSize={20}
               formatter={() => 'Warehouses'}
-              wrapperStyle={legendStyle}
-              onClick={() => setWarehousesHidden(h => !h)}
+              wrapperStyle={staticLegendStyle}
             />
             <Area
               type="monotone"
               dataKey="value"
-              hide={warehousesHidden}
               stroke={isLight ? '#051c27' : C_TEAL}
               strokeWidth={2}
               fill="url(#fillWarehouses)"
@@ -775,13 +767,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
                 iconType="square"
                 iconSize={20}
                 formatter={() => 'Query Volume'}
-                wrapperStyle={legendStyle}
-                onClick={() => setQueryVolumeHidden(h => !h)}
+                wrapperStyle={staticLegendStyle}
               />
               <Area
                 type="monotone"
                 dataKey="value"
-                hide={queryVolumeHidden}
                 stroke={isLight ? '#051c27' : C_TEAL}
                 strokeWidth={2}
                 fill="url(#fillQueryVolume)"
@@ -828,13 +818,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               iconType="square"
               iconSize={20}
               formatter={() => `${autoStopLabel} Events`}
-              wrapperStyle={legendStyle}
-              onClick={() => setAutoStopHidden(h => !h)}
+              wrapperStyle={staticLegendStyle}
             />
             <Area
               type="monotone"
               dataKey="value"
-              hide={autoStopHidden}
               stroke={isLight ? '#051c27' : C_TEAL}
               strokeWidth={2}
               fill="url(#fillAutoStop)"
@@ -868,13 +856,11 @@ export function TimeSeriesCharts({ points, allPeriods, unit = 'DBUs', queryVolum
               iconType="square"
               iconSize={20}
               formatter={() => 'Resizing Events'}
-              wrapperStyle={legendStyle}
-              onClick={() => setResizingHidden(h => !h)}
+              wrapperStyle={staticLegendStyle}
             />
             <Area
               type="monotone"
               dataKey="value"
-              hide={resizingHidden}
               stroke={isLight ? '#051c27' : C_TEAL}
               strokeWidth={2}
               fill="url(#fillResizing)"

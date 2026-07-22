@@ -11,7 +11,7 @@ interface HistogramRow {
 
 interface HistogramRequestBody {
   org_id: string
-  warehouse_name: string
+  warehouse_names: string[]
   start_date: string
   end_date: string
   filter_conditions?: FilterGroup
@@ -20,11 +20,11 @@ interface HistogramRequestBody {
 export function createHistogramRouteHandler(sqlFile: string, logTag: string) {
   return async function POST(request: NextRequest) {
     const body = (await request.json()) as Partial<HistogramRequestBody>
-    const { org_id: orgId, warehouse_name: warehouseName, start_date: startDate, end_date: endDate, filter_conditions: filterConditions } = body
+    const { org_id: orgId, warehouse_names: warehouseNames, start_date: startDate, end_date: endDate, filter_conditions: filterConditions } = body
 
-    if (!orgId || !warehouseName || !startDate || !endDate) {
+    if (!orgId || !warehouseNames?.length || !startDate || !endDate) {
       return NextResponse.json(
-        { error: 'org_id, warehouse_name, start_date, and end_date are required' },
+        { error: 'org_id, warehouse_names, start_date, and end_date are required' },
         { status: 400 }
       )
     }
@@ -49,12 +49,12 @@ export function createHistogramRouteHandler(sqlFile: string, logTag: string) {
       const rows = await runQuery<HistogramRow>(
         sql,
         {
-          warehouse_name: warehouseName,
+          warehouse_names: warehouseNames,
           start_date: `${startDate} 00:00:00`,
           end_date: `${endDate} 23:59:59`,
           ...filterParams,
         },
-        filterTypes
+        { warehouse_names: ['STRING'], ...filterTypes }
       )
 
       const buckets: HistogramBucket[] = rows

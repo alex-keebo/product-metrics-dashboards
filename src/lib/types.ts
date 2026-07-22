@@ -133,6 +133,7 @@ export interface WarehouseAnalysisPoint {
   execution_time_avg_ms: number
   execution_time_p95_ms: number
   execution_time_p99_ms: number
+  execution_time_max_ms: number
   queued_query_count: number
   queue_time_avg_ms: number
   queue_time_p95_ms: number

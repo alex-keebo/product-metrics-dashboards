@@ -6,6 +6,7 @@ vi.mock('react-day-picker/style.css', () => ({}))
 import { WarehouseAnalysisFilters } from '../WarehouseAnalysisFilters'
 
 const baseProps = {
+  variant: 'query' as const,
   customers: [{ org_id: '90402', name: 'Acme Corp' }],
   selectedCustomer: null,
   onCustomerChange: vi.fn(),
@@ -15,8 +16,8 @@ const baseProps = {
   granularity: 'day' as const,
   onGranularityChange: vi.fn(),
   warehouses: [],
-  selectedWarehouse: null,
-  onWarehouseChange: vi.fn(),
+  selectedWarehouses: [],
+  onWarehousesChange: vi.fn(),
   warehousesDisabled: true,
   warehousesError: null,
   appliedFilter: { id: 'root', match: 'AND' as const, conditions: [] },
@@ -36,27 +37,31 @@ describe('WarehouseAnalysisFilters', () => {
     expect(warehouseButton).toBeDisabled()
   })
 
-  it('calls onWarehouseChange(null) when Customer changes', () => {
-    const onWarehouseChange = vi.fn()
-    const onCustomerChange = vi.fn()
-    render(
-      <WarehouseAnalysisFilters
-        {...baseProps}
-        selectedCustomer="90402"
-        warehousesDisabled={false}
-        onCustomerChange={onCustomerChange}
-        onWarehouseChange={onWarehouseChange}
-      />
-    )
-    fireEvent.click(screen.getByText('Customer'))
-    const options = screen.getAllByText('Acme Corp')
-    fireEvent.click(options[options.length - 1])
-    expect(onCustomerChange).toHaveBeenCalledWith('90402')
-    expect(onWarehouseChange).toHaveBeenCalledWith(null)
-  })
-
   it('renders the Filters trigger from FilterPanel', () => {
     render(<WarehouseAnalysisFilters {...baseProps} />)
     expect(screen.getByTestId('filter-trigger')).toBeInTheDocument()
+  })
+
+  it('renders Customer, Date Range, and Warehouse but not Group By or Filters on the cluster variant', () => {
+    render(
+      <WarehouseAnalysisFilters
+        variant="cluster"
+        customers={baseProps.customers}
+        selectedCustomer={baseProps.selectedCustomer}
+        onCustomerChange={baseProps.onCustomerChange}
+        startDate={baseProps.startDate}
+        endDate={baseProps.endDate}
+        onRangeChange={baseProps.onRangeChange}
+        warehouses={baseProps.warehouses}
+        selectedWarehouse={null}
+        onWarehouseChange={vi.fn()}
+        warehousesDisabled={baseProps.warehousesDisabled}
+        warehousesError={baseProps.warehousesError}
+      />
+    )
+    expect(screen.getByText('Customer')).toBeInTheDocument()
+    expect(screen.getByTestId('warehouse-select-trigger')).toBeInTheDocument()
+    expect(screen.queryByText('Group By')).not.toBeInTheDocument()
+    expect(screen.queryByTestId('filter-trigger')).not.toBeInTheDocument()
   })
 })

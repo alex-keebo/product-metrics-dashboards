@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -17,6 +17,7 @@ import { useTheme } from '@/components/layout/ThemeProvider'
 import {
   ChartWrapper,
   SeriesTooltip,
+  SeriesLegend,
   getChartLegendStyle,
   getAreaDotProps,
   formatMetricNumber,
@@ -25,6 +26,7 @@ import {
   C_NAVY,
   C_TEAL,
   C_DEEP,
+  C_ICE,
   DARK_GRID,
   LIGHT_GRID,
   DARK_AXIS,
@@ -181,7 +183,21 @@ export function WarehouseAnalysisCharts({
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
   const TT = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
   const legendStyle = getChartLegendStyle(isLight)
+  const staticLegendStyle = { ...legendStyle, cursor: 'default' }
   const cursorFill = isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL
+
+  const [hiddenConcurrency, setHiddenConcurrency] = useState<Set<string>>(new Set())
+  const [hiddenExecution, setHiddenExecution] = useState<Set<string>>(new Set())
+  const [hiddenSpillage, setHiddenSpillage] = useState<Set<string>>(new Set())
+
+  function makeToggle(setter: (fn: (prev: Set<string>) => Set<string>) => void) {
+    return (key: string) => setter(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const failedData = useMemo(
     () =>
@@ -226,9 +242,10 @@ export function WarehouseAnalysisCharts({
     () =>
       points.map((p) => ({
         period_label_display: p.period_label_display,
-        avg: p.execution_time_avg_ms,
-        p95: p.execution_time_p95_ms,
-        p99: p.execution_time_p99_ms,
+        avg: p.execution_time_avg_ms / 1000,
+        p95: p.execution_time_p95_ms / 1000,
+        p99: p.execution_time_p99_ms / 1000,
+        max: p.execution_time_max_ms / 1000,
       })),
     [points]
   )
@@ -296,9 +313,9 @@ export function WarehouseAnalysisCharts({
   }, [concurrencyData])
 
   const totalsExecution = useMemo(() => {
-    if (executionData.length === 0) return [{ label: 'Avg (ms)', value: formatDecimalNumber(0) }]
+    if (executionData.length === 0) return [{ label: 'Avg (s)', value: formatDecimalNumber(0) }]
     const avg = executionData.reduce((sum, d) => sum + d.avg, 0) / executionData.length
-    return [{ label: 'Avg (ms)', value: formatDecimalNumber(avg) }]
+    return [{ label: 'Avg (s)', value: formatDecimalNumber(avg) }]
   }, [executionData])
 
   const totalsHistogram = useMemo(
@@ -372,7 +389,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits Used']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="credits_used" name="Credits Used" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -390,7 +407,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits / 1000 Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits / 1000 Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits / 1000 Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="cost_per_1000_queries" name="Credits / 1000 Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -403,7 +420,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Total Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Total Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Total Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="total_query_count" name="Total Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -421,9 +438,22 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
-            <Line type="monotone" dataKey="max" name="Max Concurrent" stroke={C_NAVY} strokeWidth={2} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="avg" name="Avg Concurrent" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Legend
+              verticalAlign="bottom"
+              content={() => (
+                <SeriesLegend
+                  isLight={isLight}
+                  hidden={hiddenConcurrency}
+                  toggle={makeToggle(setHiddenConcurrency)}
+                  items={[
+                    { key: 'max', label: 'Max Concurrent', color: C_NAVY },
+                    { key: 'avg', label: 'Avg Concurrent', color: C_DEEP },
+                  ]}
+                />
+              )}
+            />
+            <Line type="monotone" dataKey="max" name="Max Concurrent" stroke={C_NAVY} strokeWidth={2} hide={hiddenConcurrency.has('max')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="avg" name="Avg Concurrent" stroke={C_DEEP} strokeWidth={2} hide={hiddenConcurrency.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -435,10 +465,26 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
-            <Line type="monotone" dataKey="avg" name="Avg (ms)" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p95" name="P95 (ms)" stroke={C_NAVY} strokeWidth={2} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p99" name="P99 (ms)" stroke={C_TEAL} strokeWidth={2} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
+            <Legend
+              verticalAlign="bottom"
+              content={() => (
+                <SeriesLegend
+                  isLight={isLight}
+                  hidden={hiddenExecution}
+                  toggle={makeToggle(setHiddenExecution)}
+                  items={[
+                    { key: 'avg', label: 'Avg (s)', color: C_DEEP },
+                    { key: 'p95', label: 'P95 (s)', color: C_NAVY },
+                    { key: 'p99', label: 'P99 (s)', color: C_TEAL },
+                    { key: 'max', label: 'Max (s)', color: C_ICE },
+                  ]}
+                />
+              )}
+            />
+            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenExecution.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p95" name="P95 (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenExecution.has('p95')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p99" name="P99 (s)" stroke={C_TEAL} strokeWidth={2} hide={hiddenExecution.has('p99')} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
+            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenExecution.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -450,7 +496,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={histogramBuckets} />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -463,7 +509,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Queued Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queued Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queued Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="queued_query_count" name="Queued Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -476,7 +522,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Max (s)']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Max (s)'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Max (s)'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="max" name="Max (s)" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -489,7 +535,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatBytesAsGB(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => `${formatBytesAsGB(Number(v))} GB`} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Data Scanned'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Data Scanned'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="bytes_scanned" name="Data Scanned" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -507,7 +553,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={dataScannedHistogramBuckets} />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -520,9 +566,22 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatBytesAsGB(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => `${formatBytesAsGB(Number(v))} GB`} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
-            <Bar dataKey="local" name="Local" stackId="spillage" fill={C_NAVY} />
-            <Bar dataKey="remote" name="Remote" stackId="spillage" fill={C_TEAL} radius={[3, 3, 0, 0]} />
+            <Legend
+              verticalAlign="bottom"
+              content={() => (
+                <SeriesLegend
+                  isLight={isLight}
+                  hidden={hiddenSpillage}
+                  toggle={makeToggle(setHiddenSpillage)}
+                  items={[
+                    { key: 'local', label: 'Local', color: C_NAVY },
+                    { key: 'remote', label: 'Remote', color: C_TEAL },
+                  ]}
+                />
+              )}
+            />
+            <Bar dataKey="local" name="Local" stackId="spillage" fill={C_NAVY} hide={hiddenSpillage.has('local')} />
+            <Bar dataKey="remote" name="Remote" stackId="spillage" fill={C_TEAL} radius={[3, 3, 0, 0]} hide={hiddenSpillage.has('remote')} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -539,7 +598,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={spillageHistogramBuckets} />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -552,7 +611,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="failed_query_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -570,7 +629,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="error_code" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Failed Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Failed Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="error_count" name="Failed Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -583,7 +642,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="query_type" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatMetricNumber(Number(v)), 'Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
@@ -601,7 +660,7 @@ export function WarehouseAnalysisCharts({
             <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
             <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={compileTimeHistogramBuckets} />} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={legendStyle} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={staticLegendStyle} />
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>

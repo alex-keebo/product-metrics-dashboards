@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import { WarehouseAnalysisFilters } from '@/components/filters/WarehouseAnalysisFilters'
 import { WarehouseAnalysisCharts } from '@/components/charts/WarehouseAnalysisCharts'
-import { formatMetricNumber, formatBytesAsGB, ChartWrapper } from '@/components/charts/TimeSeriesCharts'
+import { formatMetricNumber, formatDecimalNumber, formatBytesAsGB, ChartWrapper } from '@/components/charts/TimeSeriesCharts'
 import { WarehouseActivityTimeline } from '@/components/charts/WarehouseActivityTimeline'
 import { WAREHOUSE_ROW_CLUSTER_NUMBER } from '@/lib/clusterIntervals'
 import { DataTable, type Column } from '@/components/tables/DataTable'
@@ -63,25 +63,37 @@ const gbColumn = (key: string, label: string): Column<Record<string, unknown>> =
   format: (v) => formatBytesAsGB(Number(v)),
 })
 
+const decimalColumn = (key: string, label: string): Column<Record<string, unknown>> => ({
+  key,
+  label,
+  align: 'right',
+  format: (v) => formatDecimalNumber(Number(v)),
+})
+
 const BASE_TABLE_COLUMNS: Column<Record<string, unknown>>[] = [
   numberColumn('total_query_count', 'Total Queries'),
   numberColumn('execution_time_avg_ms', 'Avg Exec Time (ms)'),
   numberColumn('execution_time_p95_ms', 'P95 Exec Time (ms)'),
   numberColumn('execution_time_p99_ms', 'P99 Exec Time (ms)'),
+  numberColumn('execution_time_max_ms', 'Max Exec Time (ms)'),
   numberColumn('queued_query_count', 'Queued Queries'),
   numberColumn('queue_time_avg_ms', 'Avg Queue Time (ms)'),
   numberColumn('queue_time_p95_ms', 'P95 Queue Time (ms)'),
   numberColumn('queue_time_p99_ms', 'P99 Queue Time (ms)'),
+  numberColumn('queue_time_max_ms', 'Max Queue Time (ms)'),
+  decimalColumn('concurrent_queries_avg', 'Avg Concurrency'),
+  decimalColumn('concurrent_queries_max', 'Max Concurrency'),
   gbColumn('bytes_scanned', 'Data Scanned (GB)'),
   gbColumn('bytes_spilled_local', 'Local Spillage (GB)'),
   gbColumn('bytes_spilled_remote', 'Remote Spillage (GB)'),
+  decimalColumn('credits_used', 'Credits Used'),
   numberColumn('failed_query_count', 'Failed Queries'),
 ]
 
 export default function WarehouseAnalysisPage() {
   const { theme } = useTheme()
   const isLight = theme === 'light'
-  const defaultRange = lastNDaysRange(3)
+  const defaultRange = lastNDaysRange(7)
 
   const [customers, setCustomers] = useState<{ org_id: string; name: string }[]>([])
   const [customersError, setCustomersError] = useState<FetchError | null>(null)
@@ -89,11 +101,12 @@ export default function WarehouseAnalysisPage() {
   const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
   const [startDate, setStartDate] = useState(toDateString(defaultRange.start))
   const [endDate, setEndDate] = useState(toDateString(defaultRange.end))
-  const [granularity, setGranularity] = useState<Granularity>('hour')
+  const [granularity, setGranularity] = useState<Granularity>('day')
 
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([])
   const [warehousesError, setWarehousesError] = useState<string | null>(null)
-  const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null)
+  const [selectedWarehouses, setSelectedWarehouses] = useState<string[]>([])
+  const [selectedClusterWarehouse, setSelectedClusterWarehouse] = useState<string | null>(null)
 
   const [appliedFilter, setAppliedFilter] = useState<FilterGroup>({ id: 'root', match: 'AND', conditions: [] })
 
@@ -135,6 +148,8 @@ export default function WarehouseAnalysisPage() {
   }, [])
 
   useEffect(() => {
+    setSelectedWarehouses([])
+    setSelectedClusterWarehouse(null)
     if (!selectedCustomer) {
       setWarehouses([])
       return
@@ -150,7 +165,7 @@ export default function WarehouseAnalysisPage() {
   }, [selectedCustomer])
 
   useEffect(() => {
-    if (!selectedCustomer || !selectedWarehouse) {
+    if (!selectedCustomer || selectedWarehouses.length === 0) {
       setPoints([])
       return
     }
@@ -163,7 +178,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_name: selectedWarehouse,
+        warehouse_names: selectedWarehouses,
         start_date: startDate,
         end_date: endDate,
         granularity,
@@ -184,10 +199,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate, granularity, appliedFilter])
+  }, [selectedCustomer, selectedWarehouses, startDate, endDate, granularity, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || !selectedWarehouse) {
+    if (!selectedCustomer || !selectedClusterWarehouse) {
       setClusterIntervals([])
       return
     }
@@ -197,7 +212,7 @@ export default function WarehouseAnalysisPage() {
 
     const params = new URLSearchParams({
       org_id: selectedCustomer,
-      warehouse_name: selectedWarehouse,
+      warehouse_name: selectedClusterWarehouse,
       start_date: startDate,
       end_date: endDate,
     })
@@ -215,10 +230,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setClusterActivityLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+  }, [selectedCustomer, selectedClusterWarehouse, startDate, endDate])
 
   useEffect(() => {
-    if (!selectedCustomer || !selectedWarehouse) {
+    if (!selectedCustomer || selectedWarehouses.length === 0) {
       setHistogramBuckets([])
       return
     }
@@ -231,7 +246,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_name: selectedWarehouse,
+        warehouse_names: selectedWarehouses,
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -250,10 +265,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || !selectedWarehouse) {
+    if (!selectedCustomer || selectedWarehouses.length === 0) {
       setDataScannedHistogramBuckets([])
       return
     }
@@ -266,7 +281,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_name: selectedWarehouse,
+        warehouse_names: selectedWarehouses,
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -285,10 +300,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setDataScannedHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || !selectedWarehouse) {
+    if (!selectedCustomer || selectedWarehouses.length === 0) {
       setSpillageHistogramBuckets([])
       return
     }
@@ -301,7 +316,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_name: selectedWarehouse,
+        warehouse_names: selectedWarehouses,
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -320,10 +335,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setSpillageHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || !selectedWarehouse) {
+    if (!selectedCustomer || selectedWarehouses.length === 0) {
       setCompileTimeHistogramBuckets([])
       return
     }
@@ -336,7 +351,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_name: selectedWarehouse,
+        warehouse_names: selectedWarehouses,
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -355,7 +370,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setCompileTimeHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
 
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
@@ -412,26 +427,47 @@ export default function WarehouseAnalysisPage() {
 
       {customersError && <SectionError error={customersError} />}
 
-      <WarehouseAnalysisFilters
-        customers={customers}
-        selectedCustomer={selectedCustomer}
-        onCustomerChange={setSelectedCustomer}
-        startDate={startDate}
-        endDate={endDate}
-        onRangeChange={(start, end) => {
-          setStartDate(start)
-          setEndDate(end)
-        }}
-        granularity={granularity}
-        onGranularityChange={setGranularity}
-        warehouses={warehouses}
-        selectedWarehouse={selectedWarehouse}
-        onWarehouseChange={setSelectedWarehouse}
-        warehousesDisabled={!selectedCustomer}
-        warehousesError={warehousesError}
-        appliedFilter={appliedFilter}
-        onFilterApply={setAppliedFilter}
-      />
+      {activeTab === 'query' ? (
+        <WarehouseAnalysisFilters
+          variant="query"
+          customers={customers}
+          selectedCustomer={selectedCustomer}
+          onCustomerChange={setSelectedCustomer}
+          startDate={startDate}
+          endDate={endDate}
+          onRangeChange={(start, end) => {
+            setStartDate(start)
+            setEndDate(end)
+          }}
+          granularity={granularity}
+          onGranularityChange={setGranularity}
+          warehouses={warehouses}
+          selectedWarehouses={selectedWarehouses}
+          onWarehousesChange={setSelectedWarehouses}
+          warehousesDisabled={!selectedCustomer}
+          warehousesError={warehousesError}
+          appliedFilter={appliedFilter}
+          onFilterApply={setAppliedFilter}
+        />
+      ) : (
+        <WarehouseAnalysisFilters
+          variant="cluster"
+          customers={customers}
+          selectedCustomer={selectedCustomer}
+          onCustomerChange={setSelectedCustomer}
+          startDate={startDate}
+          endDate={endDate}
+          onRangeChange={(start, end) => {
+            setStartDate(start)
+            setEndDate(end)
+          }}
+          warehouses={warehouses}
+          selectedWarehouse={selectedClusterWarehouse}
+          onWarehouseChange={setSelectedClusterWarehouse}
+          warehousesDisabled={!selectedCustomer}
+          warehousesError={warehousesError}
+        />
+      )}
 
       {granularity === 'hour' && granularityUsed === 'day' && (
         <div className="text-xs text-muted-foreground p-2 rounded bg-muted">
@@ -442,7 +478,14 @@ export default function WarehouseAnalysisPage() {
       <div className="flex gap-4 border-b border-border">
         <button
           type="button"
-          onClick={() => setActiveTab('query')}
+          onClick={() => {
+            setSelectedWarehouses((prev) =>
+              selectedClusterWarehouse && !prev.includes(selectedClusterWarehouse)
+                ? [...prev, selectedClusterWarehouse]
+                : prev
+            )
+            setActiveTab('query')
+          }}
           className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
             activeTab === 'query'
               ? 'border-primary text-foreground'
@@ -453,7 +496,10 @@ export default function WarehouseAnalysisPage() {
         </button>
         <button
           type="button"
-          onClick={() => setActiveTab('cluster')}
+          onClick={() => {
+            setSelectedClusterWarehouse(selectedWarehouses[0] ?? null)
+            setActiveTab('cluster')
+          }}
           className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
             activeTab === 'cluster'
               ? 'border-primary text-foreground'
@@ -470,33 +516,33 @@ export default function WarehouseAnalysisPage() {
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view warehouse analysis.</div>
           )}
 
-          {selectedCustomer && !selectedWarehouse && (
+          {selectedCustomer && selectedWarehouses.length === 0 && (
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Warehouse to view query performance.</div>
           )}
 
-          {selectedCustomer && selectedWarehouse && timeseriesError && <SectionError error={timeseriesError} />}
+          {selectedCustomer && selectedWarehouses.length > 0 && timeseriesError && <SectionError error={timeseriesError} />}
 
-          {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
+          {selectedCustomer && selectedWarehouses.length > 0 && !histogramLoading && histogramError && <SectionError error={histogramError} />}
 
-          {selectedCustomer && selectedWarehouse && !dataScannedHistogramLoading && dataScannedHistogramError && (
+          {selectedCustomer && selectedWarehouses.length > 0 && !dataScannedHistogramLoading && dataScannedHistogramError && (
             <SectionError error={dataScannedHistogramError} />
           )}
 
-          {selectedCustomer && selectedWarehouse && !spillageHistogramLoading && spillageHistogramError && (
+          {selectedCustomer && selectedWarehouses.length > 0 && !spillageHistogramLoading && spillageHistogramError && (
             <SectionError error={spillageHistogramError} />
           )}
 
-          {selectedCustomer && selectedWarehouse && !compileTimeHistogramLoading && compileTimeHistogramError && (
+          {selectedCustomer && selectedWarehouses.length > 0 && !compileTimeHistogramLoading && compileTimeHistogramError && (
             <SectionError error={compileTimeHistogramError} />
           )}
 
-          {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
+          {selectedCustomer && selectedWarehouses.length > 0 && !timeseriesError && !sectionLoading && !sectionHasData && (
             <div className="p-8 text-center text-muted-foreground text-sm">
               No query history for this warehouse in the selected range.
             </div>
           )}
 
-          {selectedCustomer && selectedWarehouse && !timeseriesError && (sectionLoading || sectionHasData) && (
+          {selectedCustomer && selectedWarehouses.length > 0 && !timeseriesError && (sectionLoading || sectionHasData) && (
             <>
               <WarehouseAnalysisCharts
                 points={points}
@@ -533,11 +579,11 @@ export default function WarehouseAnalysisPage() {
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view cluster activity.</div>
           )}
 
-          {selectedCustomer && !selectedWarehouse && (
+          {selectedCustomer && !selectedClusterWarehouse && (
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Warehouse to view cluster activity.</div>
           )}
 
-          {selectedCustomer && selectedWarehouse && (
+          {selectedCustomer && selectedClusterWarehouse && (
             <ChartWrapper
               title="Cluster Activity"
               isLight={isLight}

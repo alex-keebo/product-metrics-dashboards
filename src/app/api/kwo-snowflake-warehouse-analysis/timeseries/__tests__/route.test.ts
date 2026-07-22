@@ -36,7 +36,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402; DROP TABLE x',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-07',
         granularity: 'day',
@@ -51,7 +51,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-06-01',
         end_date: '2026-07-01',
         granularity: 'hour',
@@ -67,7 +67,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-02',
         granularity: 'day',
@@ -87,7 +87,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -103,7 +103,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -127,7 +127,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -144,7 +144,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -163,7 +163,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -183,7 +183,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const res = await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -200,7 +200,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',
@@ -216,7 +216,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     expect(occurrences).toBe(2)
     expect(sqlArg).not.toContain('{{FILTER_CLAUSE}}')
     expect(paramsArg.p_0).toBe('SELECT')
-    expect(typesArg).toEqual({})
+    expect(typesArg).toEqual({ warehouse_names: ['STRING'] })
   })
 
   it('splices an empty string for both markers when no filter is supplied', async () => {
@@ -225,7 +225,7 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     await POST(
       makeRequest({
         org_id: '90402',
-        warehouse_name: 'ANALYTICS_WH',
+        warehouse_names: ['ANALYTICS_WH'],
         start_date: '2026-07-01',
         end_date: '2026-07-01',
         granularity: 'day',

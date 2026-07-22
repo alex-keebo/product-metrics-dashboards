@@ -28,6 +28,7 @@ const points: WarehouseAnalysisPoint[] = [
     execution_time_avg_ms: 450,
     execution_time_p95_ms: 900,
     execution_time_p99_ms: 1500,
+    execution_time_max_ms: 2200,
     queued_query_count: 4,
     queue_time_avg_ms: 20,
     queue_time_p95_ms: 60,
@@ -97,7 +98,7 @@ describe('WarehouseAnalysisCharts', () => {
     )
     expect(screen.getByText('Total Credits')).toBeInTheDocument()
     expect(screen.getByText('3.50')).toBeInTheDocument()
-    expect(screen.getAllByText('Avg (ms)')).toHaveLength(1)
+    expect(screen.getAllByText('Avg (s)')).toHaveLength(1)
     expect(screen.getByText('Max (s)')).toBeInTheDocument()
     expect(screen.getByText('Total Queued')).toBeInTheDocument()
     expect(screen.getAllByText('Total GB')).toHaveLength(2)

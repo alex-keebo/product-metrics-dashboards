@@ -1,7 +1,7 @@
 -- kwo_snowflake_warehouse_spillage_histogram.sql
 --
 -- Parameters:
---   @warehouse_name STRING
+--   @warehouse_names ARRAY<STRING>
 --   @start_date STRING  (yyyy-MM-dd HH:mm:ss, inclusive lower bound, UTC — parsed via TIMESTAMP())
 --   @end_date STRING    (yyyy-MM-dd HH:mm:ss, inclusive upper bound, UTC — parsed via TIMESTAMP())
 --
@@ -24,7 +24,7 @@ WITH base AS (
   SELECT
     IFNULL(bytes_spilled_to_local_storage, 0) + IFNULL(bytes_spilled_to_remote_storage, 0) AS bytes_spilled
   FROM `keebo-portal.k3o_prd_ORGID_000_tf.query_history_view_tf`
-  WHERE warehouse_name = @warehouse_name
+  WHERE warehouse_name IN UNNEST(@warehouse_names)
     AND start_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND start_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
     {{FILTER_CLAUSE}}

@@ -1,7 +1,7 @@
 -- kwo_snowflake_warehouse_analysis_timeseries.sql
 --
 -- Parameters:
---   @warehouse_name STRING
+--   @warehouse_names ARRAY<STRING>
 --   @start_date STRING  (yyyy-MM-dd HH:mm:ss, inclusive lower bound, UTC — parsed via TIMESTAMP())
 --   @end_date STRING    (yyyy-MM-dd HH:mm:ss, inclusive upper bound, UTC — parsed via TIMESTAMP())
 --   @period_starts ARRAY<STRING>        (period labels, used only as the group-by key returned to the caller)
@@ -45,7 +45,7 @@ base AS (
   JOIN periods p
     ON q.start_time >= p.period_start_ms
    AND q.start_time <= p.period_end_ms
-  WHERE q.warehouse_name = @warehouse_name
+  WHERE q.warehouse_name IN UNNEST(@warehouse_names)
     AND q.start_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND q.start_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
     {{FILTER_CLAUSE}}
@@ -65,7 +65,8 @@ latency AS (
     period_start,
     AVG(execution_time) AS execution_time_avg_ms,
     APPROX_QUANTILES(execution_time, 100)[OFFSET(95)] AS execution_time_p95_ms,
-    APPROX_QUANTILES(execution_time, 100)[OFFSET(99)] AS execution_time_p99_ms
+    APPROX_QUANTILES(execution_time, 100)[OFFSET(99)] AS execution_time_p99_ms,
+    MAX(execution_time) AS execution_time_max_ms
   FROM base
   GROUP BY period_start
 ),
@@ -132,7 +133,7 @@ usage AS (
   JOIN periods p
     ON m.START_TIME >= p.period_start_ms
    AND m.START_TIME <= p.period_end_ms
-  WHERE m.WAREHOUSE_NAME = @warehouse_name
+  WHERE m.WAREHOUSE_NAME IN UNNEST(@warehouse_names)
     AND m.START_TIME >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND m.START_TIME <= UNIX_MILLIS(TIMESTAMP(@end_date))
   GROUP BY p.period_start
@@ -147,7 +148,7 @@ period_exec_totals AS (
   JOIN periods p
     ON q.start_time >= p.period_start_ms
    AND q.start_time <= p.period_end_ms
-  WHERE q.warehouse_name = @warehouse_name
+  WHERE q.warehouse_name IN UNNEST(@warehouse_names)
     AND q.start_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND q.start_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
   GROUP BY p.period_start
@@ -164,7 +165,7 @@ run_windows_filtered AS (
     q.end_time - q.execution_time AS run_start_ms,
     q.end_time AS run_end_ms
   FROM `keebo-portal.k3o_prd_ORGID_000_tf.query_history_view_tf` q
-  WHERE q.warehouse_name = @warehouse_name
+  WHERE q.warehouse_name IN UNNEST(@warehouse_names)
     -- overlap filter, not start_time-in-range: a query whose run window
     -- starts just before @start_date but extends into the range must
     -- still count toward concurrency in the periods it overlaps.
@@ -206,6 +207,7 @@ SELECT
   l.execution_time_avg_ms,
   l.execution_time_p95_ms,
   l.execution_time_p99_ms,
+  l.execution_time_max_ms,
   q.queued_query_count,
   q.queue_time_avg_ms,
   q.queue_time_p95_ms,
