@@ -25,6 +25,8 @@ interface WarehouseAnalysisRow {
   bytes_scanned: number | null
   by_error: { error_code: string; error_count: number }[] | null
   credits_used: number | null
+  concurrent_queries_max: number | null
+  concurrent_queries_avg: number | null
 }
 
 function daysBetween(start: string, end: string): number {
@@ -131,6 +133,8 @@ export async function GET(request: NextRequest) {
         bytes_scanned: Number(row?.bytes_scanned ?? 0),
         failed_query_count_by_error: failedQueryCountByError,
         credits_used: Number(row?.credits_used ?? 0),
+        concurrent_queries_max: Number(row?.concurrent_queries_max ?? 0),
+        concurrent_queries_avg: Number(row?.concurrent_queries_avg ?? 0),
       }
     })
 

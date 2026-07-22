@@ -143,6 +143,8 @@ export interface WarehouseAnalysisPoint {
   bytes_scanned: number
   failed_query_count_by_error: Record<string, number>
   credits_used: number
+  concurrent_queries_max: number
+  concurrent_queries_avg: number
 }
 
 export interface WarehouseAnalysisResponse {

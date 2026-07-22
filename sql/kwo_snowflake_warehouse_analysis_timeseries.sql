@@ -135,6 +135,46 @@ usage AS (
     AND m.START_TIME >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND m.START_TIME <= UNIX_MILLIS(TIMESTAMP(@end_date))
   GROUP BY p.period_start
+),
+run_windows_filtered AS (
+  SELECT
+    q.end_time - q.execution_time AS run_start_ms,
+    q.end_time AS run_end_ms
+  FROM `keebo-portal.k3o_prd_ORGID_000_tf.query_history_view_tf` q
+  WHERE q.warehouse_name = @warehouse_name
+    -- overlap filter, not start_time-in-range: a query whose run window
+    -- starts just before @start_date but extends into the range must
+    -- still count toward concurrency in the periods it overlaps.
+    AND q.end_time - q.execution_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
+    AND q.end_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
+),
+concurrency_events AS (
+  SELECT run_start_ms AS t, 1 AS delta FROM run_windows_filtered
+  UNION ALL
+  SELECT run_end_ms AS t, -1 AS delta FROM run_windows_filtered
+),
+concurrency_sweep AS (
+  SELECT
+    t,
+    SUM(delta) OVER (ORDER BY t, delta ASC) AS running_count,
+    LEAD(t) OVER (ORDER BY t, delta ASC) AS next_t
+  FROM concurrency_events
+),
+concurrency_segments AS (
+  SELECT t AS seg_start, next_t AS seg_end, running_count
+  FROM concurrency_sweep
+  WHERE next_t IS NOT NULL
+),
+concurrency AS (
+  SELECT
+    p.period_start,
+    MAX(s.running_count) AS concurrent_queries_max,
+    SUM(s.running_count * (LEAST(s.seg_end, p.period_end_ms) - GREATEST(s.seg_start, p.period_start_ms)))
+      / NULLIF(p.period_end_ms - p.period_start_ms, 0) AS concurrent_queries_avg
+  FROM periods p
+  JOIN concurrency_segments s
+    ON s.seg_start < p.period_end_ms AND s.seg_end > p.period_start_ms
+  GROUP BY p.period_start, p.period_end_ms, p.period_start_ms
 )
 SELECT
   p.period_start,
@@ -151,7 +191,9 @@ SELECT
   s.bytes_spilled_remote,
   sc.bytes_scanned,
   e.by_error,
-  u.credits_used
+  u.credits_used,
+  c.concurrent_queries_max,
+  c.concurrent_queries_avg
 FROM periods p
 LEFT JOIN query_volume_agg qv ON qv.period_start = p.period_start
 LEFT JOIN latency l ON l.period_start = p.period_start
@@ -160,4 +202,5 @@ LEFT JOIN spillage s ON s.period_start = p.period_start
 LEFT JOIN scanned sc ON sc.period_start = p.period_start
 LEFT JOIN errors_agg e ON e.period_start = p.period_start
 LEFT JOIN usage u ON u.period_start = p.period_start
+LEFT JOIN concurrency c ON c.period_start = p.period_start
 ORDER BY p.period_start

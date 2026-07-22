@@ -135,4 +135,60 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     expect(body.points[0].credits_used).toBe(12.5)
     expect(typeof body.points[0].credits_used).toBe('number')
   })
+
+  it('zero-fills concurrent_queries_max/avg for periods with no matching rows', async () => {
+    mockRunQuery.mockResolvedValue([])
+    const { GET } = await import('../route')
+    const res = await GET(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const body = await res.json()
+    expect(body.points[0].concurrent_queries_max).toBe(0)
+    expect(body.points[0].concurrent_queries_avg).toBe(0)
+  })
+
+  it('passes through concurrent_queries_max/avg from the sweep-line row', async () => {
+    mockRunQuery.mockResolvedValue([
+      { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_avg: 2.34 },
+    ])
+    const { GET } = await import('../route')
+    const res = await GET(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const body = await res.json()
+    expect(body.points[0].concurrent_queries_max).toBe(7)
+    expect(body.points[0].concurrent_queries_avg).toBe(2.34)
+  })
+
+  it('coerces BigQuery NUMERIC-wrapped concurrent_queries_avg to a plain number', async () => {
+    const numericWrapper = { toString: () => '2.34000', toJSON: () => '2.34000' }
+    mockRunQuery.mockResolvedValue([
+      { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_avg: numericWrapper },
+    ])
+    const { GET } = await import('../route')
+    const res = await GET(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const body = await res.json()
+    expect(body.points[0].concurrent_queries_avg).toBe(2.34)
+    expect(typeof body.points[0].concurrent_queries_avg).toBe('number')
+  })
 })
