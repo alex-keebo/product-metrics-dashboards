@@ -60,7 +60,7 @@ describe('WarehouseAnalysisCharts', () => {
         spillageHistogramBuckets={spillageHistogramBuckets}
       />
     )
-    expect(screen.getByText('Warehouse Usage')).toBeInTheDocument()
+    expect(screen.getByText('Usage')).toBeInTheDocument()
     expect(screen.getAllByText('Total Queries').length).toBeGreaterThan(0)
     expect(screen.getByText('Execution Time')).toBeInTheDocument()
     expect(screen.getByText('Execution Time Distribution')).toBeInTheDocument()

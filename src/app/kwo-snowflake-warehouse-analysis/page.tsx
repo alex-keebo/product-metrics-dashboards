@@ -97,6 +97,8 @@ export default function WarehouseAnalysisPage() {
 
   const [appliedFilter, setAppliedFilter] = useState<FilterGroup>({ id: 'root', match: 'AND', conditions: [] })
 
+  const [activeTab, setActiveTab] = useState<'query' | 'cluster'>('query')
+
   const [points, setPoints] = useState<WarehouseAnalysisPoint[]>([])
   const [granularityUsed, setGranularityUsed] = useState<Granularity>('day')
   const [timeseriesError, setTimeseriesError] = useState<FetchError | null>(null)
@@ -406,7 +408,7 @@ export default function WarehouseAnalysisPage() {
 
   return (
     <div className="p-6 flex flex-col gap-4">
-      <h1 className="text-xl font-heading font-semibold">Snowflake Warehouse Analysis</h1>
+      <h1 className="text-xl font-heading font-semibold">Snowflake Analysis</h1>
 
       {customersError && <SectionError error={customersError} />}
 
@@ -437,84 +439,127 @@ export default function WarehouseAnalysisPage() {
         </div>
       )}
 
-      {!selectedCustomer && (
-        <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view warehouse analysis.</div>
-      )}
+      <div className="flex gap-4 border-b border-border">
+        <button
+          type="button"
+          onClick={() => setActiveTab('query')}
+          className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === 'query'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Query analysis
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab('cluster')}
+          className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === 'cluster'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Cluster Activity
+        </button>
+      </div>
 
-      {selectedCustomer && !selectedWarehouse && (
-        <div className="p-8 text-center text-muted-foreground text-sm">Select a Warehouse to view query performance.</div>
-      )}
-
-      {selectedCustomer && selectedWarehouse && timeseriesError && <SectionError error={timeseriesError} />}
-
-      {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
-
-      {selectedCustomer && selectedWarehouse && !dataScannedHistogramLoading && dataScannedHistogramError && (
-        <SectionError error={dataScannedHistogramError} />
-      )}
-
-      {selectedCustomer && selectedWarehouse && !spillageHistogramLoading && spillageHistogramError && (
-        <SectionError error={spillageHistogramError} />
-      )}
-
-      {selectedCustomer && selectedWarehouse && !compileTimeHistogramLoading && compileTimeHistogramError && (
-        <SectionError error={compileTimeHistogramError} />
-      )}
-
-      {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
-        <div className="p-8 text-center text-muted-foreground text-sm">
-          No query history for this warehouse in the selected range.
-        </div>
-      )}
-
-      {selectedCustomer && selectedWarehouse && !timeseriesError && (sectionLoading || sectionHasData) && (
+      {activeTab === 'query' && (
         <>
-          <WarehouseAnalysisCharts
-            points={points}
-            histogramBuckets={histogramBuckets}
-            dataScannedHistogramBuckets={dataScannedHistogramBuckets}
-            spillageHistogramBuckets={spillageHistogramBuckets}
-            compileTimeHistogramBuckets={compileTimeHistogramBuckets}
-            loading={loading}
-            histogramLoading={histogramLoading}
-            dataScannedHistogramLoading={dataScannedHistogramLoading}
-            spillageHistogramLoading={spillageHistogramLoading}
-            compileTimeHistogramLoading={compileTimeHistogramLoading}
-            filterActive={appliedFilter.conditions.length > 0}
-          />
+          {!selectedCustomer && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view warehouse analysis.</div>
+          )}
 
-          <ChartWrapper
-            title="Cluster Activity"
-            isLight={isLight}
-            totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? totalsClusterActivity : undefined}
-            loading={clusterActivityLoading}
-            notApplicable={appliedFilter.conditions.length > 0}
-          >
-            {clusterActivityError ? (
-              <SectionError error={clusterActivityError} />
-            ) : clusterIntervals.length === 0 ? (
-              <div className="p-8 text-center text-muted-foreground text-sm">
-                No cluster activity for this warehouse in the selected range.
-              </div>
-            ) : (
-              <WarehouseActivityTimeline
-                intervals={clusterIntervals}
-                rangeStart={`${startDate}T00:00:00.000`}
-                rangeEnd={`${endDate}T23:59:59.000`}
+          {selectedCustomer && !selectedWarehouse && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Select a Warehouse to view query performance.</div>
+          )}
+
+          {selectedCustomer && selectedWarehouse && timeseriesError && <SectionError error={timeseriesError} />}
+
+          {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
+
+          {selectedCustomer && selectedWarehouse && !dataScannedHistogramLoading && dataScannedHistogramError && (
+            <SectionError error={dataScannedHistogramError} />
+          )}
+
+          {selectedCustomer && selectedWarehouse && !spillageHistogramLoading && spillageHistogramError && (
+            <SectionError error={spillageHistogramError} />
+          )}
+
+          {selectedCustomer && selectedWarehouse && !compileTimeHistogramLoading && compileTimeHistogramError && (
+            <SectionError error={compileTimeHistogramError} />
+          )}
+
+          {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
+            <div className="p-8 text-center text-muted-foreground text-sm">
+              No query history for this warehouse in the selected range.
+            </div>
+          )}
+
+          {selectedCustomer && selectedWarehouse && !timeseriesError && (sectionLoading || sectionHasData) && (
+            <>
+              <WarehouseAnalysisCharts
+                points={points}
+                histogramBuckets={histogramBuckets}
+                dataScannedHistogramBuckets={dataScannedHistogramBuckets}
+                spillageHistogramBuckets={spillageHistogramBuckets}
+                compileTimeHistogramBuckets={compileTimeHistogramBuckets}
+                loading={loading}
+                histogramLoading={histogramLoading}
+                dataScannedHistogramLoading={dataScannedHistogramLoading}
+                spillageHistogramLoading={spillageHistogramLoading}
+                compileTimeHistogramLoading={compileTimeHistogramLoading}
+                filterActive={appliedFilter.conditions.length > 0}
               />
-            )}
-          </ChartWrapper>
 
-          {loading ? (
-            <div className="animate-pulse rounded-lg h-40 bg-muted" />
-          ) : (
-            <DataTable
-              columns={tableColumns}
-              rows={tableRows as unknown as Record<string, unknown>[]}
-              defaultSortKey="period_label"
-              defaultSortDir="asc"
-              csvFilename="warehouse_analysis.csv"
-            />
+              {loading ? (
+                <div className="animate-pulse rounded-lg h-40 bg-muted" />
+              ) : (
+                <DataTable
+                  columns={tableColumns}
+                  rows={tableRows as unknown as Record<string, unknown>[]}
+                  defaultSortKey="period_label"
+                  defaultSortDir="asc"
+                  csvFilename="warehouse_analysis.csv"
+                />
+              )}
+            </>
+          )}
+        </>
+      )}
+
+      {activeTab === 'cluster' && (
+        <>
+          {!selectedCustomer && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view cluster activity.</div>
+          )}
+
+          {selectedCustomer && !selectedWarehouse && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Select a Warehouse to view cluster activity.</div>
+          )}
+
+          {selectedCustomer && selectedWarehouse && (
+            <ChartWrapper
+              title="Cluster Activity"
+              isLight={isLight}
+              totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? totalsClusterActivity : undefined}
+              loading={clusterActivityLoading}
+              notApplicable={appliedFilter.conditions.length > 0}
+            >
+              {clusterActivityError ? (
+                <SectionError error={clusterActivityError} />
+              ) : clusterIntervals.length === 0 ? (
+                <div className="p-8 text-center text-muted-foreground text-sm">
+                  No cluster activity for this warehouse in the selected range.
+                </div>
+              ) : (
+                <WarehouseActivityTimeline
+                  intervals={clusterIntervals}
+                  rangeStart={`${startDate}T00:00:00.000`}
+                  rangeEnd={`${endDate}T23:59:59.000`}
+                />
+              )}
+            </ChartWrapper>
           )}
         </>
       )}

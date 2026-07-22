@@ -368,7 +368,7 @@ export function WarehouseAnalysisCharts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Warehouse Usage" isLight={isLight} totals={totalsUsage} loading={loading} notApplicable={filterActive}>
+      <ChartWrapper title="Usage" isLight={isLight} totals={totalsUsage} loading={loading} notApplicable={filterActive}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={usageData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
