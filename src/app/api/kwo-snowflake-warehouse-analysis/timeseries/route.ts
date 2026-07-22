@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseISO } from 'date-fns'
 import { runQuery, AdcAuthError, ORG_ID_PATTERN, loadOrgScopedSql } from '@/lib/bigquery'
+import { buildFilterWhereClause } from '@/lib/filterCompiler'
 import { buildPeriods, snapToGranularityBoundaries, formatPeriodLabel, formatCompactPeriodLabel } from '@/lib/dates'
-import type { Granularity, WarehouseAnalysisPoint, WarehouseAnalysisResponse } from '@/lib/types'
+import type { Granularity, WarehouseAnalysisPoint, WarehouseAnalysisResponse, FilterGroup } from '@/lib/types'
 
 const MAX_HOUR_RANGE_DAYS = 14
 
@@ -32,13 +33,21 @@ function daysBetween(start: string, end: string): number {
   return Math.round((endMs - startMs) / (1000 * 60 * 60 * 24))
 }
 
-export async function GET(request: NextRequest) {
-  const searchParams = request.nextUrl.searchParams
-  const orgId = searchParams.get('org_id')
-  const warehouseName = searchParams.get('warehouse_name')
-  const startDate = searchParams.get('start_date')
-  const endDate = searchParams.get('end_date')
-  const granularityParam = (searchParams.get('granularity') || 'day') as Granularity
+export async function POST(request: NextRequest) {
+  const body = (await request.json()) as {
+    org_id?: string
+    warehouse_name?: string
+    start_date?: string
+    end_date?: string
+    granularity?: Granularity
+    filter_conditions?: FilterGroup
+  }
+  const orgId = body.org_id ?? null
+  const warehouseName = body.warehouse_name ?? null
+  const startDate = body.start_date ?? null
+  const endDate = body.end_date ?? null
+  const granularityParam = body.granularity || 'day'
+  const filterConditions = body.filter_conditions
 
   if (!orgId || !warehouseName || !startDate || !endDate) {
     return NextResponse.json(
@@ -81,14 +90,34 @@ export async function GET(request: NextRequest) {
       granularityUsed === 'hour' ? `${p.end}.999` : `${p.end} 23:59:59.999`
     )
 
-    const rows = await runQuery<WarehouseAnalysisRow>(sql, {
-      warehouse_name: warehouseName,
-      start_date: queryStartDate,
-      end_date: queryEndDate,
-      period_starts: periods.map((p) => p.start),
-      period_start_bounds: periodStartBounds,
-      period_end_bounds: periodEndBounds,
-    })
+    let filterParams: Record<string, unknown> = {}
+    let filterTypes: Record<string, string | string[]> = {}
+    let filteredSql = sql
+    if (filterConditions) {
+      const compiled = buildFilterWhereClause(filterConditions)
+      filterParams = compiled.params
+      filterTypes = compiled.types
+      filteredSql = filteredSql.replace(
+        /\{\{FILTER_CLAUSE\}\}/g,
+        compiled.sql ? `AND (${compiled.sql})` : ''
+      )
+    } else {
+      filteredSql = filteredSql.replace(/\{\{FILTER_CLAUSE\}\}/g, '')
+    }
+
+    const rows = await runQuery<WarehouseAnalysisRow>(
+      filteredSql,
+      {
+        warehouse_name: warehouseName,
+        start_date: queryStartDate,
+        end_date: queryEndDate,
+        period_starts: periods.map((p) => p.start),
+        period_start_bounds: periodStartBounds,
+        period_end_bounds: periodEndBounds,
+        ...filterParams,
+      },
+      filterTypes
+    )
 
     const rowsByPeriod = new Map(rows.map((r) => [r.period_start, r]))
 

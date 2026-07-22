@@ -48,6 +48,7 @@ base AS (
   WHERE q.warehouse_name = @warehouse_name
     AND q.start_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND q.start_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
+    {{FILTER_CLAUSE}}
 ),
 query_volume AS (
   SELECT period_start, query_type, COUNT(*) AS query_count
@@ -147,6 +148,7 @@ run_windows_filtered AS (
     -- still count toward concurrency in the periods it overlaps.
     AND q.end_time - q.execution_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
     AND q.end_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
+    {{FILTER_CLAUSE}}
 ),
 concurrency_events AS (
   SELECT run_start_ms AS t, 1 AS delta FROM run_windows_filtered

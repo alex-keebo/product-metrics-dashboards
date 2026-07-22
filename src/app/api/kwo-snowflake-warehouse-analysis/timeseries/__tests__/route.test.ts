@@ -11,27 +11,29 @@ vi.mock('@/lib/bigquery', async () => {
   }
 })
 
-function makeRequest(params: Record<string, string>) {
-  const url = new URL('http://localhost/api/kwo-snowflake-warehouse-analysis/timeseries')
-  for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v)
-  return new NextRequest(url)
+function makeRequest(body: Record<string, unknown>) {
+  return new NextRequest('http://localhost/api/kwo-snowflake-warehouse-analysis/timeseries', {
+    method: 'POST',
+    body: JSON.stringify(body),
+    headers: { 'content-type': 'application/json' },
+  })
 }
 
-describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
+describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
   beforeEach(() => {
     vi.resetModules()
     mockRunQuery.mockReset()
   })
 
   it('returns 400 when required params are missing', async () => {
-    const { GET } = await import('../route')
-    const res = await GET(makeRequest({ org_id: '90402' }))
+    const { POST } = await import('../route')
+    const res = await POST(makeRequest({ org_id: '90402' }))
     expect(res.status).toBe(400)
   })
 
   it('returns 400 for a non-numeric org_id', async () => {
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402; DROP TABLE x',
         warehouse_name: 'ANALYTICS_WH',
@@ -45,8 +47,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
 
   it('falls back to day granularity when hour range exceeds 14 days', async () => {
     mockRunQuery.mockResolvedValue([])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -61,8 +63,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
 
   it('returns points with zero-filled aggregates for periods with no matching rows', async () => {
     mockRunQuery.mockResolvedValue([])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -81,8 +83,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
 
   it('passes through credits_used from the metering history row', async () => {
     mockRunQuery.mockResolvedValue([{ period_start: '2026-07-01', credits_used: 12.5 }])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -97,8 +99,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
 
   it('passes through bytes_scanned from the query history row', async () => {
     mockRunQuery.mockResolvedValue([{ period_start: '2026-07-01', bytes_scanned: 104857600 }])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -121,8 +123,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
       toJSON: () => '12.50000',
     }
     mockRunQuery.mockResolvedValue([{ period_start: '2026-07-01', credits_used: numericWrapper }])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -138,8 +140,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
 
   it('zero-fills concurrent_queries_max/avg for periods with no matching rows', async () => {
     mockRunQuery.mockResolvedValue([])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -157,8 +159,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     mockRunQuery.mockResolvedValue([
       { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_avg: 2.34 },
     ])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -177,8 +179,8 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     mockRunQuery.mockResolvedValue([
       { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_avg: numericWrapper },
     ])
-    const { GET } = await import('../route')
-    const res = await GET(
+    const { POST } = await import('../route')
+    const res = await POST(
       makeRequest({
         org_id: '90402',
         warehouse_name: 'ANALYTICS_WH',
@@ -190,5 +192,47 @@ describe('GET /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     const body = await res.json()
     expect(body.points[0].concurrent_queries_avg).toBe(2.34)
     expect(typeof body.points[0].concurrent_queries_avg).toBe('number')
+  })
+
+  it('splices the same compiled filter fragment into both the base and run_windows_filtered CTEs', async () => {
+    mockRunQuery.mockResolvedValue([])
+    const { POST } = await import('../route')
+    await POST(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+        filter_conditions: {
+          match: 'AND',
+          conditions: [{ field: 'query_type', operator: '=', value: 'SELECT' }],
+        },
+      })
+    )
+    expect(mockRunQuery).toHaveBeenCalledTimes(1)
+    const [sqlArg, paramsArg, typesArg] = mockRunQuery.mock.calls[0]
+    const occurrences = (sqlArg.match(/AND \(QUERY_TYPE = @p_0\)/g) ?? []).length
+    expect(occurrences).toBe(2)
+    expect(sqlArg).not.toContain('{{FILTER_CLAUSE}}')
+    expect(paramsArg.p_0).toBe('SELECT')
+    expect(typesArg).toEqual({})
+  })
+
+  it('splices an empty string for both markers when no filter is supplied', async () => {
+    mockRunQuery.mockResolvedValue([])
+    const { POST } = await import('../route')
+    await POST(
+      makeRequest({
+        org_id: '90402',
+        warehouse_name: 'ANALYTICS_WH',
+        start_date: '2026-07-01',
+        end_date: '2026-07-01',
+        granularity: 'day',
+      })
+    )
+    const [sqlArg] = mockRunQuery.mock.calls[0]
+    expect(sqlArg).not.toContain('{{FILTER_CLAUSE}}')
+    expect(sqlArg).not.toMatch(/AND \(QUERY_TYPE/)
   })
 })
