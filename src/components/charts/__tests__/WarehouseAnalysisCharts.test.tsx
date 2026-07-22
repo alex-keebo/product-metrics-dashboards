@@ -43,6 +43,13 @@ const points: WarehouseAnalysisPoint[] = [
   },
 ]
 
+const baseProps = {
+  points,
+  histogramBuckets,
+  dataScannedHistogramBuckets,
+  spillageHistogramBuckets,
+}
+
 describe('WarehouseAnalysisCharts', () => {
   it('renders all chart titles', () => {
     render(
@@ -141,6 +148,17 @@ describe('WarehouseAnalysisCharts', () => {
     expect(screen.getByText('Max Concurrent')).toBeInTheDocument()
     // points fixture: concurrent_queries_max 5
     expect(screen.getByText('5.00')).toBeInTheDocument()
+  })
+
+  it('shows "Filter not applicable" only on Warehouse Usage and Cost per 1000 Queries when a filter is active', () => {
+    render(<WarehouseAnalysisCharts {...baseProps} filterActive />)
+    const badges = screen.getAllByTestId('chart-not-applicable-badge')
+    expect(badges).toHaveLength(2)
+  })
+
+  it('shows no "Filter not applicable" badges when no filter is active', () => {
+    render(<WarehouseAnalysisCharts {...baseProps} filterActive={false} />)
+    expect(screen.queryByTestId('chart-not-applicable-badge')).toBeNull()
   })
 })
 

@@ -159,6 +159,8 @@ interface WarehouseAnalysisChartsProps {
   dataScannedHistogramLoading?: boolean
   spillageHistogramLoading?: boolean
   compileTimeHistogramLoading?: boolean
+  /** True when a custom query-level filter is applied — flags Warehouse Usage and Cost per 1000 Queries as not applicable, since both are sourced from warehouse_metering_history_tf, not query_history_view_tf. */
+  filterActive?: boolean
 }
 
 
@@ -173,6 +175,7 @@ export function WarehouseAnalysisCharts({
   dataScannedHistogramLoading,
   spillageHistogramLoading,
   compileTimeHistogramLoading,
+  filterActive,
 }: WarehouseAnalysisChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
@@ -365,7 +368,7 @@ export function WarehouseAnalysisCharts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Warehouse Usage" isLight={isLight} totals={totalsUsage} loading={loading}>
+      <ChartWrapper title="Warehouse Usage" isLight={isLight} totals={totalsUsage} loading={loading} notApplicable={filterActive}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={usageData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -383,6 +386,7 @@ export function WarehouseAnalysisCharts({
         isLight={isLight}
         totals={totalsCostPer1000}
         loading={loading}
+        notApplicable={filterActive}
       >
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={costPer1000Data} barSize={30}>
