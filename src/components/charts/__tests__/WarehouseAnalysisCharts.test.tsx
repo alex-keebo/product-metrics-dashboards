@@ -132,6 +132,21 @@ describe('WarehouseAnalysisCharts', () => {
     expect(screen.getByText('Cost per 1000 Queries')).toBeInTheDocument()
     expect(screen.getByText('0.00')).toBeInTheDocument()
   })
+
+  it('renders the Query Concurrency chart with max/avg totals', () => {
+    render(
+      <WarehouseAnalysisCharts
+        points={points}
+        histogramBuckets={histogramBuckets}
+        dataScannedHistogramBuckets={dataScannedHistogramBuckets}
+        spillageHistogramBuckets={spillageHistogramBuckets}
+      />
+    )
+    expect(screen.getByText('Query Concurrency')).toBeInTheDocument()
+    expect(screen.getByText('Max Concurrent')).toBeInTheDocument()
+    // points fixture: concurrent_queries_max 5
+    expect(screen.getByText('5.00')).toBeInTheDocument()
+  })
 })
 
 describe('DistributionTooltip', () => {

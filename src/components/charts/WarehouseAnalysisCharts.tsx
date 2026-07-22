@@ -176,6 +176,7 @@ const SHOW_METRIC = {
   usage: true,
   costPer1000Queries: true,
   totalQueries: true,
+  queryConcurrency: true,
   executionTime: true,
   executionTimeDistribution: true,
   queuedQueries: true,
@@ -261,6 +262,16 @@ export function WarehouseAnalysisCharts({
     [points]
   )
 
+  const concurrencyData = useMemo(
+    () =>
+      points.map((p) => ({
+        period_label_display: p.period_label_display,
+        max: p.concurrent_queries_max,
+        avg: p.concurrent_queries_avg,
+      })),
+    [points]
+  )
+
   const queuedData = useMemo(
     () => points.map((p) => ({ period_label_display: p.period_label_display, queued_query_count: p.queued_query_count })),
     [points]
@@ -306,6 +317,12 @@ export function WarehouseAnalysisCharts({
       { label: 'Credits / 1000 Queries', value: formatDecimalNumber(totalQueries > 0 ? (totalCredits / totalQueries) * 1000 : 0) },
     ]
   }, [points])
+
+  const totalsConcurrency = useMemo(() => {
+    if (concurrencyData.length === 0) return [{ label: 'Max Concurrent', value: formatDecimalNumber(0) }]
+    const max = Math.max(...concurrencyData.map((d) => d.max))
+    return [{ label: 'Max Concurrent', value: formatDecimalNumber(max) }]
+  }, [concurrencyData])
 
   const totalsExecution = useMemo(() => {
     if (executionData.length === 0) return [{ label: 'Avg (ms)', value: formatDecimalNumber(0) }]
@@ -418,6 +435,25 @@ export function WarehouseAnalysisCharts({
             <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Total Queries'} wrapperStyle={legendStyle} />
             <Bar dataKey="total_query_count" name="Total Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper
+        title="Query Concurrency"
+        isLight={isLight}
+        totals={SHOW_METRIC.queryConcurrency ? totalsConcurrency : undefined}
+        loading={loading}
+      >
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={concurrencyData}>
+            <CartesianGrid stroke={GRID} vertical={false} />
+            <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
+            <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} wrapperStyle={legendStyle} />
+            <Line type="monotone" dataKey="max" name="Max Concurrent" stroke={C_NAVY} strokeWidth={2} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="avg" name="Avg Concurrent" stroke={C_DEEP} strokeWidth={2} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+          </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
 
