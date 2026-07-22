@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { runQuery, AdcAuthError, ORG_ID_PATTERN, loadOrgScopedSql } from '@/lib/bigquery'
-import { buildClusterIntervals, type ClusterEventRow } from '@/lib/clusterIntervals'
+import { buildClusterIntervals, buildSizeIntervals, type ClusterEventRow, type SizeEventRow } from '@/lib/clusterIntervals'
 import type { ClusterActivityResponse } from '@/lib/types'
 
 export async function GET(request: NextRequest) {
@@ -25,15 +25,22 @@ export async function GET(request: NextRequest) {
 
   try {
     const sql = loadOrgScopedSql('kwo_snowflake_warehouse_cluster_events.sql', orgId)
+    const sizeSql = loadOrgScopedSql('kwo_snowflake_warehouse_size_history.sql', orgId)
 
-    const rows = await runQuery<ClusterEventRow>(sql, {
+    const queryParams = {
       warehouse_name: warehouseName,
       start_date: `${startDate} 00:00:00`,
       end_date: `${endDate} 23:59:59`,
-    })
+    }
+
+    const [rows, sizeRows] = await Promise.all([
+      runQuery<ClusterEventRow>(sql, queryParams),
+      runQuery<SizeEventRow>(sizeSql, queryParams),
+    ])
 
     const intervals = buildClusterIntervals(rows, rangeStart, rangeEnd)
-    const response: ClusterActivityResponse = { intervals }
+    const sizeIntervals = buildSizeIntervals(sizeRows, rangeStart, rangeEnd)
+    const response: ClusterActivityResponse = { intervals, sizeIntervals }
     return NextResponse.json(response)
   } catch (err) {
     console.error('[snf-warehouse-cluster-activity]', err)

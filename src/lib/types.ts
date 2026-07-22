@@ -114,8 +114,15 @@ export interface ClusterInterval {
   truncated_end: boolean
 }
 
+export interface WarehouseSizeInterval {
+  size_rank: number
+  start: string
+  end: string
+}
+
 export interface ClusterActivityResponse {
   intervals: ClusterInterval[]
+  sizeIntervals: WarehouseSizeInterval[]
 }
 
 export interface WarehouseOption {

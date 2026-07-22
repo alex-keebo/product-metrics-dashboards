@@ -20,6 +20,7 @@ import type {
   WarehouseAnalysisPoint,
   WarehouseAnalysisResponse,
   WarehouseOption,
+  WarehouseSizeInterval,
 } from '@/lib/types'
 
 const MAX_HOUR_RANGE_DAYS = 14
@@ -118,6 +119,7 @@ export default function WarehouseAnalysisPage() {
   const [loading, setLoading] = useState(false)
 
   const [clusterIntervals, setClusterIntervals] = useState<ClusterInterval[]>([])
+  const [sizeIntervals, setSizeIntervals] = useState<WarehouseSizeInterval[]>([])
   const [clusterActivityError, setClusterActivityError] = useState<FetchError | null>(null)
   const [clusterActivityLoading, setClusterActivityLoading] = useState(false)
 
@@ -204,6 +206,7 @@ export default function WarehouseAnalysisPage() {
   useEffect(() => {
     if (!selectedCustomer || !selectedClusterWarehouse) {
       setClusterIntervals([])
+      setSizeIntervals([])
       return
     }
     const controller = new AbortController()
@@ -222,6 +225,7 @@ export default function WarehouseAnalysisPage() {
         const body = (await res.json()) as ClusterActivityResponse & { error?: string; code?: string }
         if (!res.ok) throw body
         setClusterIntervals(body.intervals)
+        setSizeIntervals(body.sizeIntervals ?? [])
       })
       .catch((err) => {
         if (err.name === 'AbortError') return
@@ -600,6 +604,7 @@ export default function WarehouseAnalysisPage() {
               ) : (
                 <WarehouseActivityTimeline
                   intervals={clusterIntervals}
+                  sizeIntervals={sizeIntervals}
                   rangeStart={`${startDate}T00:00:00.000`}
                   rangeEnd={`${endDate}T23:59:59.000`}
                 />

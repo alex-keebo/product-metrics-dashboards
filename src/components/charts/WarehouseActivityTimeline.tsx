@@ -4,14 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { flushSync } from 'react-dom'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import {
-  C_NAVY, C_DEEP, LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID,
+  C_NAVY, C_DEEP, C_TEAL, C_SLATE, C_ICE, C_FROST, C_ABYSS,
+  LIGHT_AXIS, DARK_AXIS, LIGHT_GRID, DARK_GRID,
   LIGHT_CURSOR_FILL, DARK_CURSOR_FILL,
   TOOLTIP_BG_LIGHT, TOOLTIP_BG_DARK,
   TOOLTIP_BORDER_LIGHT, TOOLTIP_BORDER_DARK,
   TOOLTIP_MUTED_LIGHT, TOOLTIP_MUTED_DARK,
   TOOLTIP_TEXT_LIGHT, TOOLTIP_TEXT_DARK,
 } from './TimeSeriesCharts'
-import type { ClusterInterval } from '@/lib/types'
+import type { ClusterInterval, WarehouseSizeInterval } from '@/lib/types'
 import { WAREHOUSE_ROW_CLUSTER_NUMBER } from '@/lib/clusterIntervals'
 
 const LABEL_WIDTH = 96
@@ -20,15 +21,41 @@ const BAR_HEIGHT = 22
 const FADE_FRACTION = 0.2
 const TICK_COUNT = 5
 const MIN_GAP_PCT = 0.15
+const NO_DATA_FILL = 'var(--muted-foreground)'
+
+const SIZE_RANK_COLORS = [C_FROST, C_ICE, C_TEAL, C_SLATE, C_NAVY, C_DEEP, C_ABYSS, C_ABYSS, C_ABYSS, C_ABYSS]
+const SIZE_RANK_LABELS = [
+  'X-Small', 'Small', 'Medium', 'Large', 'X-Large',
+  '2X-Large', '3X-Large', '4X-Large', '5X-Large', '6X-Large',
+]
+
+function colorForRank(rank: number | null): string {
+  if (rank === null || rank === undefined) return NO_DATA_FILL
+  return SIZE_RANK_COLORS[rank] ?? C_ABYSS
+}
 
 interface WarehouseActivityTimelineProps {
   intervals: ClusterInterval[]
+  sizeIntervals: WarehouseSizeInterval[]
   rangeStart: string
   rangeEnd: string
 }
 
+// Rendered timeline segment. Cluster rows map 1:1 from ClusterInterval
+// (size_rank absent). Warehouse-row segments come from clipping sizeIntervals
+// against activity intervals — resume/suspend events stay the source of truth
+// for *when* the row is active; size_rank only supplies color within that span.
+interface TimelineSegment {
+  cluster_number: number
+  start: string
+  end: string
+  truncated_start: boolean
+  truncated_end: boolean
+  size_rank?: number | null
+}
+
 interface HoverState {
-  interval: ClusterInterval
+  interval: TimelineSegment
   clientX: number
   clientY: number
 }
@@ -50,8 +77,57 @@ function formatDuration(startIso: string, endIso: string): string {
   return `${minutes}m ${seconds}s`
 }
 
+// Clips sizeIntervals against each warehouse activity interval, producing
+// colored sub-segments. Gaps within an active interval with no matching size
+// data (warehouse active, no query has run yet) become size_rank: null
+// segments rendered with a neutral fill.
+function buildWarehouseSegments(
+  activity: ClusterInterval[],
+  sizes: WarehouseSizeInterval[]
+): TimelineSegment[] {
+  const sortedSizes = [...sizes].sort((a, b) => (a.start < b.start ? -1 : a.start > b.start ? 1 : 0))
+  const result: TimelineSegment[] = []
+
+  for (const a of activity) {
+    const aStartMs = toMs(a.start)
+    const aEndMs = toMs(a.end)
+    const overlapping = sortedSizes.filter((s) => toMs(s.end) > aStartMs && toMs(s.start) < aEndMs)
+    const local: { start: string; end: string; size_rank: number | null }[] = []
+    let cursor = a.start
+
+    for (const s of overlapping) {
+      const segStart = toMs(s.start) > aStartMs ? s.start : a.start
+      const segEnd = toMs(s.end) < aEndMs ? s.end : a.end
+      if (toMs(cursor) < toMs(segStart)) {
+        local.push({ start: cursor, end: segStart, size_rank: null })
+      }
+      local.push({ start: segStart, end: segEnd, size_rank: s.size_rank })
+      cursor = segEnd
+    }
+    if (toMs(cursor) < aEndMs) {
+      local.push({ start: cursor, end: a.end, size_rank: null })
+    }
+    if (local.length === 0) {
+      local.push({ start: a.start, end: a.end, size_rank: null })
+    }
+
+    local.forEach((seg, idx) => {
+      result.push({
+        cluster_number: WAREHOUSE_ROW_CLUSTER_NUMBER,
+        start: seg.start,
+        end: seg.end,
+        size_rank: seg.size_rank,
+        truncated_start: idx === 0 && a.truncated_start,
+        truncated_end: idx === local.length - 1 && a.truncated_end,
+      })
+    })
+  }
+
+  return result
+}
+
 interface IntervalRectProps {
-  interval: ClusterInterval
+  interval: TimelineSegment
   x: number
   width: number
   fill: string
@@ -105,7 +181,7 @@ function IntervalRect({ interval, x, width, fill, onHover }: IntervalRectProps) 
   )
 }
 
-export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: WarehouseActivityTimelineProps) {
+export function WarehouseActivityTimeline({ intervals, sizeIntervals, rangeStart, rangeEnd }: WarehouseActivityTimelineProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
@@ -119,10 +195,29 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
 
   const pct = (iso: string) => (rangeMs > 0 ? ((toMs(iso) - rangeStartMs) / rangeMs) * 100 : 0)
 
-  const warehouseIntervals = useMemo(
+  const warehouseActivity = useMemo(
     () => intervals.filter((i) => i.cluster_number === WAREHOUSE_ROW_CLUSTER_NUMBER),
     [intervals]
   )
+
+  const warehouseSegments = useMemo(
+    () => buildWarehouseSegments(warehouseActivity, sizeIntervals),
+    [warehouseActivity, sizeIntervals]
+  )
+
+  const legendItems = useMemo(() => {
+    const ranksPresent = new Set<number>()
+    let hasNoData = false
+    for (const seg of warehouseSegments) {
+      if (seg.size_rank === null || seg.size_rank === undefined) hasNoData = true
+      else ranksPresent.add(seg.size_rank)
+    }
+    const items = [...ranksPresent]
+      .sort((a, b) => a - b)
+      .map((rank) => ({ color: colorForRank(rank), label: SIZE_RANK_LABELS[rank] ?? `Rank ${rank}` }))
+    if (hasNoData) items.push({ color: NO_DATA_FILL, label: 'No data' })
+    return items
+  }, [warehouseSegments])
 
   const intervalsByCluster = useMemo(() => {
     const map = new Map<number, ClusterInterval[]>()
@@ -155,7 +250,7 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
   const text = isLight ? TOOLTIP_TEXT_LIGHT : TOOLTIP_TEXT_DARK
   const font = 'IBM Plex Sans, sans-serif'
 
-  if (clusterNumbers.length === 0 && warehouseIntervals.length === 0) {
+  if (clusterNumbers.length === 0 && warehouseSegments.length === 0) {
     return (
       <div style={{ padding: '24px 0', textAlign: 'center', color: muted, fontFamily: font, fontSize: 13 }}>
         No cluster activity for this warehouse in the selected range.
@@ -163,7 +258,12 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
     )
   }
 
-  const renderRow = (rowKey: string | number, label: string, rowIntervals: ClusterInterval[], fill: string) => (
+  const renderRow = (
+    rowKey: string | number,
+    label: string,
+    rowIntervals: TimelineSegment[],
+    fill: string | ((interval: TimelineSegment, idx: number) => string)
+  ) => (
     <div key={rowKey} style={{ display: 'flex', alignItems: 'center', height: ROW_HEIGHT }}>
       <div
         style={{
@@ -183,6 +283,7 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
             {rowIntervals.map((interval, idx) => {
               if (!interval.truncated_start && !interval.truncated_end) return null
               const gradientId = `row-fade-${rowKey}-${idx}`
+              const segFill = typeof fill === 'function' ? fill(interval, idx) : fill
               const stops: { offset: string; opacity: number }[] = [
                 { offset: '0%', opacity: interval.truncated_start ? 0 : 1 },
               ]
@@ -192,7 +293,7 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
               return (
                 <linearGradient key={gradientId} id={gradientId} x1="0" y1="0" x2="1" y2="0">
                   {stops.map((stop, stopIdx) => (
-                    <stop key={stopIdx} offset={stop.offset} stopColor={fill} stopOpacity={stop.opacity} />
+                    <stop key={stopIdx} offset={stop.offset} stopColor={segFill} stopOpacity={stop.opacity} />
                   ))}
                 </linearGradient>
               )
@@ -210,13 +311,14 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
               }
             }
             const needsGradient = interval.truncated_start || interval.truncated_end
+            const segFill = typeof fill === 'function' ? fill(interval, idx) : fill
             return (
               <IntervalRect
                 key={idx}
                 interval={interval}
                 x={x}
                 width={width}
-                fill={needsGradient ? `url(#row-fade-${rowKey}-${idx})` : fill}
+                fill={needsGradient ? `url(#row-fade-${rowKey}-${idx})` : segFill}
                 onHover={setHover}
               />
             )
@@ -251,15 +353,30 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
         </div>
       </div>
 
-      {warehouseIntervals.length > 0 && (
+      {warehouseSegments.length > 0 && (
         <>
-          {renderRow('warehouse', 'Warehouse', warehouseIntervals, C_DEEP)}
+          {renderRow('warehouse', 'Warehouse', warehouseSegments, (seg) => colorForRank(seg.size_rank ?? null))}
+          {legendItems.length > 0 && (
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', margin: '4px 0 8px', paddingLeft: LABEL_WIDTH }}>
+              {legendItems.map((item) => (
+                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <span style={{ width: 10, height: 10, borderRadius: 2, background: item.color, display: 'inline-block' }} />
+                  <span style={{ fontFamily: AXIS.fontFamily, fontSize: AXIS.fontSize, color: AXIS.fill }}>{item.label}</span>
+                </div>
+              ))}
+            </div>
+          )}
           <div style={{ height: 1, background: GRID, margin: '4px 0' }} />
         </>
       )}
 
       {clusterNumbers.map((clusterNumber) =>
-        renderRow(clusterNumber, `Cluster ${clusterNumber}`, intervalsByCluster.get(clusterNumber) ?? [], C_NAVY)
+        renderRow(
+          clusterNumber,
+          `Cluster ${clusterNumber}`,
+          (intervalsByCluster.get(clusterNumber) ?? []).map((i) => ({ ...i })),
+          C_NAVY
+        )
       )}
 
       {hover && (
@@ -296,10 +413,18 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
               {hover.interval.truncated_end ? 'Still running after selected range' : formatTickLabel(hover.interval.end)}
             </span>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: hover.interval.size_rank !== undefined ? 3 : 0 }}>
             <span style={{ color: muted }}>Duration</span>
             <span style={{ color: text }}>{formatDuration(hover.interval.start, hover.interval.end)}</span>
           </div>
+          {hover.interval.size_rank !== undefined && (
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 24 }}>
+              <span style={{ color: muted }}>Size</span>
+              <span style={{ color: text }}>
+                {hover.interval.size_rank === null ? 'No data' : SIZE_RANK_LABELS[hover.interval.size_rank] ?? '—'}
+              </span>
+            </div>
+          )}
         </div>
       )}
     </div>

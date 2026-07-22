@@ -210,6 +210,8 @@ export const C_TEAL  = '#9ac6da'
 export const C_SLATE = '#6c9db3'
 export const C_DEEP  = '#08394f'
 export const C_ICE   = '#c4e2f4'
+export const C_FROST = '#ebf7fe'
+export const C_ABYSS = '#00283a'
 
 // Tooltip colors (light/dark pairs)
 export const TOOLTIP_BG_LIGHT     = '#ffffff'

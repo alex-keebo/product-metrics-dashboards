@@ -1,4 +1,4 @@
-import type { ClusterInterval } from './types'
+import type { ClusterInterval, WarehouseSizeInterval } from './types'
 
 // Sentinel cluster_number used for warehouse-level RESUME_WAREHOUSE/SUSPEND_WAREHOUSE
 // events (see sql/kwo_snowflake_warehouse_cluster_events.sql) so they reuse the same
@@ -69,4 +69,40 @@ export function buildClusterIntervals(
   return intervals.sort(
     (a, b) => a.cluster_number - b.cluster_number || (a.start < b.start ? -1 : a.start > b.start ? 1 : 0)
   )
+}
+
+export interface SizeEventRow {
+  event_type: 'state_as_of_start' | 'in_range'
+  chunk_ts: string
+  size_rank: number
+}
+
+export function buildSizeIntervals(
+  rows: SizeEventRow[],
+  rangeStart: string,
+  rangeEnd: string
+): WarehouseSizeInterval[] {
+  const stateAsOfStart = rows.find((r) => r.event_type === 'state_as_of_start')
+  const inRange = rows
+    .filter((r) => r.event_type === 'in_range')
+    .sort((a, b) => (a.chunk_ts < b.chunk_ts ? -1 : a.chunk_ts > b.chunk_ts ? 1 : 0))
+
+  const intervals: WarehouseSizeInterval[] = []
+
+  let currentRank = stateAsOfStart?.size_rank
+  let currentStart = rangeStart
+
+  for (const event of inRange) {
+    if (currentRank !== undefined) {
+      intervals.push({ size_rank: currentRank, start: currentStart, end: event.chunk_ts })
+    }
+    currentRank = event.size_rank
+    currentStart = event.chunk_ts
+  }
+
+  if (currentRank !== undefined) {
+    intervals.push({ size_rank: currentRank, start: currentStart, end: rangeEnd })
+  }
+
+  return intervals
 }
