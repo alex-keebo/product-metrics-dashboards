@@ -1,4 +1,4 @@
-import { FILTER_FIELDS } from './filterFields'
+import { FILTER_FIELDS, OPERATORS_BY_TYPE } from './filterFields'
 import { isFilterGroup, type FilterCondition, type FilterGroup } from './types'
 
 export interface CompiledFilter {
@@ -21,6 +21,9 @@ function compileCondition(
   const def = FILTER_FIELDS[cond.field]
   if (!def) {
     throw new Error(`unknown filter field: ${cond.field}`)
+  }
+  if (!OPERATORS_BY_TYPE[def.type].includes(cond.operator)) {
+    throw new Error(`unsupported operator "${cond.operator}" for field: ${cond.field}`)
   }
 
   if (cond.operator === 'is null') return `${def.column} IS NULL`

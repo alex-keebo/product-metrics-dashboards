@@ -30,7 +30,6 @@ export function FilterPanel({
 
   function handleApply() {
     onApply(draft)
-    setOpen(false)
   }
 
   function handleCancel() {
@@ -45,10 +44,10 @@ export function FilterPanel({
   }
 
   return (
-    <div className="relative">
+    <>
       <button
         type="button"
-        className="relative flex items-center gap-2 border border-border rounded px-3 py-2 text-sm bg-background"
+        className="relative flex items-center gap-2 border border-border rounded px-3 py-1.5 text-sm bg-background"
         onClick={() => (open ? setOpen(false) : handleOpen())}
         data-testid="filter-trigger"
       >
@@ -62,11 +61,11 @@ export function FilterPanel({
       </button>
       {open && (
         <div
-          className="absolute z-10 mt-2 p-4 rounded-lg border border-border bg-background shadow-lg min-w-[480px]"
+          className="w-full p-4 rounded-lg border border-border bg-background"
           data-testid="filter-panel"
         >
           <FilterConditionBuilder group={draft} orgId={orgId} onChange={setDraft} />
-          <div className="flex justify-between items-center mt-4 pt-3 border-t border-border">
+          <div className="flex items-center gap-4 mt-4 pt-3 border-t border-border">
             <button type="button" className="text-xs text-muted-foreground" onClick={handleClearAll}>
               Clear all
             </button>
@@ -86,6 +85,6 @@ export function FilterPanel({
           </div>
         </div>
       )}
-    </div>
+    </>
   )
 }

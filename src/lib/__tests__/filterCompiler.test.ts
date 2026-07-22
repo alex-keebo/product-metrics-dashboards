@@ -162,6 +162,32 @@ describe('buildFilterWhereClause', () => {
     expect(() => buildFilterWhereClause(group)).toThrow(/unknown filter field/i)
   })
 
+  it('throws on an operator not valid for the field type', () => {
+    const group: FilterGroup = {
+      id: 'root',
+      match: 'AND',
+      conditions: [{ id: 'c1', field: 'execution_time', operator: 'contains', value: 'x' }],
+    }
+    expect(() => buildFilterWhereClause(group)).toThrow(/unsupported operator/i)
+  })
+
+  it('throws on an arbitrary/unrecognized operator string (injection guard)', () => {
+    const group: FilterGroup = {
+      id: 'root',
+      match: 'AND',
+      conditions: [
+        {
+          id: 'c1',
+          field: 'query_type',
+          // @ts-expect-error intentionally invalid operator to verify runtime rejection
+          operator: '= @p_0 OR 1=1 --',
+          value: 'x',
+        },
+      ],
+    }
+    expect(() => buildFilterWhereClause(group)).toThrow(/unsupported operator/i)
+  })
+
   it('a single-condition nested empty group is dropped (no dangling parens)', () => {
     const group: FilterGroup = {
       id: 'root',

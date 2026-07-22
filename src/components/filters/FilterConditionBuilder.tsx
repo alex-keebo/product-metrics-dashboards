@@ -62,7 +62,7 @@ function ConditionRow({
   }, [fieldDef?.autocomplete, orgId, condition.field])
 
   return (
-    <div className="flex flex-wrap items-center gap-2" data-testid="filter-condition-row">
+    <div className="flex flex-wrap items-end gap-2" data-testid="filter-condition-row">
       <Dropdown
         mode="single"
         label="Field"
@@ -138,9 +138,12 @@ function ConditionRow({
             />
           </div>
         ))}
-      <button type="button" className="text-xs text-muted-foreground hover:text-destructive" onClick={onRemove}>
-        Remove
-      </button>
+      <div className="flex flex-col gap-1">
+        <span className="text-xs invisible" aria-hidden="true">Remove</span>
+        <button type="button" className="text-xs text-muted-foreground hover:text-destructive py-1.5" onClick={onRemove}>
+          Remove
+        </button>
+      </div>
     </div>
   )
 }
@@ -167,18 +170,20 @@ export function FilterConditionBuilder({
 
   return (
     <div className="flex flex-col gap-2 pl-2 border-l border-border" data-testid="filter-group">
-      <div className="flex items-center gap-2">
-        <Dropdown
-          mode="single"
-          label="Match"
-          options={[
-            { value: 'AND', label: 'AND' },
-            { value: 'OR', label: 'OR' },
-          ]}
-          value={group.match}
-          onChange={(match) => onChange({ ...group, match: match as 'AND' | 'OR' })}
-        />
-      </div>
+      {group.conditions.length > 1 && (
+        <div className="flex items-center gap-2">
+          <Dropdown
+            mode="single"
+            label="Match"
+            options={[
+              { value: 'AND', label: 'AND' },
+              { value: 'OR', label: 'OR' },
+            ]}
+            value={group.match}
+            onChange={(match) => onChange({ ...group, match: match as 'AND' | 'OR' })}
+          />
+        </div>
+      )}
       {group.conditions.map((node, index) =>
         isFilterGroup(node) ? (
           <FilterConditionBuilder
