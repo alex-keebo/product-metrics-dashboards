@@ -5,6 +5,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 ## Communication Style
 - Use the `caveman` skill by default for all responses in this repo (ultra-compressed, token-efficient communication).
 
+## Token Economy
+- Never re-read a file just edited/written by Edit/Write to "confirm" the change — the tool errors on failure and the harness tracks current file state. Trust the result.
+- Before a full-file Read, check if you already have the needed content in context from earlier this session; only re-read if the file may have changed outside your own edits.
+- Prefer `grep`/Explore-agent lookups over a full Read when you only need to confirm a symbol/string exists or find its location.
+- For large files, use Read's `offset`/`limit` to pull only the section you need instead of the whole file.
+- When dispatching subagents, pass along relevant file excerpts already in context instead of telling the agent to go re-read the same file from scratch.
+- Prefer fewer, longer-lived sessions over many short ones on the same feature — each new session pays a full re-read cost for files touched in prior sessions.
+
 ## Workflow Orchestration
 
 ### 1. Plan Mode Default

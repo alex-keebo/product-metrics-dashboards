@@ -1,5 +1,6 @@
 'use client'
 
+import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import { WarehouseAnalysisFilters } from '@/components/filters/WarehouseAnalysisFilters'
@@ -39,8 +40,14 @@ interface FetchError {
 function SectionError({ error }: { error: FetchError }) {
   if (error.code === 'ADC_UNAUTHENTICATED') {
     return (
-      <div className="p-4 rounded border border-destructive text-destructive text-sm">
-        {error.message} — visit <a href="/settings" className="underline">Settings</a> to re-authenticate.
+      <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-800 dark:text-amber-300 flex items-center justify-between gap-4 flex-wrap">
+        <span>BigQuery credentials are missing or expired.</span>
+        <Link
+          href="/settings"
+          className="rounded-md border border-amber-500/40 bg-amber-500/10 hover:bg-amber-500/20 px-3 py-1 text-xs font-medium"
+        >
+          Re-authenticate
+        </Link>
       </div>
     )
   }

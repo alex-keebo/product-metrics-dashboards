@@ -233,6 +233,11 @@ export default function KWOSnowflakePage() {
 
   const dataAsOf = snapshot?.data_as_of ?? timeseries?.data_as_of
   const noCustomers = selectedOrgIds !== null && selectedOrgIds.length === 0
+  const authError = snapshotError?.code === 'ADC_UNAUTHENTICATED'
+    ? snapshotError
+    : tsError?.code === 'ADC_UNAUTHENTICATED'
+      ? tsError
+      : null
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -246,6 +251,8 @@ export default function KWOSnowflakePage() {
           <div className="text-xs text-muted-foreground mt-1">Data as of {dataAsOf}</div>
         )}
       </div>
+
+      {authError && <SectionError error={authError} />}
 
       {/* Global Filters */}
       <DashboardFilters
@@ -303,7 +310,7 @@ export default function KWOSnowflakePage() {
           ) : (
             <>
               {snapshotLoading && <SectionLoader />}
-              {snapshotError && <SectionError error={snapshotError} />}
+              {snapshotError && snapshotError.code !== 'ADC_UNAUTHENTICATED' && <SectionError error={snapshotError} />}
               {!snapshotLoading && !snapshotError && snapshot && (
                 <>
                   {snapshot.period_start && (
@@ -364,7 +371,7 @@ export default function KWOSnowflakePage() {
           ) : (
             <>
               {tsLoading && <SectionLoader />}
-              {tsError && <SectionError error={tsError} />}
+              {tsError && tsError.code !== 'ADC_UNAUTHENTICATED' && <SectionError error={tsError} />}
               {!tsLoading && !tsError && timeseries && (
                 <>
                   <TimeSeriesCharts points={timeseries.points} allPeriods={timeseries.all_periods} unit="Credits" queryVolumeEnabled={queryVolumeEnabled} autoStopLabel="Auto-suspend" rangeTotals={timeseries.range_totals} />
