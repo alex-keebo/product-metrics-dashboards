@@ -319,6 +319,8 @@ interface ChartWrapperProps {
   loading?: boolean
   /** Height of the body skeleton shown while loading. Defaults to 220 to match the standard chart height. */
   skeletonHeight?: number
+  /** When true, shows a "Filter not applicable" badge next to the title — for charts sourced from tables the custom filter doesn't scope. */
+  notApplicable?: boolean
 }
 
 function ChartBodySkeleton({ isLight, height = 220 }: { isLight: boolean; height?: number }) {
@@ -330,7 +332,7 @@ function ChartBodySkeleton({ isLight, height = 220 }: { isLight: boolean; height
   )
 }
 
-export function ChartWrapper({ title, children, isLight, height, totals, loading, skeletonHeight }: ChartWrapperProps) {
+export function ChartWrapper({ title, children, isLight, height, totals, loading, skeletonHeight, notApplicable }: ChartWrapperProps) {
   const effectiveTotals = loading ? null : totals
   if (isLight) {
     return (
@@ -343,13 +345,31 @@ export function ChartWrapper({ title, children, isLight, height, totals, loading
         ...(height != null ? { height } : {}),
       }}>
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-          <div style={{
-            fontFamily: 'Exo, sans-serif',
-            fontWeight: 500,
-            fontSize: 18,
-            lineHeight: '24px',
-            color: '#051c27',
-          }}>{title}</div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <div style={{
+              fontFamily: 'Exo, sans-serif',
+              fontWeight: 500,
+              fontSize: 18,
+              lineHeight: '24px',
+              color: '#051c27',
+            }}>{title}</div>
+            {notApplicable && (
+              <span
+                data-testid="chart-not-applicable-badge"
+                style={{
+                  fontFamily: 'IBM Plex Sans, sans-serif',
+                  fontSize: 10,
+                  fontWeight: 500,
+                  color: 'var(--muted-foreground)',
+                  background: 'var(--muted)',
+                  borderRadius: 4,
+                  padding: '2px 6px',
+                }}
+              >
+                Filter not applicable
+              </span>
+            )}
+          </div>
           {effectiveTotals !== undefined && (
             <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
               {effectiveTotals === null ? (
@@ -379,13 +399,31 @@ export function ChartWrapper({ title, children, isLight, height, totals, loading
       ...(height != null ? { height } : {}),
     }}>
       <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div style={{
-          fontFamily: 'Exo, sans-serif',
-          fontWeight: 500,
-          fontSize: 16,
-          lineHeight: '22px',
-          color: '#e8f0f4',
-        }}>{title}</div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{
+            fontFamily: 'Exo, sans-serif',
+            fontWeight: 500,
+            fontSize: 16,
+            lineHeight: '22px',
+            color: '#e8f0f4',
+          }}>{title}</div>
+          {notApplicable && (
+            <span
+              data-testid="chart-not-applicable-badge"
+              style={{
+                fontFamily: 'IBM Plex Sans, sans-serif',
+                fontSize: 10,
+                fontWeight: 500,
+                color: 'var(--muted-foreground)',
+                background: 'var(--muted)',
+                borderRadius: 4,
+                padding: '2px 6px',
+              }}
+            >
+              Filter not applicable
+            </span>
+          )}
+        </div>
         {effectiveTotals !== undefined && (
           <div style={{ display: 'flex', gap: 16, flexShrink: 0, marginLeft: 12 }}>
             {effectiveTotals === null ? (
