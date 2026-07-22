@@ -160,3 +160,37 @@ export interface HistogramBucket {
 export interface HistogramResponse {
   buckets: HistogramBucket[]
 }
+
+export type FilterFieldType = 'string' | 'number' | 'boolean'
+
+export type FilterOperator =
+  | '='
+  | '!='
+  | '<'
+  | '<='
+  | '>'
+  | '>='
+  | 'contains'
+  | 'starts with'
+  | 'ends with'
+  | 'IN'
+  | 'NOT IN'
+  | 'is null'
+  | 'is not null'
+
+export interface FilterCondition {
+  id: string
+  field: string
+  operator: FilterOperator
+  value: string | string[]
+}
+
+export interface FilterGroup {
+  id: string
+  match: 'AND' | 'OR'
+  conditions: (FilterCondition | FilterGroup)[]
+}
+
+export function isFilterGroup(node: FilterCondition | FilterGroup): node is FilterGroup {
+  return 'match' in node
+}
