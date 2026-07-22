@@ -24,6 +24,7 @@ WITH base AS (
   WHERE warehouse_name = @warehouse_name
     AND start_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND start_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
+    {{FILTER_CLAUSE}}
 ),
 bucketed AS (
   SELECT
