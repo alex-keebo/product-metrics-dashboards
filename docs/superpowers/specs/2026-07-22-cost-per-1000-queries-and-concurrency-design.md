@@ -25,11 +25,11 @@ Warehouse Usage → **Cost per 1000 Queries** → Total Queries → **Query Conc
 
 ## 2. Query Concurrency
 
-- **Definition (from user):** a query's active/"running in a warehouse" window is:
-  - `run_start_ms = start_time + compilation_time + queue_time`
-    - `queue_time = queued_provisioning_time + queued_repair_time + queued_overload_time` (matches the existing `queue_time` computed in `base` CTE of `kwo_snowflake_warehouse_analysis_timeseries.sql`)
-  - `run_end_ms = run_start_ms + execution_time`
+- **Definition (from user, corrected):** `query_history_view_tf` has an `end_time` column (actual query completion, epoch ms) — use it directly rather than deriving from `start_time`/`compilation_time`/queue components:
+  - `run_end_ms = end_time`
+  - `run_start_ms = end_time - execution_time`
   - Concurrency at any instant = count of queries (same warehouse) whose `[run_start_ms, run_end_ms]` windows contain that instant.
+  - This is simpler and more accurate than deriving start from `start_time + compilation_time + queue_time` (avoids compounding rounding/null issues across three added fields) — confirm `end_time`'s column type via `bq show` (same NUMERIC-wrapper caution as elsewhere) before wiring in.
 - **Metric is an unitless instantaneous count** (how many queries overlap at once), not a queries-per-minute rate. Chart title: **"Query Concurrency"** (not "queries/min").
 - **Per period bucket, compute:**
   - `concurrent_queries_max` — the highest concurrent count observed at any instant during the period.
@@ -40,27 +40,17 @@ Warehouse Usage → **Cost per 1000 Queries** → Total Queries → **Query Conc
 New CTEs, added alongside the existing `base`/`usage` CTEs, joined into the final `SELECT` like all other metrics:
 
 ```
-run_windows AS (
+run_windows_filtered AS (
   SELECT
-    q.start_time + q.compilation_time
-      + IFNULL(q.queued_provisioning_time,0) + IFNULL(q.queued_repair_time,0) + IFNULL(q.queued_overload_time,0)
-      AS run_start_ms,
-    q.start_time + q.compilation_time
-      + IFNULL(q.queued_provisioning_time,0) + IFNULL(q.queued_repair_time,0) + IFNULL(q.queued_overload_time,0)
-      + q.execution_time AS run_end_ms
+    q.end_time - q.execution_time AS run_start_ms,
+    q.end_time AS run_end_ms
   FROM `keebo-portal.k3o_prd_ORGID_000_tf.query_history_view_tf` q
   WHERE q.warehouse_name = @warehouse_name
     -- overlap filter, not start_time-in-range: a query whose run window
     -- starts just before @start_date but extends into the range must
     -- still count toward concurrency in the periods it overlaps.
-    q.start_time BETWEEN
-      UNIX_MILLIS(TIMESTAMP(@start_date)) - 86400000  -- 24h lookback pad: bound worst-case
-      AND UNIX_MILLIS(TIMESTAMP(@end_date))           -- compile+queue+execution skew
-),
-run_windows_filtered AS (
-  SELECT * FROM run_windows
-  WHERE run_start_ms <= UNIX_MILLIS(TIMESTAMP(@end_date))
-    AND run_end_ms >= UNIX_MILLIS(TIMESTAMP(@start_date))
+    AND q.end_time - q.execution_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
+    AND q.end_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
 ),
 events AS (
   SELECT run_start_ms AS t, 1 AS delta FROM run_windows_filtered
