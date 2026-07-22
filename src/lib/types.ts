@@ -152,38 +152,11 @@ export interface WarehouseAnalysisResponse {
   points: WarehouseAnalysisPoint[]
 }
 
-export interface ExecutionTimeHistogramBucket {
+export interface HistogramBucket {
   bucket_label: string
   query_count: number
 }
 
-export interface ExecutionTimeHistogramResponse {
-  buckets: ExecutionTimeHistogramBucket[]
-}
-
-export interface DataScannedHistogramBucket {
-  bucket_label: string
-  query_count: number
-}
-
-export interface DataScannedHistogramResponse {
-  buckets: DataScannedHistogramBucket[]
-}
-
-export interface SpillageHistogramBucket {
-  bucket_label: string
-  query_count: number
-}
-
-export interface SpillageHistogramResponse {
-  buckets: SpillageHistogramBucket[]
-}
-
-export interface CompileTimeHistogramBucket {
-  bucket_label: string
-  query_count: number
-}
-
-export interface CompileTimeHistogramResponse {
-  buckets: CompileTimeHistogramBucket[]
+export interface HistogramResponse {
+  buckets: HistogramBucket[]
 }

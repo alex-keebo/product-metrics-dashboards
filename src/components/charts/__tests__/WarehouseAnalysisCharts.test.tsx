@@ -1,24 +1,19 @@
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import { WarehouseAnalysisCharts, DistributionTooltip } from '../WarehouseAnalysisCharts'
-import type {
-  DataScannedHistogramBucket,
-  ExecutionTimeHistogramBucket,
-  SpillageHistogramBucket,
-  WarehouseAnalysisPoint,
-} from '@/lib/types'
+import type { HistogramBucket, WarehouseAnalysisPoint } from '@/lib/types'
 
-const histogramBuckets: ExecutionTimeHistogramBucket[] = [
+const histogramBuckets: HistogramBucket[] = [
   { bucket_label: '<1s', query_count: 100 },
   { bucket_label: '1-5s', query_count: 40 },
 ]
 
-const dataScannedHistogramBuckets: DataScannedHistogramBucket[] = [
+const dataScannedHistogramBuckets: HistogramBucket[] = [
   { bucket_label: '<1 GB', query_count: 80 },
   { bucket_label: '1-10 GB', query_count: 20 },
 ]
 
-const spillageHistogramBuckets: SpillageHistogramBucket[] = [
+const spillageHistogramBuckets: HistogramBucket[] = [
   { bucket_label: 'No Spillage', query_count: 90 },
   { bucket_label: '<1 GB', query_count: 10 },
 ]

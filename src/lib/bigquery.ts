@@ -16,6 +16,8 @@ export const SNF_ADHOC_DATASET = process.env.BIGQUERY_SNF_ADHOC_DATASET ?? 'adho
 export const PROJECT = process.env.BIGQUERY_PROJECT_ID ?? 'keebo-portal'
 export const LOCATION = process.env.BIGQUERY_LOCATION ?? 'us-central1'
 
+export const ORG_ID_PATTERN = /^[0-9a-f]+$/
+
 export class AdcAuthError extends Error {
   code = 'ADC_UNAUTHENTICATED' as const
   constructor(message: string, public cause?: unknown) {
@@ -158,6 +160,19 @@ export async function getSnfQueryHistoryDatasets(orgIds: string[]): Promise<stri
   }
   const wanted = new Set(orgIds.map((id) => `k3o_prd_${id}_000_tf`))
   return [..._snfQueryHistoryDatasetsCache].filter((d) => wanted.has(d))
+}
+
+const _sqlTemplateCache = new Map<string, string>()
+
+// orgId must be validated by the caller (ORG_ID_PATTERN) before this runs — it's
+// interpolated into the per-org dataset name, which BigQuery can't parameterize.
+export function loadOrgScopedSql(filename: string, orgId: string): string {
+  let template = _sqlTemplateCache.get(filename)
+  if (template === undefined) {
+    template = fs.readFileSync(path.join(process.cwd(), 'sql', filename), 'utf-8')
+    _sqlTemplateCache.set(filename, template)
+  }
+  return template.replace(/k3o_prd_ORGID_000_tf/g, `k3o_prd_${orgId}_000_tf`)
 }
 
 // orgId must be validated by the caller (ORG_ID_PATTERN) before this runs — it's

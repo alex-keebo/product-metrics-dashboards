@@ -13,15 +13,9 @@ import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/date
 import type {
   ClusterActivityResponse,
   ClusterInterval,
-  CompileTimeHistogramBucket,
-  CompileTimeHistogramResponse,
-  DataScannedHistogramBucket,
-  DataScannedHistogramResponse,
-  ExecutionTimeHistogramBucket,
-  ExecutionTimeHistogramResponse,
   Granularity,
-  SpillageHistogramBucket,
-  SpillageHistogramResponse,
+  HistogramBucket,
+  HistogramResponse,
   WarehouseAnalysisPoint,
   WarehouseAnalysisResponse,
   WarehouseOption,
@@ -109,19 +103,19 @@ export default function WarehouseAnalysisPage() {
   const [clusterActivityError, setClusterActivityError] = useState<FetchError | null>(null)
   const [clusterActivityLoading, setClusterActivityLoading] = useState(false)
 
-  const [histogramBuckets, setHistogramBuckets] = useState<ExecutionTimeHistogramBucket[]>([])
+  const [histogramBuckets, setHistogramBuckets] = useState<HistogramBucket[]>([])
   const [histogramError, setHistogramError] = useState<FetchError | null>(null)
   const [histogramLoading, setHistogramLoading] = useState(false)
 
-  const [dataScannedHistogramBuckets, setDataScannedHistogramBuckets] = useState<DataScannedHistogramBucket[]>([])
+  const [dataScannedHistogramBuckets, setDataScannedHistogramBuckets] = useState<HistogramBucket[]>([])
   const [dataScannedHistogramError, setDataScannedHistogramError] = useState<FetchError | null>(null)
   const [dataScannedHistogramLoading, setDataScannedHistogramLoading] = useState(false)
 
-  const [spillageHistogramBuckets, setSpillageHistogramBuckets] = useState<SpillageHistogramBucket[]>([])
+  const [spillageHistogramBuckets, setSpillageHistogramBuckets] = useState<HistogramBucket[]>([])
   const [spillageHistogramError, setSpillageHistogramError] = useState<FetchError | null>(null)
   const [spillageHistogramLoading, setSpillageHistogramLoading] = useState(false)
 
-  const [compileTimeHistogramBuckets, setCompileTimeHistogramBuckets] = useState<CompileTimeHistogramBucket[]>([])
+  const [compileTimeHistogramBuckets, setCompileTimeHistogramBuckets] = useState<HistogramBucket[]>([])
   const [compileTimeHistogramError, setCompileTimeHistogramError] = useState<FetchError | null>(null)
   const [compileTimeHistogramLoading, setCompileTimeHistogramLoading] = useState(false)
 
@@ -232,7 +226,7 @@ export default function WarehouseAnalysisPage() {
 
     fetch(`/api/kwo-snowflake-warehouse-analysis/execution-time-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
-        const body = (await res.json()) as ExecutionTimeHistogramResponse & { error?: string; code?: string }
+        const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
         setHistogramBuckets(body.buckets)
       })
@@ -263,7 +257,7 @@ export default function WarehouseAnalysisPage() {
 
     fetch(`/api/kwo-snowflake-warehouse-analysis/data-scanned-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
-        const body = (await res.json()) as DataScannedHistogramResponse & { error?: string; code?: string }
+        const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
         setDataScannedHistogramBuckets(body.buckets)
       })
@@ -294,7 +288,7 @@ export default function WarehouseAnalysisPage() {
 
     fetch(`/api/kwo-snowflake-warehouse-analysis/spillage-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
-        const body = (await res.json()) as SpillageHistogramResponse & { error?: string; code?: string }
+        const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
         setSpillageHistogramBuckets(body.buckets)
       })
@@ -325,7 +319,7 @@ export default function WarehouseAnalysisPage() {
 
     fetch(`/api/kwo-snowflake-warehouse-analysis/compile-time-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
-        const body = (await res.json()) as CompileTimeHistogramResponse & { error?: string; code?: string }
+        const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
         setCompileTimeHistogramBuckets(body.buckets)
       })

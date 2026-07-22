@@ -61,9 +61,9 @@ interface IntervalRectProps {
 // Native mouseenter/mousemove/mouseleave listeners (attached directly to the
 // rect via a ref) are used instead of React's onMouseEnter/onMouseMove/onMouseLeave
 // props: real mouseenter/mouseleave events don't bubble, so a listener bound
-// directly to the target is the reliable way to catch them. The state update is
-// wrapped in flushSync so the tooltip commits synchronously with the triggering
-// event rather than on a later, batched tick.
+// directly to the target is the reliable way to catch them. Only enter/leave are
+// wrapped in flushSync (so the tooltip mounts/unmounts synchronously with the
+// triggering event) — mousemove fires far more often and can batch normally.
 function IntervalRect({ interval, x, width, fill, onHover }: IntervalRectProps) {
   const ref = useRef<SVGRectElement>(null)
 
@@ -75,7 +75,7 @@ function IntervalRect({ interval, x, width, fill, onHover }: IntervalRectProps) 
       flushSync(() => onHover({ interval, clientX: e.clientX, clientY: e.clientY }))
     }
     const handleMove = (e: MouseEvent) => {
-      flushSync(() => onHover({ interval, clientX: e.clientX, clientY: e.clientY }))
+      onHover({ interval, clientX: e.clientX, clientY: e.clientY })
     }
     const handleLeave = () => {
       flushSync(() => onHover(null))
@@ -124,12 +124,20 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
     [intervals]
   )
 
+  const intervalsByCluster = useMemo(() => {
+    const map = new Map<number, ClusterInterval[]>()
+    for (const interval of intervals) {
+      if (interval.cluster_number === WAREHOUSE_ROW_CLUSTER_NUMBER) continue
+      const bucket = map.get(interval.cluster_number)
+      if (bucket) bucket.push(interval)
+      else map.set(interval.cluster_number, [interval])
+    }
+    return map
+  }, [intervals])
+
   const clusterNumbers = useMemo(
-    () =>
-      [...new Set(intervals.map((i) => i.cluster_number))]
-        .filter((n) => n !== WAREHOUSE_ROW_CLUSTER_NUMBER)
-        .sort((a, b) => a - b),
-    [intervals]
+    () => [...intervalsByCluster.keys()].sort((a, b) => a - b),
+    [intervalsByCluster]
   )
 
   const ticks = useMemo(
@@ -251,12 +259,7 @@ export function WarehouseActivityTimeline({ intervals, rangeStart, rangeEnd }: W
       )}
 
       {clusterNumbers.map((clusterNumber) =>
-        renderRow(
-          clusterNumber,
-          `Cluster ${clusterNumber}`,
-          intervals.filter((i) => i.cluster_number === clusterNumber),
-          C_NAVY
-        )
+        renderRow(clusterNumber, `Cluster ${clusterNumber}`, intervalsByCluster.get(clusterNumber) ?? [], C_NAVY)
       )}
 
       {hover && (

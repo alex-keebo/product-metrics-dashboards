@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { getWarehousesForOrg, AdcAuthError } from '@/lib/bigquery'
-
-const ORG_ID_PATTERN = /^[0-9a-f]+$/
+import { getWarehousesForOrg, AdcAuthError, ORG_ID_PATTERN } from '@/lib/bigquery'
 
 export async function GET(request: NextRequest) {
   const orgId = request.nextUrl.searchParams.get('org_id')

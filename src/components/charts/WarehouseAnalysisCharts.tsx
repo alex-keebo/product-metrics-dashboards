@@ -34,13 +34,7 @@ import {
   LIGHT_CURSOR_FILL,
   DARK_CURSOR_FILL,
 } from './TimeSeriesCharts'
-import type {
-  CompileTimeHistogramBucket,
-  DataScannedHistogramBucket,
-  ExecutionTimeHistogramBucket,
-  SpillageHistogramBucket,
-  WarehouseAnalysisPoint,
-} from '@/lib/types'
+import type { HistogramBucket, WarehouseAnalysisPoint } from '@/lib/types'
 
 export function collectKeys(points: WarehouseAnalysisPoint[], field: 'query_volume_by_type' | 'failed_query_count_by_error'): string[] {
   const keys = new Set<string>()
@@ -86,17 +80,12 @@ function aggregateQueryTypes(points: WarehouseAnalysisPoint[]): { query_type: st
   return result
 }
 
-interface DistributionBucket {
-  bucket_label: string
-  query_count: number
-}
-
 interface DistributionTooltipProps {
   active?: boolean
   payload?: { value?: number }[]
   label?: string
   isLight: boolean
-  buckets: DistributionBucket[]
+  buckets: HistogramBucket[]
 }
 
 /** Distribution chart tooltip: shows the hovered bucket's count alongside cumulative totals for buckets below and above it. */
@@ -113,10 +102,11 @@ export function DistributionTooltip({ active, payload, label, isLight, buckets }
   const total = buckets.reduce((sum, b) => sum + b.query_count, 0)
   const pct = (value: number | null) => (value === null || total === 0 ? null : (value / total) * 100)
 
-  const bg = isLight ? '#ffffff' : '#04202d'
-  const border = isLight ? '#cdd2da' : '#1a4459'
-  const muted = isLight ? '#4d565a' : '#6b7f8a'
-  const text = isLight ? '#051c27' : '#e8f0f4'
+  const TT = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
+  const bg = TT.contentStyle.background
+  const border = TT.contentStyle.border
+  const muted = TT.labelStyle.color
+  const text = TT.itemStyle.color
   const font = 'IBM Plex Sans, sans-serif'
 
   const row = (rowLabel: string, value: number | null, emphasize = false) => (
@@ -140,7 +130,7 @@ export function DistributionTooltip({ active, payload, label, isLight, buckets }
     <div
       style={{
         background: bg,
-        border: `1px solid ${border}`,
+        border,
         borderRadius: 8,
         padding: '10px 14px',
         fontFamily: font,
@@ -150,7 +140,7 @@ export function DistributionTooltip({ active, payload, label, isLight, buckets }
     >
       <div style={{ color: muted, fontSize: 11, marginBottom: 8 }}>{label}</div>
       {row('Queries in this bucket', current, true)}
-      <div style={{ borderTop: `1px solid ${border}`, margin: '6px 0' }} />
+      <div style={{ borderTop: border, margin: '6px 0' }} />
       {row('Total below this bucket', below)}
       {row('Total above this bucket', above)}
     </div>
@@ -159,10 +149,10 @@ export function DistributionTooltip({ active, payload, label, isLight, buckets }
 
 interface WarehouseAnalysisChartsProps {
   points: WarehouseAnalysisPoint[]
-  histogramBuckets: ExecutionTimeHistogramBucket[]
-  dataScannedHistogramBuckets: DataScannedHistogramBucket[]
-  spillageHistogramBuckets: SpillageHistogramBucket[]
-  compileTimeHistogramBuckets?: CompileTimeHistogramBucket[]
+  histogramBuckets: HistogramBucket[]
+  dataScannedHistogramBuckets: HistogramBucket[]
+  spillageHistogramBuckets: HistogramBucket[]
+  compileTimeHistogramBuckets?: HistogramBucket[]
   /** Timeseries-driven charts (usage, volume, execution/queue time, scanned/spillage totals, failed queries). */
   loading?: boolean
   histogramLoading?: boolean
@@ -171,25 +161,6 @@ interface WarehouseAnalysisChartsProps {
   compileTimeHistogramLoading?: boolean
 }
 
-// Code-only toggles for the overall-metric shown top-right on each chart. Not user-facing.
-const SHOW_METRIC = {
-  usage: true,
-  costPer1000Queries: true,
-  totalQueries: true,
-  queryConcurrency: true,
-  executionTime: true,
-  executionTimeDistribution: true,
-  queuedQueries: true,
-  queueTime: true,
-  dataScanned: true,
-  dataScannedDistribution: true,
-  spillage: true,
-  spillageDistribution: true,
-  failedQueries: true,
-  failedQueryReasons: true,
-  queryTypes: true,
-  compileTimeDistribution: true,
-}
 
 export function WarehouseAnalysisCharts({
   points,
@@ -394,7 +365,7 @@ export function WarehouseAnalysisCharts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Warehouse Usage" isLight={isLight} totals={SHOW_METRIC.usage ? totalsUsage : undefined} loading={loading}>
+      <ChartWrapper title="Warehouse Usage" isLight={isLight} totals={totalsUsage} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={usageData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -410,7 +381,7 @@ export function WarehouseAnalysisCharts({
       <ChartWrapper
         title="Cost per 1000 Queries"
         isLight={isLight}
-        totals={SHOW_METRIC.costPer1000Queries ? totalsCostPer1000 : undefined}
+        totals={totalsCostPer1000}
         loading={loading}
       >
         <ResponsiveContainer width="100%" height={220}>
@@ -425,7 +396,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Total Queries" isLight={isLight} totals={SHOW_METRIC.totalQueries ? totalsVolume : undefined} loading={loading}>
+      <ChartWrapper title="Total Queries" isLight={isLight} totals={totalsVolume} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={volumeData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -441,7 +412,7 @@ export function WarehouseAnalysisCharts({
       <ChartWrapper
         title="Query Concurrency"
         isLight={isLight}
-        totals={SHOW_METRIC.queryConcurrency ? totalsConcurrency : undefined}
+        totals={totalsConcurrency}
         loading={loading}
       >
         <ResponsiveContainer width="100%" height={220}>
@@ -457,7 +428,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Execution Time" isLight={isLight} totals={SHOW_METRIC.executionTime ? totalsExecution : undefined} loading={loading}>
+      <ChartWrapper title="Execution Time" isLight={isLight} totals={totalsExecution} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <LineChart data={executionData}>
             <CartesianGrid stroke={GRID} vertical={false} />
@@ -472,7 +443,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Execution Time Distribution" isLight={isLight} totals={SHOW_METRIC.executionTimeDistribution ? totalsHistogram : undefined} loading={histogramLoading}>
+      <ChartWrapper title="Execution Time Distribution" isLight={isLight} totals={totalsHistogram} loading={histogramLoading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={histogramBuckets} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -485,7 +456,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Queued Queries" isLight={isLight} totals={SHOW_METRIC.queuedQueries ? totalsQueued : undefined} loading={loading}>
+      <ChartWrapper title="Queued Queries" isLight={isLight} totals={totalsQueued} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={queuedData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -498,7 +469,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Queue Time" isLight={isLight} totals={SHOW_METRIC.queueTime ? totalsQueueTime : undefined} loading={loading}>
+      <ChartWrapper title="Queue Time" isLight={isLight} totals={totalsQueueTime} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={queueTimeData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -511,7 +482,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Data Scanned" isLight={isLight} totals={SHOW_METRIC.dataScanned ? totalsScanned : undefined} loading={loading}>
+      <ChartWrapper title="Data Scanned" isLight={isLight} totals={totalsScanned} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={scannedData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -527,7 +498,7 @@ export function WarehouseAnalysisCharts({
       <ChartWrapper
         title="Data Scanned Distribution"
         isLight={isLight}
-        totals={SHOW_METRIC.dataScannedDistribution ? totalsDataScannedHistogram : undefined}
+        totals={totalsDataScannedHistogram}
         loading={dataScannedHistogramLoading}
       >
         <ResponsiveContainer width="100%" height={220}>
@@ -542,7 +513,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Spillage" isLight={isLight} totals={SHOW_METRIC.spillage ? totalsSpillage : undefined} loading={loading}>
+      <ChartWrapper title="Spillage" isLight={isLight} totals={totalsSpillage} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={spillageData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -559,7 +530,7 @@ export function WarehouseAnalysisCharts({
       <ChartWrapper
         title="Spillage Distribution"
         isLight={isLight}
-        totals={SHOW_METRIC.spillageDistribution ? totalsSpillageHistogram : undefined}
+        totals={totalsSpillageHistogram}
         loading={spillageHistogramLoading}
       >
         <ResponsiveContainer width="100%" height={220}>
@@ -574,7 +545,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Failed Queries" isLight={isLight} totals={SHOW_METRIC.failedQueries ? totalsFailed : undefined} loading={loading}>
+      <ChartWrapper title="Failed Queries" isLight={isLight} totals={totalsFailed} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={failedData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -590,7 +561,7 @@ export function WarehouseAnalysisCharts({
       <ChartWrapper
         title="Failed Query Reasons"
         isLight={isLight}
-        totals={SHOW_METRIC.failedQueryReasons ? totalsFailedReasons : undefined}
+        totals={totalsFailedReasons}
         loading={loading}
       >
         <ResponsiveContainer width="100%" height={220}>
@@ -605,7 +576,7 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
-      <ChartWrapper title="Query Types" isLight={isLight} totals={SHOW_METRIC.queryTypes ? totalsQueryTypes : undefined} loading={loading}>
+      <ChartWrapper title="Query Types" isLight={isLight} totals={totalsQueryTypes} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={queryTypesData} barSize={30}>
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
@@ -621,7 +592,7 @@ export function WarehouseAnalysisCharts({
       <ChartWrapper
         title="Query Compile Time Distribution"
         isLight={isLight}
-        totals={SHOW_METRIC.compileTimeDistribution ? totalsCompileTimeHistogram : undefined}
+        totals={totalsCompileTimeHistogram}
         loading={compileTimeHistogramLoading}
       >
         <ResponsiveContainer width="100%" height={220}>

@@ -1,11 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
-import { runQuery, AdcAuthError } from '@/lib/bigquery'
+import { runQuery, AdcAuthError, ORG_ID_PATTERN, loadOrgScopedSql } from '@/lib/bigquery'
 import { buildClusterIntervals, type ClusterEventRow } from '@/lib/clusterIntervals'
 import type { ClusterActivityResponse } from '@/lib/types'
-
-const ORG_ID_PATTERN = /^[0-9a-f]+$/
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -28,11 +24,7 @@ export async function GET(request: NextRequest) {
   const rangeEnd = `${endDate}T23:59:59.000`
 
   try {
-    const sqlTemplate = fs.readFileSync(
-      path.join(process.cwd(), 'sql', 'kwo_snowflake_warehouse_cluster_events.sql'),
-      'utf-8'
-    )
-    const sql = sqlTemplate.replace(/k3o_prd_ORGID_000_tf/g, `k3o_prd_${orgId}_000_tf`)
+    const sql = loadOrgScopedSql('kwo_snowflake_warehouse_cluster_events.sql', orgId)
 
     const rows = await runQuery<ClusterEventRow>(sql, {
       warehouse_name: warehouseName,

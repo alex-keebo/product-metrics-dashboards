@@ -1,12 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
-import fs from 'fs'
-import path from 'path'
 import { parseISO } from 'date-fns'
-import { runQuery, AdcAuthError } from '@/lib/bigquery'
+import { runQuery, AdcAuthError, ORG_ID_PATTERN, loadOrgScopedSql } from '@/lib/bigquery'
 import { buildPeriods, snapToGranularityBoundaries, formatPeriodLabel, formatCompactPeriodLabel } from '@/lib/dates'
 import type { Granularity, WarehouseAnalysisPoint, WarehouseAnalysisResponse } from '@/lib/types'
 
-const ORG_ID_PATTERN = /^[0-9a-f]+$/
 const MAX_HOUR_RANGE_DAYS = 14
 
 interface WarehouseAnalysisRow {
@@ -67,11 +64,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const sqlTemplate = fs.readFileSync(
-      path.join(process.cwd(), 'sql', 'kwo_snowflake_warehouse_analysis_timeseries.sql'),
-      'utf-8'
-    )
-    const sql = sqlTemplate.replace(/k3o_prd_ORGID_000_tf/g, `k3o_prd_${orgId}_000_tf`)
+    const sql = loadOrgScopedSql('kwo_snowflake_warehouse_analysis_timeseries.sql', orgId)
 
     // end bounds carry .999 milliseconds: start_time is epoch-millisecond precision, so a
     // second-precision bound (e.g. HH:59:59) leaves a sub-second gap before the next period's
