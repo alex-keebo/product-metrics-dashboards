@@ -19,6 +19,8 @@ const baseProps = {
   onWarehouseChange: vi.fn(),
   warehousesDisabled: true,
   warehousesError: null,
+  appliedFilter: { id: 'root', match: 'AND' as const, conditions: [] },
+  onFilterApply: vi.fn(),
 }
 
 describe('WarehouseAnalysisFilters', () => {
@@ -51,5 +53,10 @@ describe('WarehouseAnalysisFilters', () => {
     fireEvent.click(options[options.length - 1])
     expect(onCustomerChange).toHaveBeenCalledWith('90402')
     expect(onWarehouseChange).toHaveBeenCalledWith(null)
+  })
+
+  it('renders the Filters trigger from FilterPanel', () => {
+    render(<WarehouseAnalysisFilters {...baseProps} />)
+    expect(screen.getByTestId('filter-trigger')).toBeInTheDocument()
   })
 })

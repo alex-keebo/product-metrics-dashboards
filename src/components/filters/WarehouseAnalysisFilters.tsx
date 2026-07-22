@@ -2,8 +2,9 @@
 
 import { Dropdown } from './Dropdown'
 import { DateRangePicker } from './DateRangePicker'
+import { FilterPanel } from './FilterPanel'
 import { Badge } from '@/components/ui/badge'
-import type { Granularity, WarehouseOption } from '@/lib/types'
+import type { FilterGroup, Granularity, WarehouseOption } from '@/lib/types'
 
 const GRANULARITY_OPTIONS: { value: Granularity; label: string }[] = [
   { value: 'hour', label: 'Hour' },
@@ -27,6 +28,8 @@ interface WarehouseAnalysisFiltersProps {
   onWarehouseChange: (warehouseName: string | null) => void
   warehousesDisabled: boolean
   warehousesError: string | null
+  appliedFilter: FilterGroup
+  onFilterApply: (next: FilterGroup) => void
 }
 
 export function WarehouseAnalysisFilters({
@@ -43,6 +46,8 @@ export function WarehouseAnalysisFilters({
   onWarehouseChange,
   warehousesDisabled,
   warehousesError,
+  appliedFilter,
+  onFilterApply,
 }: WarehouseAnalysisFiltersProps) {
   return (
     <div className="flex flex-wrap items-end gap-3">
@@ -89,6 +94,7 @@ export function WarehouseAnalysisFilters({
         />
         {warehousesError && <span className="text-xs text-destructive">{warehousesError}</span>}
       </div>
+      <FilterPanel appliedFilter={appliedFilter} onApply={onFilterApply} orgId={selectedCustomer} />
     </div>
   )
 }
