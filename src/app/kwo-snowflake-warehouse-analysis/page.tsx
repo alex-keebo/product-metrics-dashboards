@@ -13,6 +13,7 @@ import { lastNDaysRange, toDateString, formatTablePeriodLabel } from '@/lib/date
 import type {
   ClusterActivityResponse,
   ClusterInterval,
+  FilterGroup,
   Granularity,
   HistogramBucket,
   HistogramResponse,
@@ -94,6 +95,8 @@ export default function WarehouseAnalysisPage() {
   const [warehousesError, setWarehousesError] = useState<string | null>(null)
   const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null)
 
+  const [appliedFilter, setAppliedFilter] = useState<FilterGroup>({ id: 'root', match: 'AND', conditions: [] })
+
   const [points, setPoints] = useState<WarehouseAnalysisPoint[]>([])
   const [granularityUsed, setGranularityUsed] = useState<Granularity>('day')
   const [timeseriesError, setTimeseriesError] = useState<FetchError | null>(null)
@@ -153,15 +156,19 @@ export default function WarehouseAnalysisPage() {
     setLoading(true)
     setTimeseriesError(null)
 
-    const params = new URLSearchParams({
-      org_id: selectedCustomer,
-      warehouse_name: selectedWarehouse,
-      start_date: startDate,
-      end_date: endDate,
-      granularity,
+    fetch('/api/kwo-snowflake-warehouse-analysis/timeseries', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_name: selectedWarehouse,
+        start_date: startDate,
+        end_date: endDate,
+        granularity,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
     })
-
-    fetch(`/api/kwo-snowflake-warehouse-analysis/timeseries?${params}`, { signal: controller.signal })
       .then(async (res) => {
         const body = (await res.json()) as WarehouseAnalysisResponse & { error?: string; code?: string }
         if (!res.ok) throw body
@@ -175,7 +182,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate, granularity])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, granularity, appliedFilter])
 
   useEffect(() => {
     if (!selectedCustomer || !selectedWarehouse) {
@@ -217,14 +224,18 @@ export default function WarehouseAnalysisPage() {
     setHistogramLoading(true)
     setHistogramError(null)
 
-    const params = new URLSearchParams({
-      org_id: selectedCustomer,
-      warehouse_name: selectedWarehouse,
-      start_date: startDate,
-      end_date: endDate,
+    fetch('/api/kwo-snowflake-warehouse-analysis/execution-time-histogram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_name: selectedWarehouse,
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
     })
-
-    fetch(`/api/kwo-snowflake-warehouse-analysis/execution-time-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
         const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
@@ -237,7 +248,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   useEffect(() => {
     if (!selectedCustomer || !selectedWarehouse) {
@@ -248,14 +259,18 @@ export default function WarehouseAnalysisPage() {
     setDataScannedHistogramLoading(true)
     setDataScannedHistogramError(null)
 
-    const params = new URLSearchParams({
-      org_id: selectedCustomer,
-      warehouse_name: selectedWarehouse,
-      start_date: startDate,
-      end_date: endDate,
+    fetch('/api/kwo-snowflake-warehouse-analysis/data-scanned-histogram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_name: selectedWarehouse,
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
     })
-
-    fetch(`/api/kwo-snowflake-warehouse-analysis/data-scanned-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
         const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
@@ -268,7 +283,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setDataScannedHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   useEffect(() => {
     if (!selectedCustomer || !selectedWarehouse) {
@@ -279,14 +294,18 @@ export default function WarehouseAnalysisPage() {
     setSpillageHistogramLoading(true)
     setSpillageHistogramError(null)
 
-    const params = new URLSearchParams({
-      org_id: selectedCustomer,
-      warehouse_name: selectedWarehouse,
-      start_date: startDate,
-      end_date: endDate,
+    fetch('/api/kwo-snowflake-warehouse-analysis/spillage-histogram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_name: selectedWarehouse,
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
     })
-
-    fetch(`/api/kwo-snowflake-warehouse-analysis/spillage-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
         const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
@@ -299,7 +318,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setSpillageHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   useEffect(() => {
     if (!selectedCustomer || !selectedWarehouse) {
@@ -310,14 +329,18 @@ export default function WarehouseAnalysisPage() {
     setCompileTimeHistogramLoading(true)
     setCompileTimeHistogramError(null)
 
-    const params = new URLSearchParams({
-      org_id: selectedCustomer,
-      warehouse_name: selectedWarehouse,
-      start_date: startDate,
-      end_date: endDate,
+    fetch('/api/kwo-snowflake-warehouse-analysis/compile-time-histogram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_name: selectedWarehouse,
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
     })
-
-    fetch(`/api/kwo-snowflake-warehouse-analysis/compile-time-histogram?${params}`, { signal: controller.signal })
       .then(async (res) => {
         const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
         if (!res.ok) throw body
@@ -330,7 +353,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setCompileTimeHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouse, startDate, endDate])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
@@ -404,6 +427,8 @@ export default function WarehouseAnalysisPage() {
         onWarehouseChange={setSelectedWarehouse}
         warehousesDisabled={!selectedCustomer}
         warehousesError={warehousesError}
+        appliedFilter={appliedFilter}
+        onFilterApply={setAppliedFilter}
       />
 
       {granularity === 'hour' && granularityUsed === 'day' && (
@@ -455,6 +480,7 @@ export default function WarehouseAnalysisPage() {
             dataScannedHistogramLoading={dataScannedHistogramLoading}
             spillageHistogramLoading={spillageHistogramLoading}
             compileTimeHistogramLoading={compileTimeHistogramLoading}
+            filterActive={appliedFilter.conditions.length > 0}
           />
 
           <ChartWrapper
@@ -462,6 +488,7 @@ export default function WarehouseAnalysisPage() {
             isLight={isLight}
             totals={SHOW_WAREHOUSE_ACTIVITY_METRIC ? totalsClusterActivity : undefined}
             loading={clusterActivityLoading}
+            notApplicable={appliedFilter.conditions.length > 0}
           >
             {clusterActivityError ? (
               <SectionError error={clusterActivityError} />
