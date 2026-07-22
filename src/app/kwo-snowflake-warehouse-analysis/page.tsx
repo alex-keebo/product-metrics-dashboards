@@ -509,7 +509,6 @@ export default function WarehouseAnalysisPage() {
                 dataScannedHistogramLoading={dataScannedHistogramLoading}
                 spillageHistogramLoading={spillageHistogramLoading}
                 compileTimeHistogramLoading={compileTimeHistogramLoading}
-                filterActive={appliedFilter.conditions.length > 0}
               />
 
               {loading ? (

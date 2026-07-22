@@ -127,7 +127,7 @@ errors_agg AS (
   GROUP BY period_start
 ),
 usage AS (
-  SELECT p.period_start, SUM(m.CREDITS_USED) AS credits_used
+  SELECT p.period_start, SUM(m.CREDITS_USED_COMPUTE) AS credits_used
   FROM `keebo-portal.k3o_prd_ORGID_000_tf.warehouse_metering_history_tf` m
   JOIN periods p
     ON m.START_TIME >= p.period_start_ms
@@ -136,6 +136,28 @@ usage AS (
     AND m.START_TIME >= UNIX_MILLIS(TIMESTAMP(@start_date))
     AND m.START_TIME <= UNIX_MILLIS(TIMESTAMP(@end_date))
   GROUP BY p.period_start
+),
+-- Unfiltered execution_time total per period across ALL queries (no {{FILTER_CLAUSE}}).
+-- This is the reconciliation denominator: with no custom filter applied, filtered_exec
+-- below equals this total exactly, so the allocated credits_used sums to the real
+-- warehouse_metering_history_tf total for the range.
+period_exec_totals AS (
+  SELECT p.period_start, SUM(IFNULL(q.execution_time, 0)) AS total_execution_time_ms
+  FROM `keebo-portal.k3o_prd_ORGID_000_tf.query_history_view_tf` q
+  JOIN periods p
+    ON q.start_time >= p.period_start_ms
+   AND q.start_time <= p.period_end_ms
+  WHERE q.warehouse_name = @warehouse_name
+    AND q.start_time >= UNIX_MILLIS(TIMESTAMP(@start_date))
+    AND q.start_time <= UNIX_MILLIS(TIMESTAMP(@end_date))
+  GROUP BY p.period_start
+),
+-- Filtered execution_time total per period (respects {{FILTER_CLAUSE}} via `base`), used
+-- as the numerator share for allocating each period's credits down to the filtered queries.
+filtered_exec AS (
+  SELECT period_start, SUM(IFNULL(execution_time, 0)) AS filtered_execution_time_ms
+  FROM base
+  GROUP BY period_start
 ),
 run_windows_filtered AS (
   SELECT
@@ -193,7 +215,7 @@ SELECT
   s.bytes_spilled_remote,
   sc.bytes_scanned,
   e.by_error,
-  u.credits_used,
+  SAFE_DIVIDE(u.credits_used * fe.filtered_execution_time_ms, pet.total_execution_time_ms) AS credits_used,
   c.concurrent_queries_max,
   c.concurrent_queries_avg
 FROM periods p
@@ -204,5 +226,7 @@ LEFT JOIN spillage s ON s.period_start = p.period_start
 LEFT JOIN scanned sc ON sc.period_start = p.period_start
 LEFT JOIN errors_agg e ON e.period_start = p.period_start
 LEFT JOIN usage u ON u.period_start = p.period_start
+LEFT JOIN period_exec_totals pet ON pet.period_start = p.period_start
+LEFT JOIN filtered_exec fe ON fe.period_start = p.period_start
 LEFT JOIN concurrency c ON c.period_start = p.period_start
 ORDER BY p.period_start
