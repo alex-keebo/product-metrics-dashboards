@@ -360,15 +360,45 @@ export function WarehouseAnalysisCharts({
   }, [concurrencyData])
 
   const totalsExecution = useMemo(() => {
-    if (executionData.length === 0) return [{ label: 'Avg (s)', value: formatDecimalNumber(0) }]
+    if (executionData.length === 0) {
+      return [
+        { label: 'Avg (s)', value: formatDecimalNumber(0) },
+        { label: 'P95 (s)', value: formatDecimalNumber(0) },
+        { label: 'P99 (s)', value: formatDecimalNumber(0) },
+        { label: 'Max (s)', value: formatDecimalNumber(0) },
+      ]
+    }
     const avg = executionData.reduce((sum, d) => sum + d.avg, 0) / executionData.length
-    return [{ label: 'Avg (s)', value: formatDecimalNumber(avg) }]
+    const p95 = Math.max(...executionData.map((d) => d.p95))
+    const p99 = Math.max(...executionData.map((d) => d.p99))
+    const max = Math.max(...executionData.map((d) => d.max))
+    return [
+      { label: 'Avg (s)', value: formatDecimalNumber(avg) },
+      { label: 'P95 (s)', value: formatDecimalNumber(p95) },
+      { label: 'P99 (s)', value: formatDecimalNumber(p99) },
+      { label: 'Max (s)', value: formatDecimalNumber(max) },
+    ]
   }, [executionData])
 
   const totalsLatency = useMemo(() => {
-    if (latencyData.length === 0) return [{ label: 'Avg (s)', value: formatDecimalNumber(0) }]
+    if (latencyData.length === 0) {
+      return [
+        { label: 'Avg (s)', value: formatDecimalNumber(0) },
+        { label: 'P95 (s)', value: formatDecimalNumber(0) },
+        { label: 'P99 (s)', value: formatDecimalNumber(0) },
+        { label: 'Max (s)', value: formatDecimalNumber(0) },
+      ]
+    }
     const avg = latencyData.reduce((sum, d) => sum + d.avg, 0) / latencyData.length
-    return [{ label: 'Avg (s)', value: formatDecimalNumber(avg) }]
+    const p95 = Math.max(...latencyData.map((d) => d.p95))
+    const p99 = Math.max(...latencyData.map((d) => d.p99))
+    const max = Math.max(...latencyData.map((d) => d.max))
+    return [
+      { label: 'Avg (s)', value: formatDecimalNumber(avg) },
+      { label: 'P95 (s)', value: formatDecimalNumber(p95) },
+      { label: 'P99 (s)', value: formatDecimalNumber(p99) },
+      { label: 'Max (s)', value: formatDecimalNumber(max) },
+    ]
   }, [latencyData])
 
   const totalsLatencyHistogram = useMemo(
@@ -538,8 +568,8 @@ export function WarehouseAnalysisCharts({
                 />
               )}
             />
-            <Line type="monotone" dataKey="max" name="Max Concurrent" stroke={C_NAVY} strokeWidth={2} hide={hiddenConcurrency.has('max')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="perCluster" name="Max Concurrent per Cluster" stroke={C_DEEP} strokeWidth={2} hide={hiddenConcurrency.has('perCluster')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="max" name="Max Concurrent" stroke={C_NAVY} strokeWidth={2} hide={hiddenConcurrency.has('max')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="perCluster" name="Max Concurrent per Cluster" stroke={C_DEEP} strokeWidth={2} hide={hiddenConcurrency.has('perCluster')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -567,10 +597,10 @@ export function WarehouseAnalysisCharts({
                 />
               )}
             />
-            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenExecution.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p95" name="P95 (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenExecution.has('p95')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p99" name="P99 (s)" stroke={C_TEAL} strokeWidth={2} hide={hiddenExecution.has('p99')} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
-            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenExecution.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls />
+            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenExecution.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="p95" name="P95 (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenExecution.has('p95')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="p99" name="P99 (s)" stroke={C_TEAL} strokeWidth={2} hide={hiddenExecution.has('p99')} {...getAreaDotProps(C_TEAL, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenExecution.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -611,10 +641,10 @@ export function WarehouseAnalysisCharts({
                 />
               )}
             />
-            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenLatency.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p95" name="P95 (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenLatency.has('p95')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="p99" name="P99 (s)" stroke={C_TEAL} strokeWidth={2} hide={hiddenLatency.has('p99')} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
-            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenLatency.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls />
+            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenLatency.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="p95" name="P95 (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenLatency.has('p95')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="p99" name="P99 (s)" stroke={C_TEAL} strokeWidth={2} hide={hiddenLatency.has('p99')} {...getAreaDotProps(C_TEAL, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenLatency.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -667,9 +697,9 @@ export function WarehouseAnalysisCharts({
                 />
               )}
             />
-            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenQueueTime.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
-            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenQueueTime.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls />
-            <Line type="monotone" dataKey="total" name="Total (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenQueueTime.has('total')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenQueueTime.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenQueueTime.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls isAnimationActive={false} />
+            <Line type="monotone" dataKey="total" name="Total (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenQueueTime.has('total')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>

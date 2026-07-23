@@ -624,7 +624,7 @@ export function UsageChart({ points, loading }: UsageChartProps) {
   const staticLegendStyle = { ...legendStyle, cursor: 'default' }
 
   const totalsUsage = [
-    { label: 'Total Credits', value: formatDecimalNumber(points.reduce((sum, p) => sum + p.credits_used, 0)) },
+    { label: 'Total Compute Credits', value: formatDecimalNumber(points.reduce((sum, p) => sum + p.credits_used, 0)) },
   ]
 
   return (

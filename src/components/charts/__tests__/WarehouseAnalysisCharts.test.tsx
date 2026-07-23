@@ -116,10 +116,10 @@ describe('WarehouseAnalysisCharts', () => {
         spillageHistogramBuckets={spillageHistogramBuckets}
       />
     )
-    expect(screen.getByText('Total Credits')).toBeInTheDocument()
+    expect(screen.getByText('Total Compute Credits')).toBeInTheDocument()
     expect(screen.getByText('3.50')).toBeInTheDocument()
     expect(screen.getAllByText('Avg (s)')).toHaveLength(3)
-    expect(screen.getByText('Max (s)')).toBeInTheDocument()
+    expect(screen.getAllByText('Max (s)').length).toBeGreaterThanOrEqual(3)
     expect(screen.getByText('Total Queued')).toBeInTheDocument()
     expect(screen.getAllByText('Total GB').length).toBeGreaterThanOrEqual(2)
     expect(screen.getAllByText('Total Failed').length).toBeGreaterThanOrEqual(2)

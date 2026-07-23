@@ -210,7 +210,7 @@ export default function WarehouseAnalysisPage() {
   }, [selectedCustomer])
 
   useEffect(() => {
-    if (!selectedCustomer) {
+    if (!selectedCustomer || selectedOverviewWarehouses.length === 0) {
       setOverviewPoints([])
       return
     }
@@ -245,7 +245,7 @@ export default function WarehouseAnalysisPage() {
   }, [selectedCustomer, selectedOverviewWarehouses, startDate, endDate, granularity])
 
   useEffect(() => {
-    if (!selectedCustomer) {
+    if (!selectedCustomer || selectedOverviewWarehouses.length === 0) {
       setSpendPoints([])
       return
     }
@@ -848,10 +848,16 @@ export default function WarehouseAnalysisPage() {
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view an overview.</div>
           )}
 
-          {selectedCustomer && overviewTimeseriesError && <SectionError error={overviewTimeseriesError} />}
-          {selectedCustomer && spendError && <SectionError error={spendError} />}
+          {selectedCustomer && selectedOverviewWarehouses.length === 0 && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Select at least one warehouse to view an overview.</div>
+          )}
 
-          {selectedCustomer && (
+          {selectedCustomer && selectedOverviewWarehouses.length > 0 && overviewTimeseriesError && (
+            <SectionError error={overviewTimeseriesError} />
+          )}
+          {selectedCustomer && selectedOverviewWarehouses.length > 0 && spendError && <SectionError error={spendError} />}
+
+          {selectedCustomer && selectedOverviewWarehouses.length > 0 && (
             <>
               <UsageChart points={overviewPoints} loading={overviewLoading} />
               <SpendDistributionChart points={spendPoints} loading={spendLoading} />
