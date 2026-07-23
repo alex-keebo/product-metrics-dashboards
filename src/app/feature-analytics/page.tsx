@@ -86,7 +86,6 @@ const TAB_DEFS: { id: ActiveTab; label: string }[] = [
 const yesterday = format(subDays(new Date(), 1), 'yyyy-MM-dd')
 const sevenDaysAgo = format(subDays(new Date(), 7), 'yyyy-MM-dd')
 
-const LABEL_MAX = 40
 const BAR_HEIGHT = 36
 const MODULE_BAR_Y_AXIS_WIDTH = 200
 const MODULE_BAR_MAX_HEIGHT = 420
@@ -283,7 +282,6 @@ function ModulePagesCard({
             valueName="pageviews"
             yAxisWidth={MODULE_BAR_Y_AXIS_WIDTH}
             height={chartHeight}
-            labelMaxChars={LABEL_MAX}
           />
         </div>
       )}
