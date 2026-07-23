@@ -162,6 +162,7 @@ interface WarehouseAnalysisChartsProps {
   histogramBuckets: HistogramBucket[]
   dataScannedHistogramBuckets: HistogramBucket[]
   spillageHistogramBuckets: HistogramBucket[]
+  latencyHistogramBuckets?: HistogramBucket[]
   compileTimeHistogramBuckets?: HistogramBucket[]
   executionTimeByTypeRows?: QueryTypeMetricRow[]
   dataScannedByTypeRows?: QueryTypeMetricRow[]
@@ -172,6 +173,7 @@ interface WarehouseAnalysisChartsProps {
   histogramLoading?: boolean
   dataScannedHistogramLoading?: boolean
   spillageHistogramLoading?: boolean
+  latencyHistogramLoading?: boolean
   compileTimeHistogramLoading?: boolean
   executionTimeByTypeLoading?: boolean
   dataScannedByTypeLoading?: boolean
@@ -185,6 +187,7 @@ export function WarehouseAnalysisCharts({
   histogramBuckets,
   dataScannedHistogramBuckets,
   spillageHistogramBuckets,
+  latencyHistogramBuckets = [],
   compileTimeHistogramBuckets = [],
   executionTimeByTypeRows = [],
   dataScannedByTypeRows = [],
@@ -194,6 +197,7 @@ export function WarehouseAnalysisCharts({
   histogramLoading,
   dataScannedHistogramLoading,
   spillageHistogramLoading,
+  latencyHistogramLoading,
   compileTimeHistogramLoading,
   executionTimeByTypeLoading,
   dataScannedByTypeLoading,
@@ -212,6 +216,8 @@ export function WarehouseAnalysisCharts({
 
   const [hiddenConcurrency, setHiddenConcurrency] = useState<Set<string>>(new Set())
   const [hiddenExecution, setHiddenExecution] = useState<Set<string>>(new Set())
+  const [hiddenLatency, setHiddenLatency] = useState<Set<string>>(new Set())
+  const [hiddenQueueTime, setHiddenQueueTime] = useState<Set<string>>(new Set())
   const [hiddenSpillage, setHiddenSpillage] = useState<Set<string>>(new Set())
 
   function makeToggle(setter: (fn: (prev: Set<string>) => Set<string>) => void) {
@@ -269,6 +275,18 @@ export function WarehouseAnalysisCharts({
     [points]
   )
 
+  const latencyData = useMemo(
+    () =>
+      points.map((p) => ({
+        period_label_display: p.period_label_display,
+        avg: p.latency_avg_ms / 1000,
+        p95: p.latency_p95_ms / 1000,
+        p99: p.latency_p99_ms / 1000,
+        max: p.latency_max_ms / 1000,
+      })),
+    [points]
+  )
+
   const concurrencyData = useMemo(
     () =>
       points.map((p) => ({
@@ -285,7 +303,13 @@ export function WarehouseAnalysisCharts({
   )
 
   const queueTimeData = useMemo(
-    () => points.map((p) => ({ period_label_display: p.period_label_display, max: p.queue_time_max_ms / 1000 })),
+    () =>
+      points.map((p) => ({
+        period_label_display: p.period_label_display,
+        avg: p.queue_time_avg_ms / 1000,
+        max: p.queue_time_max_ms / 1000,
+        total: p.queue_time_total_ms / 1000,
+      })),
     [points]
   )
 
@@ -341,6 +365,17 @@ export function WarehouseAnalysisCharts({
     return [{ label: 'Avg (s)', value: formatDecimalNumber(avg) }]
   }, [executionData])
 
+  const totalsLatency = useMemo(() => {
+    if (latencyData.length === 0) return [{ label: 'Avg (s)', value: formatDecimalNumber(0) }]
+    const avg = latencyData.reduce((sum, d) => sum + d.avg, 0) / latencyData.length
+    return [{ label: 'Avg (s)', value: formatDecimalNumber(avg) }]
+  }, [latencyData])
+
+  const totalsLatencyHistogram = useMemo(
+    () => [{ label: 'Total Queries', value: formatMetricNumber(latencyHistogramBuckets.reduce((sum, b) => sum + b.query_count, 0)) }],
+    [latencyHistogramBuckets]
+  )
+
   const totalsHistogram = useMemo(
     () => [{ label: 'Total Queries', value: formatMetricNumber(histogramBuckets.reduce((sum, b) => sum + b.query_count, 0)) }],
     [histogramBuckets]
@@ -352,9 +387,21 @@ export function WarehouseAnalysisCharts({
   )
 
   const totalsQueueTime = useMemo(() => {
-    if (queueTimeData.length === 0) return [{ label: 'Max (s)', value: formatDecimalNumber(0) }]
+    if (queueTimeData.length === 0) {
+      return [
+        { label: 'Max (s)', value: formatDecimalNumber(0) },
+        { label: 'Avg (s)', value: formatDecimalNumber(0) },
+        { label: 'Total (s)', value: formatDecimalNumber(0) },
+      ]
+    }
     const max = Math.max(...queueTimeData.map((d) => d.max))
-    return [{ label: 'Max (s)', value: formatDecimalNumber(max) }]
+    const avg = queueTimeData.reduce((sum, d) => sum + d.avg, 0) / queueTimeData.length
+    const total = queueTimeData.reduce((sum, d) => sum + d.total, 0)
+    return [
+      { label: 'Max (s)', value: formatDecimalNumber(max) },
+      { label: 'Avg (s)', value: formatDecimalNumber(avg) },
+      { label: 'Total (s)', value: formatDecimalNumber(total) },
+    ]
   }, [queueTimeData])
 
   const totalsDataScannedHistogram = useMemo(
@@ -541,6 +588,50 @@ export function WarehouseAnalysisCharts({
         </ResponsiveContainer>
       </ChartWrapper>
 
+      <ChartWrapper title="Latency" isLight={isLight} totals={totalsLatency} loading={loading}>
+        <ResponsiveContainer width="100%" height={220}>
+          <LineChart data={latencyData}>
+            <CartesianGrid stroke={GRID} vertical={false} />
+            <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
+            <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
+            <Legend
+              verticalAlign="bottom"
+              content={() => (
+                <SeriesLegend
+                  isLight={isLight}
+                  hidden={hiddenLatency}
+                  toggle={makeToggle(setHiddenLatency)}
+                  items={[
+                    { key: 'avg', label: 'Avg (s)', color: C_DEEP },
+                    { key: 'p95', label: 'P95 (s)', color: C_NAVY },
+                    { key: 'p99', label: 'P99 (s)', color: C_TEAL },
+                    { key: 'max', label: 'Max (s)', color: C_ICE },
+                  ]}
+                />
+              )}
+            />
+            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenLatency.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p95" name="P95 (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenLatency.has('p95')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+            <Line type="monotone" dataKey="p99" name="P99 (s)" stroke={C_TEAL} strokeWidth={2} hide={hiddenLatency.has('p99')} {...getAreaDotProps(C_TEAL, isLight)} connectNulls />
+            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenLatency.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls />
+          </LineChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Latency Distribution" isLight={isLight} totals={totalsLatencyHistogram} loading={latencyHistogramLoading}>
+        <ResponsiveContainer width="100%" height={220}>
+          <BarChart data={latencyHistogramBuckets} barSize={30}>
+            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+            <XAxis dataKey="bucket_label" tick={AXIS} axisLine={false} tickLine={false} />
+            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatMetricNumber(v)} />
+            <Tooltip cursor={{ fill: cursorFill }} content={<DistributionTooltip isLight={isLight} buckets={latencyHistogramBuckets} />} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Queries'} wrapperStyle={staticLegendStyle} />
+            <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+          </BarChart>
+        </ResponsiveContainer>
+      </ChartWrapper>
+
       <ChartWrapper title="Queued Queries" isLight={isLight} totals={totalsQueued} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
           <BarChart data={queuedData} barSize={30}>
@@ -556,14 +647,30 @@ export function WarehouseAnalysisCharts({
 
       <ChartWrapper title="Queue Time" isLight={isLight} totals={totalsQueueTime} loading={loading}>
         <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={queueTimeData} barSize={30}>
-            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+          <LineChart data={queueTimeData}>
+            <CartesianGrid stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
-            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Max (s)']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Max (s)'} wrapperStyle={staticLegendStyle} />
-            <Bar dataKey="max" name="Max (s)" fill={C_NAVY} radius={[3, 3, 0, 0]} />
-          </BarChart>
+            <Tooltip content={<SeriesTooltip isLight={isLight} formatter={formatDecimalNumber} reverse />} />
+            <Legend
+              verticalAlign="bottom"
+              content={() => (
+                <SeriesLegend
+                  isLight={isLight}
+                  hidden={hiddenQueueTime}
+                  toggle={makeToggle(setHiddenQueueTime)}
+                  items={[
+                    { key: 'avg', label: 'Avg (s)', color: C_DEEP },
+                    { key: 'max', label: 'Max (s)', color: C_ICE },
+                    { key: 'total', label: 'Total (s)', color: C_NAVY },
+                  ]}
+                />
+              )}
+            />
+            <Line type="monotone" dataKey="avg" name="Avg (s)" stroke={C_DEEP} strokeWidth={2} hide={hiddenQueueTime.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="max" name="Max (s)" stroke={C_ICE} strokeWidth={2} hide={hiddenQueueTime.has('max')} {...getAreaDotProps(C_ICE, isLight)} connectNulls />
+            <Line type="monotone" dataKey="total" name="Total (s)" stroke={C_NAVY} strokeWidth={2} hide={hiddenQueueTime.has('total')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
+          </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>
 

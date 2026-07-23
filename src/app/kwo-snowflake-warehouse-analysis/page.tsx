@@ -148,6 +148,10 @@ export default function WarehouseAnalysisPage() {
   const [histogramError, setHistogramError] = useState<FetchError | null>(null)
   const [histogramLoading, setHistogramLoading] = useState(false)
 
+  const [latencyHistogramBuckets, setLatencyHistogramBuckets] = useState<HistogramBucket[]>([])
+  const [latencyHistogramError, setLatencyHistogramError] = useState<FetchError | null>(null)
+  const [latencyHistogramLoading, setLatencyHistogramLoading] = useState(false)
+
   const [dataScannedHistogramBuckets, setDataScannedHistogramBuckets] = useState<HistogramBucket[]>([])
   const [dataScannedHistogramError, setDataScannedHistogramError] = useState<FetchError | null>(null)
   const [dataScannedHistogramLoading, setDataScannedHistogramLoading] = useState(false)
@@ -375,6 +379,41 @@ export default function WarehouseAnalysisPage() {
         setHistogramError({ message: err.error ?? String(err), code: err.code })
       })
       .finally(() => setHistogramLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setLatencyHistogramBuckets([])
+      return
+    }
+    const controller = new AbortController()
+    setLatencyHistogramLoading(true)
+    setLatencyHistogramError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/latency-histogram', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: [selectedWarehouse],
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as HistogramResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setLatencyHistogramBuckets(body.buckets)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setLatencyHistogramError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setLatencyHistogramLoading(false))
 
     return () => controller.abort()
   }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
@@ -640,6 +679,7 @@ export default function WarehouseAnalysisPage() {
     loading ||
     clusterActivityLoading ||
     histogramLoading ||
+    latencyHistogramLoading ||
     dataScannedHistogramLoading ||
     spillageHistogramLoading ||
     compileTimeHistogramLoading ||
@@ -652,6 +692,7 @@ export default function WarehouseAnalysisPage() {
     points.length > 0 ||
     clusterIntervals.length > 0 ||
     histogramBuckets.length > 0 ||
+    latencyHistogramBuckets.length > 0 ||
     dataScannedHistogramBuckets.length > 0 ||
     spillageHistogramBuckets.length > 0 ||
     compileTimeHistogramBuckets.length > 0 ||
@@ -833,6 +874,10 @@ export default function WarehouseAnalysisPage() {
 
           {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
 
+          {selectedCustomer && selectedWarehouse && !latencyHistogramLoading && latencyHistogramError && (
+            <SectionError error={latencyHistogramError} />
+          )}
+
           {selectedCustomer && selectedWarehouse && !dataScannedHistogramLoading && dataScannedHistogramError && (
             <SectionError error={dataScannedHistogramError} />
           )}
@@ -872,6 +917,7 @@ export default function WarehouseAnalysisPage() {
               <WarehouseAnalysisCharts
                 points={points}
                 histogramBuckets={histogramBuckets}
+                latencyHistogramBuckets={latencyHistogramBuckets}
                 dataScannedHistogramBuckets={dataScannedHistogramBuckets}
                 spillageHistogramBuckets={spillageHistogramBuckets}
                 compileTimeHistogramBuckets={compileTimeHistogramBuckets}
@@ -881,6 +927,7 @@ export default function WarehouseAnalysisPage() {
                 failedQueriesByTypeRows={failedQueriesByTypeRows}
                 loading={loading}
                 histogramLoading={histogramLoading}
+                latencyHistogramLoading={latencyHistogramLoading}
                 dataScannedHistogramLoading={dataScannedHistogramLoading}
                 spillageHistogramLoading={spillageHistogramLoading}
                 compileTimeHistogramLoading={compileTimeHistogramLoading}

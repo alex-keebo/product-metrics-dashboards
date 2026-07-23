@@ -18,6 +18,11 @@ const spillageHistogramBuckets: HistogramBucket[] = [
   { bucket_label: '<1 GB', query_count: 10 },
 ]
 
+const latencyHistogramBuckets: HistogramBucket[] = [
+  { bucket_label: '<1s', query_count: 95 },
+  { bucket_label: '1-5s', query_count: 45 },
+]
+
 const points: WarehouseAnalysisPoint[] = [
   {
     period_label: '2026-07-01',
@@ -29,11 +34,16 @@ const points: WarehouseAnalysisPoint[] = [
     execution_time_p95_ms: 900,
     execution_time_p99_ms: 1500,
     execution_time_max_ms: 2200,
+    latency_avg_ms: 470,
+    latency_p95_ms: 950,
+    latency_p99_ms: 1550,
+    latency_max_ms: 2250,
     queued_query_count: 4,
     queue_time_avg_ms: 20,
     queue_time_p95_ms: 60,
     queue_time_p99_ms: 100,
     queue_time_max_ms: 150,
+    queue_time_total_ms: 80,
     bytes_spilled_local: 1024,
     bytes_spilled_remote: 0,
     bytes_scanned: 2048,
@@ -47,6 +57,7 @@ const points: WarehouseAnalysisPoint[] = [
 const baseProps = {
   points,
   histogramBuckets,
+  latencyHistogramBuckets,
   dataScannedHistogramBuckets,
   spillageHistogramBuckets,
 }
@@ -57,6 +68,7 @@ describe('WarehouseAnalysisCharts', () => {
       <WarehouseAnalysisCharts
         points={points}
         histogramBuckets={histogramBuckets}
+        latencyHistogramBuckets={latencyHistogramBuckets}
         dataScannedHistogramBuckets={dataScannedHistogramBuckets}
         spillageHistogramBuckets={spillageHistogramBuckets}
       />
@@ -65,6 +77,8 @@ describe('WarehouseAnalysisCharts', () => {
     expect(screen.getAllByText('Total Queries').length).toBeGreaterThan(0)
     expect(screen.getByText('Execution Time')).toBeInTheDocument()
     expect(screen.getByText('Execution Time Distribution')).toBeInTheDocument()
+    expect(screen.getByText('Latency')).toBeInTheDocument()
+    expect(screen.getByText('Latency Distribution')).toBeInTheDocument()
     expect(screen.getByText('Queued Queries')).toBeInTheDocument()
     expect(screen.getByText('Queue Time')).toBeInTheDocument()
     expect(screen.getByText('Data Scanned')).toBeInTheDocument()
@@ -84,6 +98,7 @@ describe('WarehouseAnalysisCharts', () => {
       <WarehouseAnalysisCharts
         points={[]}
         histogramBuckets={[]}
+        latencyHistogramBuckets={[]}
         dataScannedHistogramBuckets={[]}
         spillageHistogramBuckets={[]}
       />
@@ -96,13 +111,14 @@ describe('WarehouseAnalysisCharts', () => {
       <WarehouseAnalysisCharts
         points={points}
         histogramBuckets={histogramBuckets}
+        latencyHistogramBuckets={latencyHistogramBuckets}
         dataScannedHistogramBuckets={dataScannedHistogramBuckets}
         spillageHistogramBuckets={spillageHistogramBuckets}
       />
     )
     expect(screen.getByText('Total Credits')).toBeInTheDocument()
     expect(screen.getByText('3.50')).toBeInTheDocument()
-    expect(screen.getAllByText('Avg (s)')).toHaveLength(1)
+    expect(screen.getAllByText('Avg (s)')).toHaveLength(3)
     expect(screen.getByText('Max (s)')).toBeInTheDocument()
     expect(screen.getByText('Total Queued')).toBeInTheDocument()
     expect(screen.getAllByText('Total GB').length).toBeGreaterThanOrEqual(2)
@@ -114,6 +130,7 @@ describe('WarehouseAnalysisCharts', () => {
       <WarehouseAnalysisCharts
         points={points}
         histogramBuckets={histogramBuckets}
+        latencyHistogramBuckets={latencyHistogramBuckets}
         dataScannedHistogramBuckets={dataScannedHistogramBuckets}
         spillageHistogramBuckets={spillageHistogramBuckets}
       />
@@ -132,6 +149,7 @@ describe('WarehouseAnalysisCharts', () => {
       <WarehouseAnalysisCharts
         points={zeroQueryPoints}
         histogramBuckets={histogramBuckets}
+        latencyHistogramBuckets={latencyHistogramBuckets}
         dataScannedHistogramBuckets={dataScannedHistogramBuckets}
         spillageHistogramBuckets={spillageHistogramBuckets}
       />
@@ -145,6 +163,7 @@ describe('WarehouseAnalysisCharts', () => {
       <WarehouseAnalysisCharts
         points={points}
         histogramBuckets={histogramBuckets}
+        latencyHistogramBuckets={latencyHistogramBuckets}
         dataScannedHistogramBuckets={dataScannedHistogramBuckets}
         spillageHistogramBuckets={spillageHistogramBuckets}
       />

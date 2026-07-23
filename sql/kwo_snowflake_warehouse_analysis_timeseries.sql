@@ -34,6 +34,7 @@ base AS (
   SELECT
     q.query_type,
     q.execution_time,
+    q.total_elapsed_time,
     (IFNULL(q.queued_provisioning_time, 0) + IFNULL(q.queued_repair_time, 0) + IFNULL(q.queued_overload_time, 0)) AS queue_time,
     q.bytes_spilled_to_local_storage,
     q.bytes_spilled_to_remote_storage,
@@ -70,6 +71,18 @@ latency AS (
   FROM base
   GROUP BY period_start
 ),
+-- Latency = total_elapsed_time (queueing + compilation + execution), i.e. end_time - start_time.
+-- Distinct from `latency` above, which is execution_time only (the execution phase).
+total_latency AS (
+  SELECT
+    period_start,
+    AVG(total_elapsed_time) AS latency_avg_ms,
+    APPROX_QUANTILES(total_elapsed_time, 100)[OFFSET(95)] AS latency_p95_ms,
+    APPROX_QUANTILES(total_elapsed_time, 100)[OFFSET(99)] AS latency_p99_ms,
+    MAX(total_elapsed_time) AS latency_max_ms
+  FROM base
+  GROUP BY period_start
+),
 queue AS (
   SELECT
     period_start,
@@ -77,7 +90,8 @@ queue AS (
     AVG(queue_time) AS queue_time_avg_ms,
     APPROX_QUANTILES(queue_time, 100)[OFFSET(95)] AS queue_time_p95_ms,
     APPROX_QUANTILES(queue_time, 100)[OFFSET(99)] AS queue_time_p99_ms,
-    MAX(queue_time) AS queue_time_max_ms
+    MAX(queue_time) AS queue_time_max_ms,
+    SUM(queue_time) AS queue_time_total_ms
   FROM base
   GROUP BY period_start
 ),
@@ -245,11 +259,16 @@ SELECT
   l.execution_time_p95_ms,
   l.execution_time_p99_ms,
   l.execution_time_max_ms,
+  lt.latency_avg_ms,
+  lt.latency_p95_ms,
+  lt.latency_p99_ms,
+  lt.latency_max_ms,
   q.queued_query_count,
   q.queue_time_avg_ms,
   q.queue_time_p95_ms,
   q.queue_time_p99_ms,
   q.queue_time_max_ms,
+  q.queue_time_total_ms,
   s.bytes_spilled_local,
   s.bytes_spilled_remote,
   sc.bytes_scanned,
@@ -260,6 +279,7 @@ SELECT
 FROM periods p
 LEFT JOIN query_volume_agg qv ON qv.period_start = p.period_start
 LEFT JOIN latency l ON l.period_start = p.period_start
+LEFT JOIN total_latency lt ON lt.period_start = p.period_start
 LEFT JOIN queue q ON q.period_start = p.period_start
 LEFT JOIN spillage s ON s.period_start = p.period_start
 LEFT JOIN scanned sc ON sc.period_start = p.period_start

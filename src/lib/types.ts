@@ -141,11 +141,16 @@ export interface WarehouseAnalysisPoint {
   execution_time_p95_ms: number
   execution_time_p99_ms: number
   execution_time_max_ms: number
+  latency_avg_ms: number
+  latency_p95_ms: number
+  latency_p99_ms: number
+  latency_max_ms: number
   queued_query_count: number
   queue_time_avg_ms: number
   queue_time_p95_ms: number
   queue_time_p99_ms: number
   queue_time_max_ms: number
+  queue_time_total_ms: number
   bytes_spilled_local: number
   bytes_spilled_remote: number
   bytes_scanned: number

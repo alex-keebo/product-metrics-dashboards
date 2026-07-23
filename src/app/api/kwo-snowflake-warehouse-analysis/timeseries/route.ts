@@ -14,11 +14,16 @@ interface WarehouseAnalysisRow {
   execution_time_p95_ms: number | null
   execution_time_p99_ms: number | null
   execution_time_max_ms: number | null
+  latency_avg_ms: number | null
+  latency_p95_ms: number | null
+  latency_p99_ms: number | null
+  latency_max_ms: number | null
   queued_query_count: number | null
   queue_time_avg_ms: number | null
   queue_time_p95_ms: number | null
   queue_time_p99_ms: number | null
   queue_time_max_ms: number | null
+  queue_time_total_ms: number | null
   bytes_spilled_local: number | null
   bytes_spilled_remote: number | null
   bytes_scanned: number | null
@@ -147,11 +152,16 @@ export async function POST(request: NextRequest) {
         execution_time_p95_ms: Number(row?.execution_time_p95_ms ?? 0),
         execution_time_p99_ms: Number(row?.execution_time_p99_ms ?? 0),
         execution_time_max_ms: Number(row?.execution_time_max_ms ?? 0),
+        latency_avg_ms: Number(row?.latency_avg_ms ?? 0),
+        latency_p95_ms: Number(row?.latency_p95_ms ?? 0),
+        latency_p99_ms: Number(row?.latency_p99_ms ?? 0),
+        latency_max_ms: Number(row?.latency_max_ms ?? 0),
         queued_query_count: Number(row?.queued_query_count ?? 0),
         queue_time_avg_ms: Number(row?.queue_time_avg_ms ?? 0),
         queue_time_p95_ms: Number(row?.queue_time_p95_ms ?? 0),
         queue_time_p99_ms: Number(row?.queue_time_p99_ms ?? 0),
         queue_time_max_ms: Number(row?.queue_time_max_ms ?? 0),
+        queue_time_total_ms: Number(row?.queue_time_total_ms ?? 0),
         bytes_spilled_local: Number(row?.bytes_spilled_local ?? 0),
         bytes_spilled_remote: Number(row?.bytes_spilled_remote ?? 0),
         bytes_scanned: Number(row?.bytes_scanned ?? 0),
