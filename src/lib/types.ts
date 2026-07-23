@@ -191,6 +191,15 @@ export interface HistogramResponse {
   buckets: HistogramBucket[]
 }
 
+export interface QueryTypeMetricRow {
+  query_type: string
+  value: number
+}
+
+export interface QueryTypeMetricResponse {
+  rows: QueryTypeMetricRow[]
+}
+
 export type FilterFieldType = 'string' | 'number' | 'boolean'
 
 export type FilterOperator =

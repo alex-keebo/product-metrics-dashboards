@@ -448,14 +448,49 @@ export function ChartWrapper({ title, children, isLight, height, totals, loading
 
 
 
-function smartTruncateLabel(full: string, maxChars: number, tailChars = 20): string {
-  if (full.length <= maxChars) return full
+let measureCanvas: HTMLCanvasElement | null = null
+
+function getMeasureCtx(font: string): CanvasRenderingContext2D | null {
+  if (typeof document === 'undefined') return null
+  if (!measureCanvas) measureCanvas = document.createElement('canvas')
+  const ctx = measureCanvas.getContext('2d')
+  if (ctx) ctx.font = font
+  return ctx
+}
+
+/** Always keeps the last `tailChars`, fits as many leading chars of the rest as the
+ * available pixel width allows, and puts the ellipsis right before the tail. */
+function smartTruncateLabel(
+  full: string,
+  maxWidthPx: number,
+  font: { fontSize: number; fontFamily: string; fontWeight: number },
+  tailChars = 20
+): string {
+  const ctx = getMeasureCtx(`${font.fontWeight} ${font.fontSize}px ${font.fontFamily}`)
+  if (!ctx) return full
+  if (ctx.measureText(full).width <= maxWidthPx) return full
+
   const ellipsis = '…'
-  if (maxChars <= tailChars + ellipsis.length) {
-    return ellipsis + full.slice(full.length - Math.max(0, maxChars - ellipsis.length))
+  const tail = full.length > tailChars ? full.slice(full.length - tailChars) : full
+  const headPool = full.slice(0, full.length - tail.length)
+  const budget = maxWidthPx - ctx.measureText(tail).width - ctx.measureText(ellipsis).width
+
+  if (budget <= 0 || headPool.length === 0) {
+    let lo = 0, hi = tail.length
+    while (lo < hi) {
+      const mid = Math.ceil((lo + hi) / 2)
+      const candidate = ellipsis + tail.slice(tail.length - mid)
+      if (ctx.measureText(candidate).width <= maxWidthPx) lo = mid; else hi = mid - 1
+    }
+    return ellipsis + tail.slice(tail.length - lo)
   }
-  const headLen = maxChars - tailChars - ellipsis.length
-  return full.slice(0, headLen) + ellipsis + full.slice(full.length - tailChars)
+
+  let lo = 0, hi = headPool.length
+  while (lo < hi) {
+    const mid = Math.ceil((lo + hi) / 2)
+    if (ctx.measureText(headPool.slice(0, mid)).width <= budget) lo = mid; else hi = mid - 1
+  }
+  return headPool.slice(0, lo) + ellipsis + tail
 }
 
 export interface SimpleBarChartProps {
@@ -469,8 +504,9 @@ export interface SimpleBarChartProps {
   yAxisWidth?: number
   height?: number
   barSize?: number
-  labelMaxChars?: number
 }
+
+const Y_AXIS_LABEL_PADDING = 14
 
 export function SimpleBarChart({
   data,
@@ -482,7 +518,6 @@ export function SimpleBarChart({
   yAxisWidth = 160,
   height = 220,
   barSize,
-  labelMaxChars = 40,
 }: SimpleBarChartProps) {
   const GRID = isLight ? LIGHT_GRID : DARK_GRID
   const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
@@ -511,7 +546,7 @@ export function SimpleBarChart({
             width={yAxisWidth}
             tick={(props: { x: string | number; y: string | number; payload: { value: string } }) => {
               const full = props.payload.value
-              const label = smartTruncateLabel(full, labelMaxChars)
+              const label = smartTruncateLabel(full, yAxisWidth - Y_AXIS_LABEL_PADDING, AXIS)
               return (
                 <g transform={`translate(${props.x},${props.y})`}>
                   <title>{full}</title>
@@ -628,7 +663,7 @@ export function SpendDistributionChart({ points, loading }: SpendDistributionCha
   const data = sorted.map((p) => ({ label: p.warehouse_name, value: p.credits_used }))
 
   const totalsSpend = [
-    { label: 'Total Credits', value: formatDecimalNumber(points.reduce((sum, p) => sum + p.credits_used, 0)) },
+    { label: 'Total Compute Credits', value: formatDecimalNumber(points.reduce((sum, p) => sum + p.credits_used, 0)) },
   ]
 
   return (
@@ -641,8 +676,7 @@ export function SpendDistributionChart({ points, loading }: SpendDistributionCha
           formatter={formatDecimalNumber}
           valueName="Credits Used"
           height={Math.max(220, data.length * SPEND_ROW_HEIGHT)}
-          yAxisWidth={240}
-          labelMaxChars={56}
+          yAxisWidth={320}
         />
       </div>
     </ChartWrapper>

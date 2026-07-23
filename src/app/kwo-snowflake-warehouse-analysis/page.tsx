@@ -24,6 +24,8 @@ import type {
   Granularity,
   HistogramBucket,
   HistogramResponse,
+  QueryTypeMetricRow,
+  QueryTypeMetricResponse,
   WarehouseAnalysisPoint,
   WarehouseAnalysisResponse,
   WarehouseOption,
@@ -157,6 +159,22 @@ export default function WarehouseAnalysisPage() {
   const [compileTimeHistogramBuckets, setCompileTimeHistogramBuckets] = useState<HistogramBucket[]>([])
   const [compileTimeHistogramError, setCompileTimeHistogramError] = useState<FetchError | null>(null)
   const [compileTimeHistogramLoading, setCompileTimeHistogramLoading] = useState(false)
+
+  const [executionTimeByTypeRows, setExecutionTimeByTypeRows] = useState<QueryTypeMetricRow[]>([])
+  const [executionTimeByTypeError, setExecutionTimeByTypeError] = useState<FetchError | null>(null)
+  const [executionTimeByTypeLoading, setExecutionTimeByTypeLoading] = useState(false)
+
+  const [dataScannedByTypeRows, setDataScannedByTypeRows] = useState<QueryTypeMetricRow[]>([])
+  const [dataScannedByTypeError, setDataScannedByTypeError] = useState<FetchError | null>(null)
+  const [dataScannedByTypeLoading, setDataScannedByTypeLoading] = useState(false)
+
+  const [spillageByTypeRows, setSpillageByTypeRows] = useState<QueryTypeMetricRow[]>([])
+  const [spillageByTypeError, setSpillageByTypeError] = useState<FetchError | null>(null)
+  const [spillageByTypeLoading, setSpillageByTypeLoading] = useState(false)
+
+  const [failedQueriesByTypeRows, setFailedQueriesByTypeRows] = useState<QueryTypeMetricRow[]>([])
+  const [failedQueriesByTypeError, setFailedQueriesByTypeError] = useState<FetchError | null>(null)
+  const [failedQueriesByTypeLoading, setFailedQueriesByTypeLoading] = useState(false)
 
   useEffect(() => {
     fetch('/api/kwo-snowflake-warehouse-analysis/customers')
@@ -466,6 +484,146 @@ export default function WarehouseAnalysisPage() {
     return () => controller.abort()
   }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setExecutionTimeByTypeRows([])
+      return
+    }
+    const controller = new AbortController()
+    setExecutionTimeByTypeLoading(true)
+    setExecutionTimeByTypeError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/execution-time-by-query-type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: [selectedWarehouse],
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as QueryTypeMetricResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setExecutionTimeByTypeRows(body.rows)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setExecutionTimeByTypeError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setExecutionTimeByTypeLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setDataScannedByTypeRows([])
+      return
+    }
+    const controller = new AbortController()
+    setDataScannedByTypeLoading(true)
+    setDataScannedByTypeError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/data-scanned-by-query-type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: [selectedWarehouse],
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as QueryTypeMetricResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setDataScannedByTypeRows(body.rows)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setDataScannedByTypeError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setDataScannedByTypeLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setSpillageByTypeRows([])
+      return
+    }
+    const controller = new AbortController()
+    setSpillageByTypeLoading(true)
+    setSpillageByTypeError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/spillage-by-query-type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: [selectedWarehouse],
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as QueryTypeMetricResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setSpillageByTypeRows(body.rows)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setSpillageByTypeError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setSpillageByTypeLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
+      setFailedQueriesByTypeRows([])
+      return
+    }
+    const controller = new AbortController()
+    setFailedQueriesByTypeLoading(true)
+    setFailedQueriesByTypeError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/failed-queries-by-query-type', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: [selectedWarehouse],
+        start_date: startDate,
+        end_date: endDate,
+        filter_conditions: appliedFilter,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as QueryTypeMetricResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setFailedQueriesByTypeRows(body.rows)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setFailedQueriesByTypeError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setFailedQueriesByTypeLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
+
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
       key: 'period_label',
@@ -484,7 +642,11 @@ export default function WarehouseAnalysisPage() {
     histogramLoading ||
     dataScannedHistogramLoading ||
     spillageHistogramLoading ||
-    compileTimeHistogramLoading
+    compileTimeHistogramLoading ||
+    executionTimeByTypeLoading ||
+    dataScannedByTypeLoading ||
+    spillageByTypeLoading ||
+    failedQueriesByTypeLoading
 
   const sectionHasData =
     points.length > 0 ||
@@ -492,7 +654,11 @@ export default function WarehouseAnalysisPage() {
     histogramBuckets.length > 0 ||
     dataScannedHistogramBuckets.length > 0 ||
     spillageHistogramBuckets.length > 0 ||
-    compileTimeHistogramBuckets.length > 0
+    compileTimeHistogramBuckets.length > 0 ||
+    executionTimeByTypeRows.length > 0 ||
+    dataScannedByTypeRows.length > 0 ||
+    spillageByTypeRows.length > 0 ||
+    failedQueriesByTypeRows.length > 0
 
   const totalsClusterActivity = useMemo(() => {
     const realClusters = clusterIntervals.filter((i) => i.cluster_number !== WAREHOUSE_ROW_CLUSTER_NUMBER)
@@ -679,6 +845,22 @@ export default function WarehouseAnalysisPage() {
             <SectionError error={compileTimeHistogramError} />
           )}
 
+          {selectedCustomer && selectedWarehouse && !executionTimeByTypeLoading && executionTimeByTypeError && (
+            <SectionError error={executionTimeByTypeError} />
+          )}
+
+          {selectedCustomer && selectedWarehouse && !dataScannedByTypeLoading && dataScannedByTypeError && (
+            <SectionError error={dataScannedByTypeError} />
+          )}
+
+          {selectedCustomer && selectedWarehouse && !spillageByTypeLoading && spillageByTypeError && (
+            <SectionError error={spillageByTypeError} />
+          )}
+
+          {selectedCustomer && selectedWarehouse && !failedQueriesByTypeLoading && failedQueriesByTypeError && (
+            <SectionError error={failedQueriesByTypeError} />
+          )}
+
           {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
             <div className="p-8 text-center text-muted-foreground text-sm">
               No query history for this warehouse in the selected range.
@@ -693,11 +875,19 @@ export default function WarehouseAnalysisPage() {
                 dataScannedHistogramBuckets={dataScannedHistogramBuckets}
                 spillageHistogramBuckets={spillageHistogramBuckets}
                 compileTimeHistogramBuckets={compileTimeHistogramBuckets}
+                executionTimeByTypeRows={executionTimeByTypeRows}
+                dataScannedByTypeRows={dataScannedByTypeRows}
+                spillageByTypeRows={spillageByTypeRows}
+                failedQueriesByTypeRows={failedQueriesByTypeRows}
                 loading={loading}
                 histogramLoading={histogramLoading}
                 dataScannedHistogramLoading={dataScannedHistogramLoading}
                 spillageHistogramLoading={spillageHistogramLoading}
                 compileTimeHistogramLoading={compileTimeHistogramLoading}
+                executionTimeByTypeLoading={executionTimeByTypeLoading}
+                dataScannedByTypeLoading={dataScannedByTypeLoading}
+                spillageByTypeLoading={spillageByTypeLoading}
+                failedQueriesByTypeLoading={failedQueriesByTypeLoading}
               />
 
               {loading ? (

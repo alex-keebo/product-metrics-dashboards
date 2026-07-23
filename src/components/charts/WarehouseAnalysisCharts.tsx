@@ -19,6 +19,7 @@ import {
   UsageChart,
   SeriesTooltip,
   SeriesLegend,
+  SimpleBarChart,
   getChartLegendStyle,
   getAreaDotProps,
   formatMetricNumber,
@@ -37,7 +38,13 @@ import {
   LIGHT_CURSOR_FILL,
   DARK_CURSOR_FILL,
 } from './TimeSeriesCharts'
-import type { HistogramBucket, WarehouseAnalysisPoint } from '@/lib/types'
+import type { HistogramBucket, QueryTypeMetricRow, WarehouseAnalysisPoint } from '@/lib/types'
+
+const QUERY_TYPE_ROW_HEIGHT = 32
+
+function sortedQueryTypeData(rows: QueryTypeMetricRow[]): { label: string; value: number }[] {
+  return [...rows].sort((a, b) => b.value - a.value).map((r) => ({ label: r.query_type, value: r.value }))
+}
 
 export function collectKeys(points: WarehouseAnalysisPoint[], field: 'query_volume_by_type' | 'failed_query_count_by_error'): string[] {
   const keys = new Set<string>()
@@ -156,12 +163,20 @@ interface WarehouseAnalysisChartsProps {
   dataScannedHistogramBuckets: HistogramBucket[]
   spillageHistogramBuckets: HistogramBucket[]
   compileTimeHistogramBuckets?: HistogramBucket[]
+  executionTimeByTypeRows?: QueryTypeMetricRow[]
+  dataScannedByTypeRows?: QueryTypeMetricRow[]
+  spillageByTypeRows?: QueryTypeMetricRow[]
+  failedQueriesByTypeRows?: QueryTypeMetricRow[]
   /** Timeseries-driven charts (usage, volume, execution/queue time, scanned/spillage totals, failed queries). */
   loading?: boolean
   histogramLoading?: boolean
   dataScannedHistogramLoading?: boolean
   spillageHistogramLoading?: boolean
   compileTimeHistogramLoading?: boolean
+  executionTimeByTypeLoading?: boolean
+  dataScannedByTypeLoading?: boolean
+  spillageByTypeLoading?: boolean
+  failedQueriesByTypeLoading?: boolean
 }
 
 
@@ -171,11 +186,19 @@ export function WarehouseAnalysisCharts({
   dataScannedHistogramBuckets,
   spillageHistogramBuckets,
   compileTimeHistogramBuckets = [],
+  executionTimeByTypeRows = [],
+  dataScannedByTypeRows = [],
+  spillageByTypeRows = [],
+  failedQueriesByTypeRows = [],
   loading,
   histogramLoading,
   dataScannedHistogramLoading,
   spillageHistogramLoading,
   compileTimeHistogramLoading,
+  executionTimeByTypeLoading,
+  dataScannedByTypeLoading,
+  spillageByTypeLoading,
+  failedQueriesByTypeLoading,
 }: WarehouseAnalysisChartsProps) {
   const { theme } = useTheme()
   const isLight = theme === 'light'
@@ -293,7 +316,7 @@ export function WarehouseAnalysisCharts({
       0
     )
     return [
-      { label: 'Credits / 1000 Queries', value: formatDecimalNumber(totalQueries > 0 ? (totalCredits / totalQueries) * 1000 : 0) },
+      { label: 'Compute credits / 1000 Queries', value: formatDecimalNumber(totalQueries > 0 ? (totalCredits / totalQueries) * 1000 : 0) },
     ]
   }, [points])
 
@@ -380,6 +403,33 @@ export function WarehouseAnalysisCharts({
     [compileTimeHistogramBuckets]
   )
 
+  const executionTimeByTypeData = useMemo(
+    () => sortedQueryTypeData(executionTimeByTypeRows).map((d) => ({ ...d, value: d.value / 1000 })),
+    [executionTimeByTypeRows]
+  )
+  const totalsExecutionTimeByType = useMemo(
+    () => [{ label: 'Total Execution Time (s)', value: formatDecimalNumber(executionTimeByTypeData.reduce((sum, d) => sum + d.value, 0)) }],
+    [executionTimeByTypeData]
+  )
+
+  const dataScannedByTypeData = useMemo(() => sortedQueryTypeData(dataScannedByTypeRows), [dataScannedByTypeRows])
+  const totalsDataScannedByType = useMemo(
+    () => [{ label: 'Total GB', value: `${formatBytesAsGB(dataScannedByTypeData.reduce((sum, d) => sum + d.value, 0))} GB` }],
+    [dataScannedByTypeData]
+  )
+
+  const spillageByTypeData = useMemo(() => sortedQueryTypeData(spillageByTypeRows), [spillageByTypeRows])
+  const totalsSpillageByType = useMemo(
+    () => [{ label: 'Total GB', value: `${formatBytesAsGB(spillageByTypeData.reduce((sum, d) => sum + d.value, 0))} GB` }],
+    [spillageByTypeData]
+  )
+
+  const failedQueriesByTypeData = useMemo(() => sortedQueryTypeData(failedQueriesByTypeRows), [failedQueriesByTypeRows])
+  const totalsFailedQueriesByType = useMemo(
+    () => [{ label: 'Total Failed', value: formatMetricNumber(failedQueriesByTypeData.reduce((sum, d) => sum + d.value, 0)) }],
+    [failedQueriesByTypeData]
+  )
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <UsageChart points={points} loading={loading} />
@@ -395,9 +445,9 @@ export function WarehouseAnalysisCharts({
             <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
             <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
             <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
-            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits / 1000 Queries']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits / 1000 Queries'} wrapperStyle={staticLegendStyle} />
-            <Bar dataKey="cost_per_1000_queries" name="Credits / 1000 Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Compute credits / 1000 Queries']} />
+            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Compute credits / 1000 Queries'} wrapperStyle={staticLegendStyle} />
+            <Bar dataKey="cost_per_1000_queries" name="Compute credits / 1000 Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartWrapper>
@@ -653,6 +703,66 @@ export function WarehouseAnalysisCharts({
             <Bar dataKey="query_count" name="Queries" fill={C_NAVY} radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
+      </ChartWrapper>
+
+      <ChartWrapper title="Execution Time by Query Type" isLight={isLight} totals={totalsExecutionTimeByType} loading={executionTimeByTypeLoading}>
+        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          <SimpleBarChart
+            data={executionTimeByTypeData}
+            isLight={isLight}
+            direction="horizontal"
+            formatter={formatDecimalNumber}
+            valueName="Execution Time (s)"
+            barColor={C_NAVY}
+            height={Math.max(220, executionTimeByTypeData.length * QUERY_TYPE_ROW_HEIGHT)}
+            yAxisWidth={320}
+          />
+        </div>
+      </ChartWrapper>
+
+      <ChartWrapper title="Data Scanned by Query Type" isLight={isLight} totals={totalsDataScannedByType} loading={dataScannedByTypeLoading}>
+        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          <SimpleBarChart
+            data={dataScannedByTypeData}
+            isLight={isLight}
+            direction="horizontal"
+            formatter={(v: number) => `${formatBytesAsGB(v)} GB`}
+            valueName="Data Scanned (GB)"
+            barColor={C_NAVY}
+            height={Math.max(220, dataScannedByTypeData.length * QUERY_TYPE_ROW_HEIGHT)}
+            yAxisWidth={320}
+          />
+        </div>
+      </ChartWrapper>
+
+      <ChartWrapper title="Spillage by Query Type" isLight={isLight} totals={totalsSpillageByType} loading={spillageByTypeLoading}>
+        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          <SimpleBarChart
+            data={spillageByTypeData}
+            isLight={isLight}
+            direction="horizontal"
+            formatter={(v: number) => `${formatBytesAsGB(v)} GB`}
+            valueName="Spillage (GB)"
+            barColor={C_NAVY}
+            height={Math.max(220, spillageByTypeData.length * QUERY_TYPE_ROW_HEIGHT)}
+            yAxisWidth={320}
+          />
+        </div>
+      </ChartWrapper>
+
+      <ChartWrapper title="Failed Queries by Query Type" isLight={isLight} totals={totalsFailedQueriesByType} loading={failedQueriesByTypeLoading}>
+        <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+          <SimpleBarChart
+            data={failedQueriesByTypeData}
+            isLight={isLight}
+            direction="horizontal"
+            formatter={formatMetricNumber}
+            valueName="Failed Queries"
+            barColor={C_NAVY}
+            height={Math.max(220, failedQueriesByTypeData.length * QUERY_TYPE_ROW_HEIGHT)}
+            yAxisWidth={320}
+          />
+        </div>
       </ChartWrapper>
     </div>
   )
