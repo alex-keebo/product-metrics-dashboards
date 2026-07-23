@@ -40,7 +40,7 @@ const points: WarehouseAnalysisPoint[] = [
     failed_query_count_by_error: { '1234': 2 },
     credits_used: 3.5,
     concurrent_queries_max: 5,
-    concurrent_queries_avg: 2.1,
+    concurrent_queries_per_cluster_max: 2.1,
   },
 ]
 

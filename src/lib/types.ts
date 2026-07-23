@@ -152,12 +152,34 @@ export interface WarehouseAnalysisPoint {
   failed_query_count_by_error: Record<string, number>
   credits_used: number
   concurrent_queries_max: number
-  concurrent_queries_avg: number
+  concurrent_queries_per_cluster_max: number
 }
 
 export interface WarehouseAnalysisResponse {
   granularity_used: Granularity
   points: WarehouseAnalysisPoint[]
+}
+
+export interface WarehouseUsagePoint {
+  period_label: string
+  period_label_display: string
+  period_start: string
+  period_end: string
+  credits_used: number
+}
+
+export interface WarehouseUsageResponse {
+  granularity_used: Granularity
+  points: WarehouseUsagePoint[]
+}
+
+export interface WarehouseSpendPoint {
+  warehouse_name: string
+  credits_used: number
+}
+
+export interface WarehouseSpendResponse {
+  points: WarehouseSpendPoint[]
 }
 
 export interface HistogramBucket {

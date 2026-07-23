@@ -11,6 +11,7 @@ import {
   TOOLTIP_BORDER_LIGHT, TOOLTIP_BORDER_DARK,
   TOOLTIP_MUTED_LIGHT, TOOLTIP_MUTED_DARK,
   TOOLTIP_TEXT_LIGHT, TOOLTIP_TEXT_DARK,
+  SeriesLegend,
 } from './TimeSeriesCharts'
 import type { ClusterInterval, WarehouseSizeInterval } from '@/lib/types'
 import { WAREHOUSE_ROW_CLUSTER_NUMBER } from '@/lib/clusterIntervals'
@@ -22,6 +23,7 @@ const FADE_FRACTION = 0.2
 const TICK_COUNT = 5
 const MIN_GAP_PCT = 0.15
 const NO_DATA_FILL = 'var(--muted-foreground)'
+const NO_DATA_KEY = 'nodata'
 
 const SIZE_RANK_COLORS = [C_FROST, C_ICE, C_TEAL, C_SLATE, C_NAVY, C_DEEP, C_ABYSS, C_ABYSS, C_ABYSS, C_ABYSS]
 const SIZE_RANK_LABELS = [
@@ -188,6 +190,16 @@ export function WarehouseActivityTimeline({ intervals, sizeIntervals, rangeStart
   const GRID = isLight ? LIGHT_GRID : DARK_GRID
   const CURSOR_FILL = isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL
   const [hover, setHover] = useState<HoverState | null>(null)
+  const [hiddenSizes, setHiddenSizes] = useState<Set<string>>(new Set())
+
+  function toggleSize(key: string) {
+    setHiddenSizes((prev) => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   const rangeStartMs = toMs(rangeStart)
   const rangeEndMs = toMs(rangeEnd)
@@ -214,10 +226,19 @@ export function WarehouseActivityTimeline({ intervals, sizeIntervals, rangeStart
     }
     const items = [...ranksPresent]
       .sort((a, b) => a - b)
-      .map((rank) => ({ color: colorForRank(rank), label: SIZE_RANK_LABELS[rank] ?? `Rank ${rank}` }))
-    if (hasNoData) items.push({ color: NO_DATA_FILL, label: 'No data' })
+      .map((rank) => ({ key: String(rank), color: colorForRank(rank), label: SIZE_RANK_LABELS[rank] ?? `Rank ${rank}` }))
+    if (hasNoData) items.push({ key: NO_DATA_KEY, color: NO_DATA_FILL, label: 'No data' })
     return items
   }, [warehouseSegments])
+
+  const visibleWarehouseSegments = useMemo(
+    () =>
+      warehouseSegments.filter((seg) => {
+        const key = seg.size_rank === null || seg.size_rank === undefined ? NO_DATA_KEY : String(seg.size_rank)
+        return !hiddenSizes.has(key)
+      }),
+    [warehouseSegments, hiddenSizes]
+  )
 
   const intervalsByCluster = useMemo(() => {
     const map = new Map<number, ClusterInterval[]>()
@@ -355,15 +376,10 @@ export function WarehouseActivityTimeline({ intervals, sizeIntervals, rangeStart
 
       {warehouseSegments.length > 0 && (
         <>
-          {renderRow('warehouse', 'Warehouse', warehouseSegments, (seg) => colorForRank(seg.size_rank ?? null))}
+          {renderRow('warehouse', 'Warehouse', visibleWarehouseSegments, (seg) => colorForRank(seg.size_rank ?? null))}
           {legendItems.length > 0 && (
-            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', margin: '4px 0 8px', paddingLeft: LABEL_WIDTH }}>
-              {legendItems.map((item) => (
-                <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <span style={{ width: 10, height: 10, borderRadius: 2, background: item.color, display: 'inline-block' }} />
-                  <span style={{ fontFamily: AXIS.fontFamily, fontSize: AXIS.fontSize, color: AXIS.fill }}>{item.label}</span>
-                </div>
-              ))}
+            <div style={{ margin: '4px 0 8px' }}>
+              <SeriesLegend items={legendItems} hidden={hiddenSizes} toggle={toggleSize} isLight={isLight} />
             </div>
           )}
           <div style={{ height: 1, background: GRID, margin: '4px 0' }} />

@@ -162,6 +162,8 @@ filtered_exec AS (
 ),
 run_windows_filtered AS (
   SELECT
+    q.warehouse_name,
+    q.cluster_number,
     q.end_time - q.execution_time AS run_start_ms,
     q.end_time AS run_end_ms
   FROM `keebo-portal.k3o_prd_ORGID_000_tf.query_history_view_tf` q
@@ -174,32 +176,67 @@ run_windows_filtered AS (
     {{FILTER_CLAUSE}}
 ),
 concurrency_events AS (
-  SELECT run_start_ms AS t, 1 AS delta FROM run_windows_filtered
+  SELECT warehouse_name, cluster_number, run_start_ms AS t, 1 AS delta FROM run_windows_filtered
   UNION ALL
-  SELECT run_end_ms AS t, -1 AS delta FROM run_windows_filtered
+  SELECT warehouse_name, cluster_number, run_end_ms AS t, -1 AS delta FROM run_windows_filtered
 ),
-concurrency_sweep AS (
+-- Per-warehouse sweep: queries on different warehouses never contend for the
+-- same compute, so the running count is swept independently per warehouse
+-- (clusters within a warehouse are merged here, since "Max Concurrent" is a
+-- per-warehouse figure) then maxed across the selected warehouses per period.
+warehouse_sweep AS (
   SELECT
+    warehouse_name,
     t,
-    SUM(delta) OVER (ORDER BY t, delta ASC) AS running_count,
-    LEAD(t) OVER (ORDER BY t, delta ASC) AS next_t
+    SUM(delta) OVER (PARTITION BY warehouse_name ORDER BY t, delta ASC) AS running_count,
+    LEAD(t) OVER (PARTITION BY warehouse_name ORDER BY t, delta ASC) AS next_t
   FROM concurrency_events
 ),
-concurrency_segments AS (
-  SELECT t AS seg_start, next_t AS seg_end, running_count
-  FROM concurrency_sweep
+warehouse_segments AS (
+  SELECT warehouse_name, t AS seg_start, next_t AS seg_end, running_count
+  FROM warehouse_sweep
   WHERE next_t IS NOT NULL
 ),
-concurrency AS (
-  SELECT
-    p.period_start,
-    MAX(s.running_count) AS concurrent_queries_max,
-    SUM(s.running_count * (LEAST(s.seg_end, p.period_end_ms) - GREATEST(s.seg_start, p.period_start_ms)))
-      / NULLIF(p.period_end_ms - p.period_start_ms, 0) AS concurrent_queries_avg
+warehouse_concurrency AS (
+  SELECT p.period_start, s.warehouse_name, MAX(s.running_count) AS max_concurrent
   FROM periods p
-  JOIN concurrency_segments s
+  JOIN warehouse_segments s
     ON s.seg_start < p.period_end_ms AND s.seg_end > p.period_start_ms
-  GROUP BY p.period_start, p.period_end_ms, p.period_start_ms
+  GROUP BY p.period_start, s.warehouse_name
+),
+concurrency AS (
+  SELECT period_start, MAX(max_concurrent) AS concurrent_queries_max
+  FROM warehouse_concurrency
+  GROUP BY period_start
+),
+-- Per-cluster sweep: each cluster of a multi-cluster warehouse is an
+-- independent compute unit, so this sweeps concurrency separately per
+-- (warehouse, cluster_number) then maxes across all clusters per period.
+cluster_sweep AS (
+  SELECT
+    warehouse_name,
+    cluster_number,
+    t,
+    SUM(delta) OVER (PARTITION BY warehouse_name, cluster_number ORDER BY t, delta ASC) AS running_count,
+    LEAD(t) OVER (PARTITION BY warehouse_name, cluster_number ORDER BY t, delta ASC) AS next_t
+  FROM concurrency_events
+),
+cluster_segments AS (
+  SELECT warehouse_name, cluster_number, t AS seg_start, next_t AS seg_end, running_count
+  FROM cluster_sweep
+  WHERE next_t IS NOT NULL
+),
+cluster_concurrency_by_cluster AS (
+  SELECT p.period_start, s.warehouse_name, s.cluster_number, MAX(s.running_count) AS max_concurrent
+  FROM periods p
+  JOIN cluster_segments s
+    ON s.seg_start < p.period_end_ms AND s.seg_end > p.period_start_ms
+  GROUP BY p.period_start, s.warehouse_name, s.cluster_number
+),
+cluster_concurrency AS (
+  SELECT period_start, MAX(max_concurrent) AS concurrent_queries_per_cluster_max
+  FROM cluster_concurrency_by_cluster
+  GROUP BY period_start
 )
 SELECT
   p.period_start,
@@ -219,7 +256,7 @@ SELECT
   e.by_error,
   SAFE_DIVIDE(u.credits_used * fe.filtered_execution_time_ms, pet.total_execution_time_ms) AS credits_used,
   c.concurrent_queries_max,
-  c.concurrent_queries_avg
+  cc.concurrent_queries_per_cluster_max
 FROM periods p
 LEFT JOIN query_volume_agg qv ON qv.period_start = p.period_start
 LEFT JOIN latency l ON l.period_start = p.period_start
@@ -231,4 +268,5 @@ LEFT JOIN usage u ON u.period_start = p.period_start
 LEFT JOIN period_exec_totals pet ON pet.period_start = p.period_start
 LEFT JOIN filtered_exec fe ON fe.period_start = p.period_start
 LEFT JOIN concurrency c ON c.period_start = p.period_start
+LEFT JOIN cluster_concurrency cc ON cc.period_start = p.period_start
 ORDER BY p.period_start

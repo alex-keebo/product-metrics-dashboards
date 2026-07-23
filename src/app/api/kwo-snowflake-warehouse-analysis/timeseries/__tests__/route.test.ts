@@ -152,12 +152,12 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     )
     const body = await res.json()
     expect(body.points[0].concurrent_queries_max).toBe(0)
-    expect(body.points[0].concurrent_queries_avg).toBe(0)
+    expect(body.points[0].concurrent_queries_per_cluster_max).toBe(0)
   })
 
   it('passes through concurrent_queries_max/avg from the sweep-line row', async () => {
     mockRunQuery.mockResolvedValue([
-      { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_avg: 2.34 },
+      { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_per_cluster_max: 2.34 },
     ])
     const { POST } = await import('../route')
     const res = await POST(
@@ -171,13 +171,13 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
     )
     const body = await res.json()
     expect(body.points[0].concurrent_queries_max).toBe(7)
-    expect(body.points[0].concurrent_queries_avg).toBe(2.34)
+    expect(body.points[0].concurrent_queries_per_cluster_max).toBe(2.34)
   })
 
-  it('coerces BigQuery NUMERIC-wrapped concurrent_queries_avg to a plain number', async () => {
+  it('coerces BigQuery NUMERIC-wrapped concurrent_queries_per_cluster_max to a plain number', async () => {
     const numericWrapper = { toString: () => '2.34000', toJSON: () => '2.34000' }
     mockRunQuery.mockResolvedValue([
-      { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_avg: numericWrapper },
+      { period_start: '2026-07-01', concurrent_queries_max: 7, concurrent_queries_per_cluster_max: numericWrapper },
     ])
     const { POST } = await import('../route')
     const res = await POST(
@@ -190,8 +190,8 @@ describe('POST /api/kwo-snowflake-warehouse-analysis/timeseries', () => {
       })
     )
     const body = await res.json()
-    expect(body.points[0].concurrent_queries_avg).toBe(2.34)
-    expect(typeof body.points[0].concurrent_queries_avg).toBe('number')
+    expect(body.points[0].concurrent_queries_per_cluster_max).toBe(2.34)
+    expect(typeof body.points[0].concurrent_queries_per_cluster_max).toBe('number')
   })
 
   it('splices the same compiled filter fragment into both the base and run_windows_filtered CTEs', async () => {

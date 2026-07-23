@@ -16,6 +16,7 @@ import {
 import { useTheme } from '@/components/layout/ThemeProvider'
 import {
   ChartWrapper,
+  UsageChart,
   SeriesTooltip,
   SeriesLegend,
   getChartLegendStyle,
@@ -212,11 +213,6 @@ export function WarehouseAnalysisCharts({
 
   const queryTypesData = useMemo(() => aggregateQueryTypes(points), [points])
 
-  const usageData = useMemo(
-    () => points.map((p) => ({ period_label_display: p.period_label_display, credits_used: p.credits_used })),
-    [points]
-  )
-
   const volumeData = useMemo(
     () =>
       points.map((p) => ({
@@ -255,7 +251,7 @@ export function WarehouseAnalysisCharts({
       points.map((p) => ({
         period_label_display: p.period_label_display,
         max: p.concurrent_queries_max,
-        avg: p.concurrent_queries_avg,
+        perCluster: p.concurrent_queries_per_cluster_max,
       })),
     [points]
   )
@@ -285,11 +281,6 @@ export function WarehouseAnalysisCharts({
     [points]
   )
 
-  const totalsUsage = useMemo(
-    () => [{ label: 'Total Credits', value: formatDecimalNumber(usageData.reduce((sum, d) => sum + d.credits_used, 0)) }],
-    [usageData]
-  )
-
   const totalsVolume = useMemo(
     () => [{ label: 'Total Queries', value: formatMetricNumber(volumeData.reduce((sum, d) => sum + d.total_query_count, 0)) }],
     [volumeData]
@@ -307,9 +298,18 @@ export function WarehouseAnalysisCharts({
   }, [points])
 
   const totalsConcurrency = useMemo(() => {
-    if (concurrencyData.length === 0) return [{ label: 'Max Concurrent', value: formatDecimalNumber(0) }]
+    if (concurrencyData.length === 0) {
+      return [
+        { label: 'Max Concurrent', value: formatDecimalNumber(0) },
+        { label: 'Max Concurrent per Cluster', value: formatDecimalNumber(0) },
+      ]
+    }
     const max = Math.max(...concurrencyData.map((d) => d.max))
-    return [{ label: 'Max Concurrent', value: formatDecimalNumber(max) }]
+    const perClusterMax = Math.max(...concurrencyData.map((d) => d.perCluster))
+    return [
+      { label: 'Max Concurrent', value: formatDecimalNumber(max) },
+      { label: 'Max Concurrent per Cluster', value: formatDecimalNumber(perClusterMax) },
+    ]
   }, [concurrencyData])
 
   const totalsExecution = useMemo(() => {
@@ -382,18 +382,7 @@ export function WarehouseAnalysisCharts({
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-      <ChartWrapper title="Usage" isLight={isLight} totals={totalsUsage} loading={loading}>
-        <ResponsiveContainer width="100%" height={220}>
-          <BarChart data={usageData} barSize={30}>
-            <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
-            <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
-            <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
-            <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits Used']} />
-            <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={staticLegendStyle} />
-            <Bar dataKey="credits_used" name="Credits Used" fill={C_NAVY} radius={[3, 3, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </ChartWrapper>
+      <UsageChart points={points} loading={loading} />
 
       <ChartWrapper
         title="Cost per 1000 Queries"
@@ -447,13 +436,13 @@ export function WarehouseAnalysisCharts({
                   toggle={makeToggle(setHiddenConcurrency)}
                   items={[
                     { key: 'max', label: 'Max Concurrent', color: C_NAVY },
-                    { key: 'avg', label: 'Avg Concurrent', color: C_DEEP },
+                    { key: 'perCluster', label: 'Max Concurrent per Cluster', color: C_DEEP },
                   ]}
                 />
               )}
             />
             <Line type="monotone" dataKey="max" name="Max Concurrent" stroke={C_NAVY} strokeWidth={2} hide={hiddenConcurrency.has('max')} {...getAreaDotProps(C_NAVY, isLight)} connectNulls />
-            <Line type="monotone" dataKey="avg" name="Avg Concurrent" stroke={C_DEEP} strokeWidth={2} hide={hiddenConcurrency.has('avg')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
+            <Line type="monotone" dataKey="perCluster" name="Max Concurrent per Cluster" stroke={C_DEEP} strokeWidth={2} hide={hiddenConcurrency.has('perCluster')} {...getAreaDotProps(C_DEEP, isLight)} connectNulls />
           </LineChart>
         </ResponsiveContainer>
       </ChartWrapper>

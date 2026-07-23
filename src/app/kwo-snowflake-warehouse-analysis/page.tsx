@@ -5,7 +5,14 @@ import { useEffect, useMemo, useState } from 'react'
 import { useTheme } from '@/components/layout/ThemeProvider'
 import { WarehouseAnalysisFilters } from '@/components/filters/WarehouseAnalysisFilters'
 import { WarehouseAnalysisCharts } from '@/components/charts/WarehouseAnalysisCharts'
-import { formatMetricNumber, formatDecimalNumber, formatBytesAsGB, ChartWrapper } from '@/components/charts/TimeSeriesCharts'
+import {
+  formatMetricNumber,
+  formatDecimalNumber,
+  formatBytesAsGB,
+  ChartWrapper,
+  UsageChart,
+  SpendDistributionChart,
+} from '@/components/charts/TimeSeriesCharts'
 import { WarehouseActivityTimeline } from '@/components/charts/WarehouseActivityTimeline'
 import { WAREHOUSE_ROW_CLUSTER_NUMBER } from '@/lib/clusterIntervals'
 import { DataTable, type Column } from '@/components/tables/DataTable'
@@ -21,6 +28,9 @@ import type {
   WarehouseAnalysisResponse,
   WarehouseOption,
   WarehouseSizeInterval,
+  WarehouseSpendResponse,
+  WarehouseUsagePoint,
+  WarehouseUsageResponse,
 } from '@/lib/types'
 
 const MAX_HOUR_RANGE_DAYS = 14
@@ -82,7 +92,7 @@ const BASE_TABLE_COLUMNS: Column<Record<string, unknown>>[] = [
   numberColumn('queue_time_p95_ms', 'P95 Queue Time (ms)'),
   numberColumn('queue_time_p99_ms', 'P99 Queue Time (ms)'),
   numberColumn('queue_time_max_ms', 'Max Queue Time (ms)'),
-  decimalColumn('concurrent_queries_avg', 'Avg Concurrency'),
+  decimalColumn('concurrent_queries_per_cluster_max', 'Max Concurrency per Cluster'),
   decimalColumn('concurrent_queries_max', 'Max Concurrency'),
   gbColumn('bytes_scanned', 'Data Scanned (GB)'),
   gbColumn('bytes_spilled_local', 'Local Spillage (GB)'),
@@ -106,17 +116,26 @@ export default function WarehouseAnalysisPage() {
 
   const [warehouses, setWarehouses] = useState<WarehouseOption[]>([])
   const [warehousesError, setWarehousesError] = useState<string | null>(null)
-  const [selectedWarehouses, setSelectedWarehouses] = useState<string[]>([])
+  const [selectedOverviewWarehouses, setSelectedOverviewWarehouses] = useState<string[]>([])
+  const [selectedWarehouse, setSelectedWarehouse] = useState<string | null>(null)
   const [selectedClusterWarehouse, setSelectedClusterWarehouse] = useState<string | null>(null)
 
   const [appliedFilter, setAppliedFilter] = useState<FilterGroup>({ id: 'root', match: 'AND', conditions: [] })
 
-  const [activeTab, setActiveTab] = useState<'query' | 'cluster'>('query')
+  const [activeTab, setActiveTab] = useState<'overview' | 'query' | 'cluster'>('overview')
 
   const [points, setPoints] = useState<WarehouseAnalysisPoint[]>([])
   const [granularityUsed, setGranularityUsed] = useState<Granularity>('day')
   const [timeseriesError, setTimeseriesError] = useState<FetchError | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const [overviewPoints, setOverviewPoints] = useState<WarehouseUsagePoint[]>([])
+  const [overviewTimeseriesError, setOverviewTimeseriesError] = useState<FetchError | null>(null)
+  const [overviewLoading, setOverviewLoading] = useState(false)
+
+  const [spendPoints, setSpendPoints] = useState<{ warehouse_name: string; credits_used: number }[]>([])
+  const [spendError, setSpendError] = useState<FetchError | null>(null)
+  const [spendLoading, setSpendLoading] = useState(false)
 
   const [clusterIntervals, setClusterIntervals] = useState<ClusterInterval[]>([])
   const [sizeIntervals, setSizeIntervals] = useState<WarehouseSizeInterval[]>([])
@@ -150,7 +169,8 @@ export default function WarehouseAnalysisPage() {
   }, [])
 
   useEffect(() => {
-    setSelectedWarehouses([])
+    setSelectedOverviewWarehouses([])
+    setSelectedWarehouse(null)
     setSelectedClusterWarehouse(null)
     if (!selectedCustomer) {
       setWarehouses([])
@@ -159,15 +179,85 @@ export default function WarehouseAnalysisPage() {
     setWarehousesError(null)
     fetch(`/api/kwo-snowflake-warehouse-analysis/warehouses?org_id=${selectedCustomer}`)
       .then(async (res) => {
-        const body = await res.json()
+        const body = (await res.json()) as WarehouseOption[]
         if (!res.ok) throw body
         setWarehouses(body)
+        setSelectedOverviewWarehouses(body.map((w) => w.warehouse_name))
       })
       .catch((err) => setWarehousesError(err.error ?? String(err)))
   }, [selectedCustomer])
 
   useEffect(() => {
-    if (!selectedCustomer || selectedWarehouses.length === 0) {
+    if (!selectedCustomer) {
+      setOverviewPoints([])
+      return
+    }
+    const controller = new AbortController()
+    setOverviewLoading(true)
+    setOverviewTimeseriesError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/usage-by-period', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: selectedOverviewWarehouses,
+        start_date: startDate,
+        end_date: endDate,
+        granularity,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as WarehouseUsageResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setOverviewPoints(body.points)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setOverviewTimeseriesError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setOverviewLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedOverviewWarehouses, startDate, endDate, granularity])
+
+  useEffect(() => {
+    if (!selectedCustomer) {
+      setSpendPoints([])
+      return
+    }
+    const controller = new AbortController()
+    setSpendLoading(true)
+    setSpendError(null)
+
+    fetch('/api/kwo-snowflake-warehouse-analysis/spend-by-warehouse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        org_id: selectedCustomer,
+        warehouse_names: selectedOverviewWarehouses,
+        start_date: startDate,
+        end_date: endDate,
+      }),
+      signal: controller.signal,
+    })
+      .then(async (res) => {
+        const body = (await res.json()) as WarehouseSpendResponse & { error?: string; code?: string }
+        if (!res.ok) throw body
+        setSpendPoints(body.points)
+      })
+      .catch((err) => {
+        if (err.name === 'AbortError') return
+        setSpendError({ message: err.error ?? String(err), code: err.code })
+      })
+      .finally(() => setSpendLoading(false))
+
+    return () => controller.abort()
+  }, [selectedCustomer, selectedOverviewWarehouses, startDate, endDate])
+
+  useEffect(() => {
+    if (!selectedCustomer || !selectedWarehouse) {
       setPoints([])
       return
     }
@@ -180,7 +270,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_names: selectedWarehouses,
+        warehouse_names: [selectedWarehouse],
         start_date: startDate,
         end_date: endDate,
         granularity,
@@ -201,7 +291,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouses, startDate, endDate, granularity, appliedFilter])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, granularity, appliedFilter])
 
   useEffect(() => {
     if (!selectedCustomer || !selectedClusterWarehouse) {
@@ -237,7 +327,7 @@ export default function WarehouseAnalysisPage() {
   }, [selectedCustomer, selectedClusterWarehouse, startDate, endDate])
 
   useEffect(() => {
-    if (!selectedCustomer || selectedWarehouses.length === 0) {
+    if (!selectedCustomer || !selectedWarehouse) {
       setHistogramBuckets([])
       return
     }
@@ -250,7 +340,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_names: selectedWarehouses,
+        warehouse_names: [selectedWarehouse],
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -269,10 +359,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || selectedWarehouses.length === 0) {
+    if (!selectedCustomer || !selectedWarehouse) {
       setDataScannedHistogramBuckets([])
       return
     }
@@ -285,7 +375,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_names: selectedWarehouses,
+        warehouse_names: [selectedWarehouse],
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -304,10 +394,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setDataScannedHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || selectedWarehouses.length === 0) {
+    if (!selectedCustomer || !selectedWarehouse) {
       setSpillageHistogramBuckets([])
       return
     }
@@ -320,7 +410,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_names: selectedWarehouses,
+        warehouse_names: [selectedWarehouse],
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -339,10 +429,10 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setSpillageHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   useEffect(() => {
-    if (!selectedCustomer || selectedWarehouses.length === 0) {
+    if (!selectedCustomer || !selectedWarehouse) {
       setCompileTimeHistogramBuckets([])
       return
     }
@@ -355,7 +445,7 @@ export default function WarehouseAnalysisPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         org_id: selectedCustomer,
-        warehouse_names: selectedWarehouses,
+        warehouse_names: [selectedWarehouse],
         start_date: startDate,
         end_date: endDate,
         filter_conditions: appliedFilter,
@@ -374,7 +464,7 @@ export default function WarehouseAnalysisPage() {
       .finally(() => setCompileTimeHistogramLoading(false))
 
     return () => controller.abort()
-  }, [selectedCustomer, selectedWarehouses, startDate, endDate, appliedFilter])
+  }, [selectedCustomer, selectedWarehouse, startDate, endDate, appliedFilter])
 
   const periodColumn: Column<Record<string, unknown>> = useMemo(
     () => ({
@@ -431,7 +521,29 @@ export default function WarehouseAnalysisPage() {
 
       {customersError && <SectionError error={customersError} />}
 
-      {activeTab === 'query' ? (
+      {activeTab === 'overview' && (
+        <WarehouseAnalysisFilters
+          variant="overview"
+          customers={customers}
+          selectedCustomer={selectedCustomer}
+          onCustomerChange={setSelectedCustomer}
+          startDate={startDate}
+          endDate={endDate}
+          onRangeChange={(start, end) => {
+            setStartDate(start)
+            setEndDate(end)
+          }}
+          granularity={granularity}
+          onGranularityChange={setGranularity}
+          warehouses={warehouses}
+          selectedWarehouses={selectedOverviewWarehouses}
+          onWarehousesChange={setSelectedOverviewWarehouses}
+          warehousesDisabled={!selectedCustomer}
+          warehousesError={warehousesError}
+        />
+      )}
+
+      {activeTab === 'query' && (
         <WarehouseAnalysisFilters
           variant="query"
           customers={customers}
@@ -446,14 +558,16 @@ export default function WarehouseAnalysisPage() {
           granularity={granularity}
           onGranularityChange={setGranularity}
           warehouses={warehouses}
-          selectedWarehouses={selectedWarehouses}
-          onWarehousesChange={setSelectedWarehouses}
+          selectedWarehouse={selectedWarehouse}
+          onWarehouseChange={setSelectedWarehouse}
           warehousesDisabled={!selectedCustomer}
           warehousesError={warehousesError}
           appliedFilter={appliedFilter}
           onFilterApply={setAppliedFilter}
         />
-      ) : (
+      )}
+
+      {activeTab === 'cluster' && (
         <WarehouseAnalysisFilters
           variant="cluster"
           customers={customers}
@@ -482,12 +596,19 @@ export default function WarehouseAnalysisPage() {
       <div className="flex gap-4 border-b border-border">
         <button
           type="button"
+          onClick={() => setActiveTab('overview')}
+          className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
+            activeTab === 'overview'
+              ? 'border-primary text-foreground'
+              : 'border-transparent text-muted-foreground hover:text-foreground'
+          }`}
+        >
+          Overview
+        </button>
+        <button
+          type="button"
           onClick={() => {
-            setSelectedWarehouses((prev) =>
-              selectedClusterWarehouse && !prev.includes(selectedClusterWarehouse)
-                ? [...prev, selectedClusterWarehouse]
-                : prev
-            )
+            setSelectedWarehouse((prev) => prev ?? selectedClusterWarehouse)
             setActiveTab('query')
           }}
           className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
@@ -496,12 +617,12 @@ export default function WarehouseAnalysisPage() {
               : 'border-transparent text-muted-foreground hover:text-foreground'
           }`}
         >
-          Query analysis
+          Warehouse analysis
         </button>
         <button
           type="button"
           onClick={() => {
-            setSelectedClusterWarehouse(selectedWarehouses[0] ?? null)
+            setSelectedClusterWarehouse((prev) => prev ?? selectedWarehouse)
             setActiveTab('cluster')
           }}
           className={`px-1 pb-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
@@ -514,39 +635,57 @@ export default function WarehouseAnalysisPage() {
         </button>
       </div>
 
+      {activeTab === 'overview' && (
+        <>
+          {!selectedCustomer && (
+            <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view an overview.</div>
+          )}
+
+          {selectedCustomer && overviewTimeseriesError && <SectionError error={overviewTimeseriesError} />}
+          {selectedCustomer && spendError && <SectionError error={spendError} />}
+
+          {selectedCustomer && (
+            <>
+              <UsageChart points={overviewPoints} loading={overviewLoading} />
+              <SpendDistributionChart points={spendPoints} loading={spendLoading} />
+            </>
+          )}
+        </>
+      )}
+
       {activeTab === 'query' && (
         <>
           {!selectedCustomer && (
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Customer to view warehouse analysis.</div>
           )}
 
-          {selectedCustomer && selectedWarehouses.length === 0 && (
+          {selectedCustomer && !selectedWarehouse && (
             <div className="p-8 text-center text-muted-foreground text-sm">Select a Warehouse to view query performance.</div>
           )}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && timeseriesError && <SectionError error={timeseriesError} />}
+          {selectedCustomer && selectedWarehouse && timeseriesError && <SectionError error={timeseriesError} />}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && !histogramLoading && histogramError && <SectionError error={histogramError} />}
+          {selectedCustomer && selectedWarehouse && !histogramLoading && histogramError && <SectionError error={histogramError} />}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && !dataScannedHistogramLoading && dataScannedHistogramError && (
+          {selectedCustomer && selectedWarehouse && !dataScannedHistogramLoading && dataScannedHistogramError && (
             <SectionError error={dataScannedHistogramError} />
           )}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && !spillageHistogramLoading && spillageHistogramError && (
+          {selectedCustomer && selectedWarehouse && !spillageHistogramLoading && spillageHistogramError && (
             <SectionError error={spillageHistogramError} />
           )}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && !compileTimeHistogramLoading && compileTimeHistogramError && (
+          {selectedCustomer && selectedWarehouse && !compileTimeHistogramLoading && compileTimeHistogramError && (
             <SectionError error={compileTimeHistogramError} />
           )}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && !timeseriesError && !sectionLoading && !sectionHasData && (
+          {selectedCustomer && selectedWarehouse && !timeseriesError && !sectionLoading && !sectionHasData && (
             <div className="p-8 text-center text-muted-foreground text-sm">
               No query history for this warehouse in the selected range.
             </div>
           )}
 
-          {selectedCustomer && selectedWarehouses.length > 0 && !timeseriesError && (sectionLoading || sectionHasData) && (
+          {selectedCustomer && selectedWarehouse && !timeseriesError && (sectionLoading || sectionHasData) && (
             <>
               <WarehouseAnalysisCharts
                 points={points}

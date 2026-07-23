@@ -28,11 +28,18 @@ interface CommonProps {
 
 type WarehouseAnalysisFiltersProps =
   | (CommonProps & {
-      variant: 'query'
+      variant: 'overview'
       granularity: Granularity
       onGranularityChange: (g: Granularity) => void
       selectedWarehouses: string[]
       onWarehousesChange: (names: string[]) => void
+    })
+  | (CommonProps & {
+      variant: 'query'
+      granularity: Granularity
+      onGranularityChange: (g: Granularity) => void
+      selectedWarehouse: string | null
+      onWarehouseChange: (warehouseName: string | null) => void
       appliedFilter: FilterGroup
       onFilterApply: (next: FilterGroup) => void
     })
@@ -73,7 +80,7 @@ export function WarehouseAnalysisFilters(props: WarehouseAnalysisFiltersProps) {
         placeholder="Select customer ..."
       />
       <DateRangePicker startDate={startDate} endDate={endDate} onRangeChange={onRangeChange} />
-      {props.variant === 'query' && (
+      {(props.variant === 'query' || props.variant === 'overview') && (
         <Dropdown
           mode="single"
           label="Group By"
@@ -83,7 +90,7 @@ export function WarehouseAnalysisFilters(props: WarehouseAnalysisFiltersProps) {
         />
       )}
       <div className="flex flex-col gap-1">
-        {props.variant === 'query' ? (
+        {props.variant === 'overview' ? (
           <Dropdown
             mode="multi"
             label="Warehouse"
@@ -92,7 +99,7 @@ export function WarehouseAnalysisFilters(props: WarehouseAnalysisFiltersProps) {
             onChange={props.onWarehousesChange}
             disabled={warehousesDisabled}
             testId="warehouse-select-trigger"
-            placeholder="Select warehouse ..."
+            placeholder="All warehouses"
             showFilter={{
               key: 'costSavingEnabled',
               trueLabel: 'Optimized',

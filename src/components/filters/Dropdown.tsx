@@ -109,14 +109,28 @@ export function Dropdown(props: DropdownProps) {
     onChange(selected.includes(value) ? selected.filter((v) => v !== value) : [...selected, value])
   }
 
-  function toggleSelectAllMulti() {
+  function toggleSelectAllFiltered() {
     if (props.mode !== 'multi') return
     const { selected, onChange } = props
-    const allSelected = options.length > 0 && selected.length === options.length
-    onChange(allSelected ? [] : options.map((o) => o.value))
+    const filteredValues = filtered.map((o) => o.value)
+    if (allFilteredSelected) {
+      onChange(selected.filter((v) => !filteredValues.includes(v)))
+    } else {
+      onChange(Array.from(new Set([...selected, ...filteredValues])))
+    }
   }
 
-  const allItemsSelected = props.mode === 'multi' && options.length > 0 && props.selected.length === options.length
+  const allFilteredSelected =
+    props.mode === 'multi' && filtered.length > 0 && filtered.every((o) => props.selected.includes(o.value))
+
+  const searchOnlyFiltered = useMemo(() => {
+    if (!search.trim()) return options
+    const q = search.trim().toLowerCase()
+    return options.filter((opt) => opt.label.toLowerCase().includes(q))
+  }, [options, search])
+
+  const showTrueCount = showFilter ? searchOnlyFiltered.filter(showFilter.predicate).length : 0
+  const showFalseCount = showFilter ? searchOnlyFiltered.length - showTrueCount : 0
 
   return (
     <div className="inline-flex flex-col gap-1" ref={ref}>
@@ -147,8 +161,8 @@ export function Dropdown(props: DropdownProps) {
               <div className="flex items-center gap-3 px-3 py-2 border-b border-border text-xs whitespace-nowrap">
                 <span className="text-muted-foreground">Show:</span>
                 <ShowCheckbox label={`All (${options.length})`} checked={allShowChecked} onClick={toggleShowAll} />
-                <ShowCheckbox label={showFilter.trueLabel} checked={showTrue} onClick={() => setShowTrue((v) => !v)} />
-                <ShowCheckbox label={showFilter.falseLabel} checked={showFalse} onClick={() => setShowFalse((v) => !v)} />
+                <ShowCheckbox label={`${showFilter.trueLabel} (${showTrueCount})`} checked={showTrue} onClick={() => setShowTrue((v) => !v)} />
+                <ShowCheckbox label={`${showFilter.falseLabel} (${showFalseCount})`} checked={showFalse} onClick={() => setShowFalse((v) => !v)} />
               </div>
             )}
 
@@ -172,11 +186,11 @@ export function Dropdown(props: DropdownProps) {
               {props.mode === 'multi' && filtered.length > 0 && (
                 <button
                   type="button"
-                  onClick={toggleSelectAllMulti}
+                  onClick={toggleSelectAllFiltered}
                   className="flex items-center gap-2 w-full px-3 py-2 text-sm text-popover-foreground hover:bg-secondary border-b border-border whitespace-nowrap"
                 >
-                  <CheckboxSquare checked={allItemsSelected} />
-                  Select All
+                  <CheckboxSquare checked={allFilteredSelected} />
+                  {`Select all filtered (${filtered.length})`}
                 </button>
               )}
 

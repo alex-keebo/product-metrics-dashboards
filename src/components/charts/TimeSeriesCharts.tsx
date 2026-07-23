@@ -448,6 +448,16 @@ export function ChartWrapper({ title, children, isLight, height, totals, loading
 
 
 
+function smartTruncateLabel(full: string, maxChars: number, tailChars = 20): string {
+  if (full.length <= maxChars) return full
+  const ellipsis = '…'
+  if (maxChars <= tailChars + ellipsis.length) {
+    return ellipsis + full.slice(full.length - Math.max(0, maxChars - ellipsis.length))
+  }
+  const headLen = maxChars - tailChars - ellipsis.length
+  return full.slice(0, headLen) + ellipsis + full.slice(full.length - tailChars)
+}
+
 export interface SimpleBarChartProps {
   data: { label: string; value: number }[]
   isLight: boolean
@@ -501,7 +511,7 @@ export function SimpleBarChart({
             width={yAxisWidth}
             tick={(props: { x: string | number; y: string | number; payload: { value: string } }) => {
               const full = props.payload.value
-              const label = full.length > labelMaxChars ? full.slice(0, labelMaxChars) + '…' : full
+              const label = smartTruncateLabel(full, labelMaxChars)
               return (
                 <g transform={`translate(${props.x},${props.y})`}>
                   <title>{full}</title>
@@ -555,6 +565,87 @@ export function SimpleBarChart({
         <Bar dataKey="value" fill={barColor} radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
+  )
+}
+
+interface UsageChartPoint {
+  period_label_display: string
+  credits_used: number
+}
+
+interface UsageChartProps {
+  points: UsageChartPoint[]
+  loading?: boolean
+}
+
+export function UsageChart({ points, loading }: UsageChartProps) {
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
+  const GRID = isLight ? LIGHT_GRID : DARK_GRID
+  const AXIS = isLight ? LIGHT_AXIS : DARK_AXIS
+  const TT = isLight ? LIGHT_TOOLTIP : DARK_TOOLTIP
+  const cursorFill = isLight ? LIGHT_CURSOR_FILL : DARK_CURSOR_FILL
+  const legendStyle = getChartLegendStyle(isLight)
+  const staticLegendStyle = { ...legendStyle, cursor: 'default' }
+
+  const totalsUsage = [
+    { label: 'Total Credits', value: formatDecimalNumber(points.reduce((sum, p) => sum + p.credits_used, 0)) },
+  ]
+
+  return (
+    <ChartWrapper title="Usage" isLight={isLight} totals={totalsUsage} loading={loading}>
+      <ResponsiveContainer width="100%" height={220}>
+        <BarChart data={points} barSize={30}>
+          <CartesianGrid strokeDasharray="3 3" stroke={GRID} vertical={false} />
+          <XAxis dataKey="period_label_display" tick={AXIS} axisLine={false} tickLine={false} />
+          <YAxis tick={AXIS} axisLine={false} tickLine={false} tickFormatter={(v: number) => formatDecimalNumber(v)} />
+          <Tooltip {...TT} cursor={{ fill: cursorFill }} formatter={(v) => [formatDecimalNumber(Number(v)), 'Credits Used']} />
+          <Legend verticalAlign="bottom" iconType="square" iconSize={20} formatter={() => 'Credits Used'} wrapperStyle={staticLegendStyle} />
+          <Bar dataKey="credits_used" name="Credits Used" fill={C_NAVY} radius={[3, 3, 0, 0]} />
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  )
+}
+
+interface SpendDistributionPoint {
+  warehouse_name: string
+  credits_used: number
+}
+
+interface SpendDistributionChartProps {
+  points: SpendDistributionPoint[]
+  loading: boolean
+}
+
+const SPEND_ROW_HEIGHT = 32
+
+export function SpendDistributionChart({ points, loading }: SpendDistributionChartProps) {
+  const { theme } = useTheme()
+  const isLight = theme === 'light'
+
+  const sorted = [...points].sort((a, b) => b.credits_used - a.credits_used)
+  const data = sorted.map((p) => ({ label: p.warehouse_name, value: p.credits_used }))
+
+  const totalsSpend = [
+    { label: 'Total Credits', value: formatDecimalNumber(points.reduce((sum, p) => sum + p.credits_used, 0)) },
+  ]
+
+  return (
+    <ChartWrapper title="Spend Distribution" isLight={isLight} totals={totalsSpend} loading={loading}>
+      <div style={{ maxHeight: 220, overflowY: 'auto' }}>
+        <SimpleBarChart
+          data={data}
+          isLight={isLight}
+          direction="horizontal"
+          formatter={formatDecimalNumber}
+          valueName="Credits Used"
+          height={Math.max(220, data.length * SPEND_ROW_HEIGHT)}
+          yAxisWidth={240}
+          labelMaxChars={56}
+        />
+      </div>
+    </ChartWrapper>
   )
 }
 
